@@ -1,6 +1,6 @@
 NAME = webserv
 
-HEADERS = 
+HEADERS = Global.hpp Server.hpp Client.hpp Location.hpp Request.hpp Response.hpp Colors.hpp
 
 SRC = webserv.cpp 
 

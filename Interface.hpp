@@ -1,5 +1,5 @@
 #include <vector>
-#include "server.hpp"
+#include "Server.hpp"
 
 class Interface
 {

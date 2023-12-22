@@ -7,6 +7,7 @@
 #include "Location.hpp"
 #include <poll.h>
 #include "Colors.hpp"
+#include <fcntl.h>
 
 class Server
 {
@@ -21,7 +22,7 @@ class Server
 		Server();
 		~Server();
 
-		Server(unsigned int port);
+		Server(unsigned int port, std::string host);
 		unsigned int getPort() const;
 		unsigned int getSocket() const;
 		std::vector<Client>& getClients();
@@ -31,19 +32,14 @@ class Server
 
 		void	addClient();
 		bool	processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, int event);
-		bool	isClient(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, int event);
+		bool	isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it);
 		void	logClients();
 		void	removeClient(std::vector<struct pollfd> &pollfds, std::vector<Client>::iterator &it);
 };
 
-Server::Server()
-{
-}
+Server::Server() {}
 
-Server::Server(unsigned int port)
-{
-	this->port = port;
-}
+Server::Server(unsigned int port, std::string host) : port(port), host(host) {}
 
 Server::~Server()
 {
@@ -75,6 +71,7 @@ void	Server::addClient() {
 	int clientSocket = accept(this->socket, (struct sockaddr *)&clientAddress, &s_size);
 	if (clientSocket == -1)
 	    perror("accept");
+	fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
 	Client newClient(clientSocket, clientAddress);
 	this->clients.push_back(newClient);
 	std::cout << GREEN << "server active in port: " << this->port << " accepted new request" << RESET << std::endl;
@@ -86,28 +83,22 @@ void	Server::removeClient(std::vector<struct pollfd> &pollfds, std::vector<Clien
 
 	for (it2 = pollfds.begin(); it2 != pollfds.end(); it2++) {
 		if (it2->fd == it->getFd()) {
+			// close file descriptor related to this client
+			std::cout << RED << "Client with fd: " << it2->fd << " disconnected" << RESET << std::endl;
+			close(it->getFd());
+			// erase it from pollfds vector
 			pollfds.erase(it2);
 			// nfds--
 			break;
 		}
 	}
 	this->clients.erase(it);
-	std::cout << RED << "Client with fd: " << it->getFd() << " disconnected" << RESET << std::endl;
 }
 
-bool	Server::isClient(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, int event) {
-	std::vector<Client>::iterator it;
-
+bool	Server::isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it) {
 	for (it = this->clients.begin(); it != this->clients.end(); it++) {
-		if (it->getFd() == pollfd->fd) {
-			if (event == POLLIN)
-				it->readRequest(pollfd);
-			else if (event == POLLOUT)
-				it->sendResponse();
-			else if (event == POLLHUP)
-				this->removeClient(pollfds, it);
+		if (it->getFd() == pollfd->fd)
 			return true;
-		}
 	}
 	return false;
 }
@@ -124,9 +115,15 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 		}
 		else if (search for fd in this server) {
 			then : already a connected client
-			if (event == POLLIN)
-				-> perform read action
+			if (event == POLLIN) {
+				-> read request
+				-> parse it
+				-> fill members
+				-> validate request
+				// -> perform read action
+			}
 			else if (event == POLLOUT)
+				-> generate response
 				-> perform write action
 			else if (event == POLLHUB)
 				-> delete client
@@ -146,18 +143,33 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 	else if (event == POLLHUP)
 		val = "POLLHUP";
 	std::cout << BLUE << "-> event: " << val << " occured in fd: " << pollfd->fd << RESET << std::endl;
+
+	std::vector<Client>::iterator it;
+
 	if (pollfd->fd == this->socket) {
 		this->addClient();
 		return true;
 	}
-	else if (this->isClient(pollfds, pollfd, event))
+	else if (this->isClient(pollfd, it))
 	{
+		if (event == POLLIN) {
+			it->readRequest(pollfd);
+			/*
+				-> parse it
+					generate response if needed, ex: bad request...
+				-> assign Client Request members
+				-> 
+			*/
+		}
+		else if (event == POLLOUT) {
+			it->sendResponse(this->host);
+		}
+		else if (event == POLLHUP) {
+			this->removeClient(pollfds, it);
+		}
 		return true;
 	}
-	else {
-
-	}
-		// do nothing
+	// do nothing
 	// std::cout << "in processFd(), server with socket: " << this->socket << ", fd: " << fd << std::endl;
 	return false;
 }

@@ -1,6 +1,6 @@
 #pragma once
 #include <iostream>
-#include "server.hpp"
+#include "Server.hpp"
 
 class Global
 {
@@ -8,8 +8,6 @@ class Global
 		std::vector<Server>			servers;
 		std::vector<struct pollfd>	pollfds;
 		nfds_t						nfds;
-		// std::vector<int> 			servers_fds;
-		// std::vector<int> 			clients_fds;
 
 	public:
 		Global();
@@ -73,6 +71,7 @@ void Global::forgetFd(int fd) {
 
 void Global::checkAndProcessFd(struct pollfd *pollfd) {
 	std::vector<Server>::iterator it;
+
 	if (((pollfd)->revents & POLLIN) == POLLIN) {
 		for (it = this->servers.begin(); it != this->servers.end(); it++) {
 			unsigned long sizeBefore = it->getClients().size();
@@ -84,7 +83,7 @@ void Global::checkAndProcessFd(struct pollfd *pollfd) {
 				if (clients.size() > sizeBefore) {
 					/*
 						then : a new client added
-						-> should add it to pollfds
+						-> should add it to pollfds to monitor
 					*/
 					struct pollfd fd;
 					fd.fd = clients[clients.size() - 1].getFd();

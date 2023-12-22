@@ -13,3 +13,6 @@ class Response {
         const std::string& getBody() const;
         int getStatus() const;
 };
+
+Response::Response() {}
+Response::~Response() {}

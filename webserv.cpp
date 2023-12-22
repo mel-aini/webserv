@@ -9,6 +9,7 @@
 #include "Colors.hpp"
 #include <sys/types.h>
 #include <netdb.h>
+#include <fcntl.h>
 
 #define PORT 8000
 
@@ -17,14 +18,6 @@ enum mothods {
     POST,
     DELETE
 };
-
-void handle_request(int socket)
-{
-    char buf2[1000] = "HTTP/1.1 200 OK\r\n\r\n<h1 style=\"color: #000000\">Hello World!</h1>";
-    int b = send(socket, buf2, sizeof(buf2), 0);
-    std::cout << "b: " << b << std::endl;
-    close(socket);
-}
 
 void create_servers(Global& global)
 {
@@ -59,7 +52,7 @@ void create_servers(Global& global)
             it = servers.erase(it);
             continue;
         }
-
+        fcntl(sockfd, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
         it->setSocket(sockfd);
     
         int optval = 1;
@@ -107,9 +100,9 @@ int main()
 {
     Global global;
     // -> parsing
-    Server server1(8000);
-    // Server server2(8001);
-    // Server server3(8002);
+    Server server1(8000, "host1");
+    // Server server2(8001, "host2");
+    // Server server3(8002, "host3");
     global.addServer(server1);
     // global.addServer(server2);
     // global.addServer(server3);
@@ -152,52 +145,26 @@ int main()
         */
         pollfds = &global.getPollfds()[0];
 
-        int fd = poll(pollfds, global.getNfds(), 1000);
+        int fd = poll(pollfds, global.getNfds(), 5000);
         if (fd == -1) {
             perror("poll");
             continue;
         }
         else if (fd == 0) {
             // std::cout << "no event occurs in that specified time" << std::endl;
-            // no event occurs in that specified time
-            std::vector<Server> &servers = global.getServers();
-            std::vector<Server>::iterator it;
+            // // no event occurs in that specified time
+            // std::vector<Server> &servers = global.getServers();
+            // std::vector<Server>::iterator it;
             
-            for (it = servers.begin(); it != servers.end(); it++)
-                it->logClients();
+            // for (it = servers.begin(); it != servers.end(); it++)
+            //     it->logClients();
             continue;
         }
-        
+
         for (unsigned int i = 0; i < global.getNfds(); i++) {
             if ((pollfds + i)->fd > 0) {
                 global.checkAndProcessFd(pollfds + i);
             }
         }
-        // struct sockaddr_in client_address;
-        // socklen_t s_size = sizeof(client_address);
-
-        // int clientSocket = accept(sockfd, (struct sockaddr *)&client_address, &s_size);
-        // if (clientSocket == -1)
-        // {
-        //     perror("accept");
-        //     continue ;
-        // }
-
-        // char buf[1000] = {0};
-        // if (recv(clientSocket, buf, sizeof(buf), 0) == -1) {
-        //     perror("recv");
-        //     continue ;
-        // }
-        // std::cout << "client IP: ";
-        // std::cout << client_address.sin_addr.s_addr << std::endl;
-        // std::cout << "HttpMessage: " << std::endl;
-        // std::cout << buf;
-        // parse httpmessage
-        // method GET | POST | DELETE
-        // url : /favicon.ico
-        
-        // handle_request(clientSocket);
     }
-
-    // close(sockfd);
 }
