@@ -280,9 +280,9 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 			tokens.push_back(tokenizeWords(END_OF_LINE, "eol"));
 		// }
 	}
-	cout << tokens.size() << endl;
-	for (std::vector<std::pair<int, std::string> >::iterator it = tokens.begin(); it != tokens.end(); it++)
-		cout << it->first << " >>> " << it->second << endl;
+	// cout << tokens.size() << endl;
+	// for (std::vector<std::pair<int, std::string> >::iterator it = tokens.begin(); it != tokens.end(); it++)
+	// 	cout << it->first << " >>> " << it->second << endl;
 	return (tokens);
 }
 
@@ -696,6 +696,8 @@ std::vector<Server>	parser(char *file)
 			for (; it != tokens.end(); it++)
 				if (it->first != END_OF_LINE)
 					break ;
+			if (it == tokens.end())
+				printError("server: open bracket required");
 			if ((it->first == OPEN_BRACKET) && ((it + 1)->first == END_OF_BRACKET))
 				it += 2;
 			else
@@ -703,6 +705,8 @@ std::vector<Server>	parser(char *file)
 			for (; it != tokens.end(); it++)
 				if (it->first != END_OF_LINE)
 					break ;
+			if (it == tokens.end())
+				printError("server: close bracket required");
 			bool	hasListen = false;
 			bool	hasServerName = false;
 			for (; it != tokens.end(); it++)
@@ -730,6 +734,8 @@ std::vector<Server>	parser(char *file)
 						for (; it != tokens.end(); it++)
 							if (it->first != END_OF_LINE)
 								break ;
+						if (it == tokens.end())
+							printError("location: open bracket required");
 						if ((it->first == OPEN_BRACKET) && ((it + 1)->first == END_OF_BRACKET))
 							it += 2;
 						else
@@ -737,16 +743,20 @@ std::vector<Server>	parser(char *file)
 					}
 					else
 						printError("location: invalid path");
-					t_checkDup	check;
-					std::memset(&check, 0, sizeof(t_checkDup));
 					for (; it != tokens.end(); it++)
 						if (it->first != END_OF_LINE)
 							break ;
+					if (it == tokens.end())
+						printError("location: close bracket required");
+					t_checkDup	check;
+					std::memset(&check, 0, sizeof(t_checkDup));
 					for (; it != tokens.end(); it++)
 					{
 						for (; it != tokens.end(); it++)
 							if (it->first != END_OF_LINE)
 								break ;
+						if (it == tokens.end())
+							break ;
 						if (it->first == ROOT)
 							tmpLocation.setRoot(parseOneStrArg(it, check.hasRoot, "root"));
 						else if (it->first == INDEX)
