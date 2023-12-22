@@ -1,8 +1,9 @@
 NAME = webserv
 
-HEADERS = Global.hpp Server.hpp Client.hpp Location.hpp Request.hpp Response.hpp Colors.hpp
+HEADERS = multiplexing/Global.hpp server/Server.hpp server/Client.hpp server/Location.hpp server/Request.hpp server/Response.hpp public/Colors.hpp \
+		parsing/ConfigFile.hpp
 
-SRC = webserv.cpp 
+SRC = webserv.cpp server/Location.cpp server/Server.cpp parsing/ConfigFile.cpp server/Request.cpp server/Response.cpp multiplexing/Global.cpp server/Client.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
@@ -25,6 +26,6 @@ fclean : clean
 re : fclean all
 
 run : all clean
-	@./$(NAME)
+	@./$(NAME) webserv.conf
 
 .PHONY : clean fclean re run

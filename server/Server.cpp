@@ -1,51 +1,14 @@
-#pragma once
-#include <vector>
-#include <iostream>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include "Client.hpp"
-#include "Location.hpp"
-#include <poll.h>
-#include "Colors.hpp"
-#include <fcntl.h>
-
-class Server
-{
-	private:
-		unsigned int				port;
-		std::string					host;
-		std::vector<Location>		locations;
-		int							socket;
-		std::vector<Client>			clients;
-
-	public:
-		Server();
-		~Server();
-
-		Server(unsigned int port, std::string host);
-		unsigned int getPort() const;
-		unsigned int getSocket() const;
-		std::vector<Client>& getClients();
-
-		void	setPort(unsigned int port);
-		void	setSocket(unsigned int socket);
-
-		void	addClient();
-		bool	processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, int event);
-		bool	isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it);
-		void	logClients();
-		void	removeClient(std::vector<struct pollfd> &pollfds, std::vector<Client>::iterator &it);
-};
+#include "Server.hpp"
 
 Server::Server() {}
 
-Server::Server(unsigned int port, std::string host) : port(port), host(host) {}
+Server::Server(std::string port, std::string host) : port(port), host(host) {}
 
 Server::~Server()
 {
 }
 
-unsigned int Server::getPort() const {
+std::string Server::getPort() const {
 	return this->port;
 }
 
@@ -53,7 +16,7 @@ std::vector<Client>& Server::getClients() {
 	return this->clients;
 }
 
-void	Server::setPort(unsigned int port) {
+void	Server::setPort(std::string port) {
 	this->port = port;
 }
 
@@ -182,4 +145,25 @@ void	Server::logClients() {
 	<< " has " << YELLOW << this->clients.size() << RESET << " clients: " << std::endl;
 	for (it = this->clients.begin(); it != this->clients.end(); it++)
 		it->log();
+}
+
+void	Server::setListen(std::pair<std::string, std::string> listen)
+{
+	this->port = listen.first;
+	this->host = listen.second;
+}
+
+void	Server::setServerName(std::string serverName)
+{
+	this->serverName = serverName;
+}
+
+void	Server::setLocations(Location location)
+{
+	this->locations.push_back(location);
+}
+
+std::vector<Location>	Server::getLocations(void)
+{
+	return (this->locations);
 }

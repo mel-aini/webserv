@@ -4,14 +4,19 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #include <iostream>
-#include "Global.hpp"
+#include "multiplexing/Global.hpp"
 #include <poll.h>
-#include "Colors.hpp"
+#include "public/Colors.hpp"
 #include <sys/types.h>
 #include <netdb.h>
 #include <fcntl.h>
+#include "parsing/ConfigFile.hpp"
 
 #define PORT 8000
+
+using std::cerr;
+using std::cout;
+using std::endl;
 
 enum mothods {
     GET, 
@@ -33,9 +38,7 @@ void create_servers(Global& global)
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
 
-        std::ostringstream s;
-        s << it->getPort();
-        if (getaddrinfo("127.0.0.1", s.str().c_str(), &hints, &res) != 0) {
+        if (getaddrinfo("localhost", it->getPort().c_str(), &hints, &res) != 0) {
             perror("getaddrinfo");
             it = servers.erase(it);
             continue;
@@ -96,14 +99,20 @@ void create_servers(Global& global)
     }
 }
 
-int main()
+int main(int ac, char* av[])
 {
+    if (ac != 2)
+	{
+		cerr << "Error" << endl << "invalid arguments" << endl;
+		return (1);
+	}
     Global global;
+    global.setServers(parser(av[1]));
     // -> parsing
-    Server server1(8000, "host1");
+    // Server server1("8000", "host1");
     // Server server2(8001, "host2");
     // Server server3(8002, "host3");
-    global.addServer(server1);
+    // global.addServer(server1);
     // global.addServer(server2);
     // global.addServer(server3);
 

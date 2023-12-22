@@ -1,52 +1,4 @@
-#pragma once
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include "Colors.hpp"
-#include <poll.h>
-#include <sstream>
-#include <cstring>
-#include <string>
-#include <fstream>
-#include "Request.hpp"
-#include "Response.hpp"
-
-enum read_state {
-	REQUEST_LINE,
-	HEADERS,
-	BODY,
-	EOR,
-};
-
-class Client
-{
-	private:
-		int					fd;
-		struct sockaddr_in	address;
-		bool				resIsSent;
-		bool				reqIsArrived;
-		bool				firstInteraction;
-		struct pollfd		*pollfd;
-		Request				request;
-		Response			response;
-
-
-	public:
-		Client(int fd, struct sockaddr_in address);
-		~Client();
-
-		int			getFd() const;
-		struct sockaddr_in getAddress() const;
-		void		log();
-		void		readRequest(struct pollfd *pollfd);
-		void		sendResponse(std::string host);
-		void		reqHasRead();
-		void		resHasSent();
-		void		reset();
-		void		setPollfd(struct pollfd	*pollfd);
-		void		getMethod();
-		void		postMethod();
-		void		deleteMethod();
-};
+#include "Client.hpp"
 
 Client::Client(int fd, struct sockaddr_in address)
 	:
@@ -98,7 +50,7 @@ void		Client::readRequest(struct pollfd *pollfd) {
 	// std::cout << buf << std::endl;
 	this->request.appendToBuffer(buf);
 	std::cout << "http request message: " << std::endl;
-	std::cout << buf;
+	// std::cout << buf;
 	// this->request.resetBuffer();
 	this->reqHasRead();
 }
@@ -114,14 +66,16 @@ void		Client::sendResponse(std::string host) {
 		std::string res = "HTTP/1.1 200 OK\n";
 		std::string fileName;
 		if (host == "host1")
-			fileName = "html/index.html";
+			fileName = "public/html/index.html";
 		else if (host == "host2")
-			fileName = "html/index2.html";
+			fileName = "public/html/index2.html";
 		else if (host == "host3")
-			fileName = "html/index3.html";
+			fileName = "public/html/index3.html";
+		// std::cout << fileName;
 		std::ifstream file(fileName, std::ios::in);
 		if (!file.is_open()) {
 			std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
+			exit(1);
             return ;
 		}
 		std::stringstream sstream;

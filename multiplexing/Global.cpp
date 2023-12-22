@@ -1,31 +1,4 @@
-#pragma once
-#include <iostream>
-#include "Server.hpp"
-
-class Global
-{
-	private:
-		std::vector<Server>			servers;
-		std::vector<struct pollfd>	pollfds;
-		nfds_t						nfds;
-
-	public:
-		Global();
-		~Global();
-
-		std::vector<Server>& getServers();
-
-		std::vector<struct pollfd>& getPollfds();
-
-		nfds_t	getNfds();
-
-		void addServer(Server& server);
-
-		void monitorFd(struct pollfd fd);
-		void forgetFd(int fd);
-
-		void checkAndProcessFd(struct pollfd *pollfd);
-};
+#include "Global.hpp"
 
 Global::Global() : nfds(0)
 {
@@ -50,6 +23,10 @@ std::vector<struct pollfd>& Global::getPollfds() {
 
 nfds_t	Global::getNfds() {
 	return this->nfds;
+}
+
+void Global::setServers(std::vector<Server> servers) {
+	this->servers = servers;
 }
 
 void Global::monitorFd(struct pollfd fd) {
