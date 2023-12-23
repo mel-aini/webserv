@@ -42,6 +42,7 @@ class Location
 		void	setErrorPages(std::pair<std::string, std::vector<int> > errorPage);
 
 		std::vector<std::pair<std::string, std::vector<int> > >	getErrorPages(void);
+		std::string	getPath(void);
 };
 
 std::ostream & operator<<(std::ostream  & out, const Location & obj);

@@ -160,10 +160,35 @@ void	Server::setServerName(std::string serverName)
 
 void	Server::setLocations(Location location)
 {
+	std::vector<Location>::iterator	it = this->locations.begin();
+
+	for (; it != locations.end(); it++)
+	{
+		if (location.getPath() == it->getPath())
+		{
+			std::cerr << "server: duplicated location" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
 	this->locations.push_back(location);
 }
 
 std::vector<Location>	Server::getLocations(void)
 {
 	return (this->locations);
+}
+
+std::string	Server::getPort(void)
+{
+	return (this->port);
+}
+
+std::string	Server::getHost(void)
+{
+	return (this->host);
+}
+
+std::string	Server::getServerName(void)
+{
+	return (this->serverName);
 }

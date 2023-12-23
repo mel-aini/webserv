@@ -669,6 +669,23 @@ Location	initializeLocation()
 	location.setUploadLocation("/upload");
 	return (location);
 }
+
+void	addServers(std::vector<Server> & servers, Server & tmpServer)
+{
+	std::vector<Server>::iterator	it = servers.begin();
+
+	for (; it != servers.end(); it++)
+	{
+		if (tmpServer.getHost() == it->getHost() && tmpServer.getPort() == it->getPort()
+			&& tmpServer.getServerName() == it->getServerName())
+		{
+			std::cerr << "config file: duplicated servers" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	servers.push_back(tmpServer);
+}
+
 Server	initializeServer()
 {
 	Server server;
@@ -810,7 +827,8 @@ std::vector<Server>	parser(char *file)
 				printError("server: close bracket required");
 			if (tmpServer.getLocations().size() == 0)
 				tmpServer.setLocations(defLocation());
-			servers.push_back(tmpServer);
+			addServers(servers, tmpServer);
+			// servers.push_back(tmpServer);
 		}
 		else if (it->first != END_OF_LINE)
 			printError("config_file: invalid server context");
