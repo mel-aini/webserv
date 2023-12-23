@@ -81,7 +81,7 @@ void	Location::setUploadLocation(std::string uploadLocation)
 	this->uploadLocation = uploadLocation;
 }
 
-void	Location::setErrorPages(std::pair<std::string, std::vector<int> > errorPage)
+void	Location::setErrorPages(std::pair<std::string, std::vector<int> > errorPage, std::string num)
 {
 	std::vector<std::pair<std::string, std::vector<int> > >::iterator	it = this->errorPages.begin();
 
@@ -95,7 +95,7 @@ void	Location::setErrorPages(std::pair<std::string, std::vector<int> > errorPage
 			{
 				if (*intIt == *intIt2)
 				{
-					std::cerr << "location: duplicated error codes" << std::endl;
+					std::cerr << "location " + num + ":" + " duplicated error codes" << std::endl;
 					exit(EXIT_FAILURE);
 				}
 			}

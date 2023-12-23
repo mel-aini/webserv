@@ -35,7 +35,7 @@ class Server
 		// oth
 		void	setListen(std::pair<std::string, std::string> listen);
 		void	setServerName(std::string serverName);
-		void	setLocations(Location location);
+		void	setLocations(Location location, std::string num);
 		std::vector<Location>	getLocations(void);
 		std::string	getPort(void);
 		std::string	getHost(void);

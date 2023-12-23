@@ -158,7 +158,7 @@ void	Server::setServerName(std::string serverName)
 	this->serverName = serverName;
 }
 
-void	Server::setLocations(Location location)
+void	Server::setLocations(Location location, std::string num)
 {
 	std::vector<Location>::iterator	it = this->locations.begin();
 
@@ -166,7 +166,7 @@ void	Server::setLocations(Location location)
 	{
 		if (location.getPath() == it->getPath())
 		{
-			std::cerr << "server: duplicated location" << std::endl;
+			std::cerr << "server " + num + ":" + " duplicated location" << std::endl;
 			exit(EXIT_FAILURE);
 		}
 	}
