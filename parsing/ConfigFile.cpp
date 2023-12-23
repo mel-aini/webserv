@@ -4,6 +4,12 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+void	printError(std::string name)
+{
+	cerr << name << endl;
+	exit(EXIT_FAILURE);
+}
+
 int		toInt(std::string str)
 {
 	int					num;
@@ -40,22 +46,6 @@ int	isAlpha(std::string str)
 	while (str[i])
 	{
 		if (!isalpha(str[i]) && str[i] != '_')
-			return (0);
-		i++;
-	}
-	return (1);
-}
-
-int	isWhiteSpaces(std::string str)
-{
-	size_t i = 0;
-	size_t len = str.length();
-
-	if (len == 0)
-		return (0);
-	while (str[i])
-	{
-		if (str[i] != ' ' && str[i] != '\t' && str[i] != '\n')
 			return (0);
 		i++;
 	}
@@ -99,8 +89,12 @@ int	isFile(std::string str)
 	size_t i = 0;
 	size_t len = str.length();
 
-	if (len == 0)
-		return (0);
+	if (len < 6)
+		printError("index: you must enter a htm or html files");
+	std::string extension = str.substr(len - 5);
+	if (extension != ".html")
+		printError("index: you must enter a html files");
+	str.erase(len - 5);
 	while (str[i])
 	{
 		if (!isalnum(str[i]) && str[i] != '.' && str[i] != '_')
@@ -210,12 +204,6 @@ std::pair<int, std::string>	tokenizeWords(int tokNum, std::string word)
 	return (pair);
 }
 
-void	printError(std::string name)
-{
-	cerr << name << endl;
-	exit(EXIT_FAILURE);
-}
-
 std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 {
 	std::vector<std::pair<int, std::string> >	tokens;
@@ -230,7 +218,6 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 		ss << tmp;
 		while (ss >> data)
 		{
-		cout << data << endl;
 			if (data == "server")
 				tokens.push_back(tokenizeWords(SERVER, "server"));
 			else if (data == "server_name")
@@ -273,7 +260,6 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 				tokens.push_back(tokenizeWords(UPLOAD_LOCATION, "upload_location"));
 			else if (data == "//")
 			{
-				cout << "here\n";
 				while (ss >> data);
 				break ;
 			}
@@ -287,9 +273,9 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 			tokens.push_back(tokenizeWords(END_OF_LINE, "eol"));
 		// }
 	}
-	cout << tokens.size() << endl;
-	for (std::vector<std::pair<int, std::string> >::iterator it = tokens.begin(); it != tokens.end(); it++)
-		cout << it->first << " >>> " << it->second << endl;
+	// cout << tokens.size() << endl;
+	// for (std::vector<std::pair<int, std::string> >::iterator it = tokens.begin(); it != tokens.end(); it++)
+	// 	cout << it->first << " >>> " << it->second << endl;
 	return (tokens);
 }
 
