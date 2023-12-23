@@ -230,6 +230,7 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 		ss << tmp;
 		while (ss >> data)
 		{
+		cout << data << endl;
 			if (data == "server")
 				tokens.push_back(tokenizeWords(SERVER, "server"));
 			else if (data == "server_name")
@@ -270,6 +271,12 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 				tokens.push_back(tokenizeWords(ACCEPT_UPLOAD, "accept_upload"));
 			else if (data == "upload_location")
 				tokens.push_back(tokenizeWords(UPLOAD_LOCATION, "upload_location"));
+			else if (data == "//")
+			{
+				cout << "here\n";
+				while (ss >> data);
+				break ;
+			}
 			else if (isWord(data))
 				tokens.push_back(tokenizeWords(WORD, data));
 			else
@@ -280,9 +287,9 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 			tokens.push_back(tokenizeWords(END_OF_LINE, "eol"));
 		// }
 	}
-	// cout << tokens.size() << endl;
-	// for (std::vector<std::pair<int, std::string> >::iterator it = tokens.begin(); it != tokens.end(); it++)
-	// 	cout << it->first << " >>> " << it->second << endl;
+	cout << tokens.size() << endl;
+	for (std::vector<std::pair<int, std::string> >::iterator it = tokens.begin(); it != tokens.end(); it++)
+		cout << it->first << " >>> " << it->second << endl;
 	return (tokens);
 }
 
@@ -817,7 +824,7 @@ std::vector<Server>	parser(char *file)
 					serverHasCloseBracket = 1;
 					break ;
 				}
-				else // if (it != tokens.end() && it->first != END_OF_LINE)
+				else
 				{
 					cout << it->first << endl;
 					printError("server: invalid names \'" + it->second + "\'");
