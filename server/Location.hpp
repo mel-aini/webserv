@@ -39,9 +39,10 @@ class Location
 		void	setCgiAllowMethods(std::vector<std::string> cgiAllowMethods);
 		void	setAcceptUpload(bool acceptUpload);
 		void	setUploadLocation(std::string uploadLocation);
-		void	setErrorPages(std::pair<std::string, std::vector<int> > errorPage);
+		void	setErrorPages(std::pair<std::string, std::vector<int> > errorPage, std::string num);
 
 		std::vector<std::pair<std::string, std::vector<int> > >	getErrorPages(void);
+		std::string	getPath(void);
 };
 
 std::ostream & operator<<(std::ostream  & out, const Location & obj);

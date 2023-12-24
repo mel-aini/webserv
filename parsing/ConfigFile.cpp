@@ -4,6 +4,12 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
+void	printError(std::string name)
+{
+	cerr << name << endl;
+	exit(EXIT_FAILURE);
+}
+
 int		toInt(std::string str)
 {
 	int					num;
@@ -12,6 +18,16 @@ int		toInt(std::string str)
 	ss << str;
 	ss >> num;
 	return (num);
+}
+
+std::string	toStr(int num)
+{
+	std::string			str;
+	std::stringstream	ss;
+
+	ss << num;
+	ss >> str;
+	return (str);
 }
 
 int	isNum(std::string str)
@@ -40,22 +56,6 @@ int	isAlpha(std::string str)
 	while (str[i])
 	{
 		if (!isalpha(str[i]) && str[i] != '_')
-			return (0);
-		i++;
-	}
-	return (1);
-}
-
-int	isWhiteSpaces(std::string str)
-{
-	size_t i = 0;
-	size_t len = str.length();
-
-	if (len == 0)
-		return (0);
-	while (str[i])
-	{
-		if (str[i] != ' ' && str[i] != '\t' && str[i] != '\n')
 			return (0);
 		i++;
 	}
@@ -99,6 +99,12 @@ int	isFile(std::string str)
 	size_t i = 0;
 	size_t len = str.length();
 
+	// if (len < 6)
+	// 	printError("index: you must enter a htm or html files");
+	// std::string extension = str.substr(len - 5);
+	// if (extension != ".html")
+	// 	printError("index: you must enter a html files");
+	// str.erase(len - 5);
 	if (len == 0)
 		return (0);
 	while (str[i])
@@ -210,12 +216,6 @@ std::pair<int, std::string>	tokenizeWords(int tokNum, std::string word)
 	return (pair);
 }
 
-void	printError(std::string name)
-{
-	cerr << name << endl;
-	exit(EXIT_FAILURE);
-}
-
 std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 {
 	std::vector<std::pair<int, std::string> >	tokens;
@@ -270,6 +270,11 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 				tokens.push_back(tokenizeWords(ACCEPT_UPLOAD, "accept_upload"));
 			else if (data == "upload_location")
 				tokens.push_back(tokenizeWords(UPLOAD_LOCATION, "upload_location"));
+			else if (data == "//")
+			{
+				while (ss >> data);
+				break ;
+			}
 			else if (isWord(data))
 				tokens.push_back(tokenizeWords(WORD, data));
 			else
@@ -300,14 +305,14 @@ Location	defLocation()
 	return (Location("/", "root", index, 50, allowMethods, "", true, cgiExec, cgiAllowMethods, true, "/upload"));
 }
 
-std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &it, bool & hasData, std::string name)
+std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &it, bool & hasData, std::string name, int num)
 {
 	std::string data;
 
 	if (hasData && name == "server_name")
-		printError("server: duplicated " + name);
+		printError("server " + toStr(num) + ": duplicated " + name);
 	else if (hasData && (name == "root" || name == "return" || name == "upload_location"))
-		printError("location: duplicated " + name);
+		printError("location " + toStr(num) + ": duplicated " + name);
 	it += 1;
 	if (name == "return")
 	{
@@ -319,7 +324,7 @@ std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &
 				it += 1;
 			}
 			else
-				printError("return: URL argument required");
+				printError("location " + toStr(num) + ":" + " return: URL argument required");
 		}
 	}
 	else if (name == "upload_location")
@@ -332,7 +337,7 @@ std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &
 				it += 1;
 			}
 			else
-				printError("upload_location: path argument required");
+				printError("location " + toStr(num) + ":" + " upload_location: path argument required");
 		}
 	}
 	else if (it->first == WORD && (it + 1)->first == END_OF_LINE)
@@ -343,22 +348,32 @@ std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &
 			it += 1;
 		}
 		else
-			printError(name + ": alphanumeric argument required");
+		{
+			if (name == "root")
+				printError("location " + toStr(num) + ":" + name + " : alphanumeric argument required");
+			else if (name == "server_name")
+				printError("server " + toStr(num) + ":" + name + " : alphanumeric argument required");
+		}
 	}
 	else
-		printError(name + ": invalid argument");
+	{
+		if (name == "root")
+			printError("location " + toStr(num) + ":" + name + " : alphanumeric argument required");
+		else if (name == "server_name")
+			printError("server " + toStr(num) + ":" + name + " : alphanumeric argument required");
+	}
 	hasData = 1;
 	return (data);
 }
 
-std::pair<std::string, std::string>	parseListen(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool & hasListen)
+std::pair<std::string, std::string>	parseListen(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool & hasListen, int num)
 {
 	std::pair<std::string, std::string>	listen;
 	int hasPort = 0;
 	int hasHost = 0;
 
 	if (hasListen)
-		printError("server: duplicated listen");
+		printError("server " + toStr(num) + ":" + " duplicated listen");
 	it += 1;
 	for (; it != tokens.end(); it++)
 	{
@@ -371,10 +386,10 @@ std::pair<std::string, std::string>	parseListen(std::vector<std::pair<int, std::
 				if (num >= 0 && num < 65536)
 					listen.first = it->second;
 				else
-					printError("listen: port must be in range [0 - 65535]");
+					printError("server " + toStr(num) + ":" + " listen: port must be in range [0 - 65535]");
 			}
 			else
-				printError("listen: duplicated port");
+				printError("server " + toStr(num) + ":" + " listen: duplicated port");
 		}
 		else if (it->first == WORD && (isIp(it->second) || it->second == "localhost"))
 		{
@@ -384,23 +399,23 @@ std::pair<std::string, std::string>	parseListen(std::vector<std::pair<int, std::
 				listen.second = it->second;
 			}
 			else
-				printError("listen: duplicated host");
+				printError("server " + toStr(num) + ":" + " listen: duplicated host");
 		}
 		else if (it->first == END_OF_LINE)
 			break ;
 		else
-			printError("listen: invalid argument");
+			printError("server " + toStr(num) + ":" + " listen: invalid argument");
 	}
 	hasListen = 1;
 	return (listen);
 }
 
-std::vector<std::string>	parseIndex(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool & hasIndex)
+std::vector<std::string>	parseIndex(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool & hasIndex, int num)
 {
 	std::vector<std::string> index;
 
 	if (hasIndex)
-		printError("location: duplicated index");
+		printError("location " + toStr(num) + ":" + " duplicated index");
 	it += 1;
 	for (; it != tokens.end(); it++)
 	{
@@ -409,20 +424,19 @@ std::vector<std::string>	parseIndex(std::vector<std::pair<int, std::string> >::i
 			if (isFile(it->second))
 				index.push_back(it->second);
 			else
-				printError("index: invalid argument");
+				printError("location " + toStr(num) + ":" + " index: invalid argument");
 		}
 		else if (it->first == END_OF_LINE)
 			break ;
 		else
-			printError("index: invalid argument");
+			printError("location " + toStr(num) + ":" + " index: invalid argument");
 	}
 	hasIndex = 1;
 	return (index);
 }
 
-std::pair<std::string, std::vector<int> >	parseErrorPage(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens)
+std::pair<std::string, std::vector<int> >	parseErrorPage(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, int num)
 {
-	// std::vector<std::pair<std::string, std::vector<int> > >	errorPages;
 	int hasFile = 0;
 	int hasCodes = 0;
 
@@ -434,7 +448,7 @@ std::pair<std::string, std::vector<int> >	parseErrorPage(std::vector<std::pair<i
 		tmpErrorPage.first = it->second;
 	}
 	else
-		printError("error_page: arguments must be \'path\' then \'error codes\'");
+		printError("location " + toStr(num) + ":" + "error_page: arguments must be \'path\' then \'error codes\'");
 	it += 1;
 	for (; it != tokens.end(); it++)
 	{
@@ -447,28 +461,27 @@ std::pair<std::string, std::vector<int> >	parseErrorPage(std::vector<std::pair<i
 				if (num >= 400 && num <= 599)
 					tmpErrorPage.second.push_back(num);
 				else
-					printError("error_page: code must be in range [400 - 599]");
+					printError("location " + toStr(num) + ":" + "error_page: code must be in range [400 - 599]");
 			}
 			else
-				printError("error_page: arguments must be \'path\' then \'error codes\'");
+				printError("location " + toStr(num) + ":" + "error_page: arguments must be \'path\' then \'error codes\'");
 		}
 		else if (it->first == END_OF_LINE)
 			break ;
 		else
-			printError("error_page: arguments must be \'path\' then \'error codes\'");
+			printError("location " + toStr(num) + ":" + "error_page: arguments must be \'path\' then \'error codes\'");
 	}
 	if (!hasFile && !hasCodes)
-		printError("error_page: arguments must be \'path\' then \'error codes\'");
-	// errorPages.push_back(tmpErrorPage);
+		printError("location " + toStr(num) + ":" + "error_page: arguments must be \'path\' then \'error codes\'");
 	return (tmpErrorPage);
 }
 
-int	parseClientMaxBodySize(std::vector<std::pair<int, std::string> >::iterator &it, bool &hasClientMaxBodySize)
+int	parseClientMaxBodySize(std::vector<std::pair<int, std::string> >::iterator &it, bool &hasClientMaxBodySize, int num)
 {
 	int	clientMaxBodySize = 0;
 
 	if (hasClientMaxBodySize)
-		printError("location: duplicated client_max_body_size");
+		printError("location " + toStr(num) + ":" + " duplicated client_max_body_size");
 	if ((it + 1)->first == WORD && (it + 2)->first == END_OF_LINE)
 	{
 		it += 1;
@@ -478,24 +491,24 @@ int	parseClientMaxBodySize(std::vector<std::pair<int, std::string> >::iterator &
 			if (isNum(it->second))
 				clientMaxBodySize = toInt(it->second);
 			else
-				printError("client_ma_body_size: invalid unit \'M\' or numeric argument required");
+				printError("location " + toStr(num) + ":" + " client_ma_body_size: invalid unit \'M\' or numeric argument required");
 		}
 		else
-			printError("client_ma_body_size: invalid unit \'M\' or numeric argument required");
+			printError("location " + toStr(num) + ":" + " client_ma_body_size: invalid unit \'M\' or numeric argument required");
 		it += 1;
 	}
 	else
-		printError("client_ma_body_size: invalid argument");
+		printError("location " + toStr(num) + ":" + " client_ma_body_size: invalid argument");
 	hasClientMaxBodySize = 1;
 	return (clientMaxBodySize);
 }
 
-bool	parseBool(std::vector<std::pair<int, std::string> >::iterator &it, bool &hasData, std::string name)
+bool	parseBool(std::vector<std::pair<int, std::string> >::iterator &it, bool &hasData, std::string name, int num)
 {
 	bool	data = false;
 
 	if (hasData)
-		printError("location: duplicated " + name);
+		printError("location " + toStr(num) + ":" + " duplicated " + name);
 	if ((it + 1)->first == WORD && (it + 2)->first == END_OF_LINE)
 	{
 		it += 1;
@@ -504,26 +517,26 @@ bool	parseBool(std::vector<std::pair<int, std::string> >::iterator &it, bool &ha
 		else if (it->second == "off")
 			data = false;
 		else
-			printError(name + ": argument must be \'on\' or \'off\'");
+			printError("location " + toStr(num) + ": " + name + ": argument must be \'on\' or \'off\'");
 		it += 1;
 	}
 	else
-		printError(name + ": invalid argument");
+		printError("location " + toStr(num) + ": " + name + ": invalid argument");
 	hasData = 1;
 	return (data);
 }
 
-std::vector<std::string> parseAllowMethods(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool &hasAllowMethods)
+std::vector<std::string> parseAllowMethods(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool &hasAllowMethods, int num)
 {
 	std::vector<std::string>	allowMethods;
 	if (hasAllowMethods)
-		printError("location: duplicated allow_methods");
+		printError("location " + toStr(num) + ":" + " duplicated allow_methods");
 	int hasGet = 0;
 	int hasPost = 0;
 	int hasDelete = 0;
 
 	if ((it + 1)->first != WORD)
-		printError("allow_methods: argument must be \'GET\' or \'POST\' or \'DELETE\'");
+		printError("location " + toStr(num) + ":" + " allow_methods: argument must be \'GET\' or \'POST\' or \'DELETE\'");
 	it += 1;
 	for (; it != tokens.end(); it++)
 	{
@@ -535,7 +548,7 @@ std::vector<std::string> parseAllowMethods(std::vector<std::pair<int, std::strin
 				allowMethods.push_back(it->second);
 			}
 			else
-				printError("allow_methods: duplicated method \'GET\'");
+				printError("location " + toStr(num) + ":" + " allow_methods: duplicated method \'GET\'");
 		}
 		else if (it->second == "POST")
 		{
@@ -545,7 +558,7 @@ std::vector<std::string> parseAllowMethods(std::vector<std::pair<int, std::strin
 				allowMethods.push_back(it->second);
 			}
 			else
-				printError("allow_methods: duplicated method \'POST\'");
+				printError("location " + toStr(num) + ":" + " allow_methods: duplicated method \'POST\'");
 		}
 		else if (it->second == "DELETE")
 		{
@@ -555,23 +568,23 @@ std::vector<std::string> parseAllowMethods(std::vector<std::pair<int, std::strin
 				allowMethods.push_back(it->second);
 			}
 			else
-				printError("allow_methods: duplicated method \'DELETE\'");
+				printError("location " + toStr(num) + ":" + " allow_methods: duplicated method \'DELETE\'");
 		}
 		else if (it->first == END_OF_LINE)
 			break ;
 		else
-			printError("allow_methods: argument must be \'GET\' or \'POST\' or \'DELETE\'");
+			printError("location " + toStr(num) + ":" + " allow_methods: argument must be \'GET\' or \'POST\' or \'DELETE\'");
 	}
 	hasAllowMethods = 1;
 	return (allowMethods);
 }
 
-std::vector<std::string>	parseCgiExec(std::vector<std::pair<int, std::string> >::iterator &it, bool &hasCgiExec)
+std::vector<std::string>	parseCgiExec(std::vector<std::pair<int, std::string> >::iterator &it, bool &hasCgiExec, int num)
 {
 	std::vector<std::string>	cgiExec;
 
 	if (hasCgiExec)
-		printError("location: duplicated cgi_exec");
+		printError("location " + toStr(num) + ":" + " duplicated cgi_exec");
 	if ((it + 1)->first == WORD && (it + 2)->first == WORD && (it + 3)->first == END_OF_LINE)
 	{
 		it += 1;
@@ -581,26 +594,26 @@ std::vector<std::string>	parseCgiExec(std::vector<std::pair<int, std::string> >:
 			cgiExec.push_back((it + 1)->second);
 		}
 		else
-			printError("cgi_exec: argument must be \'path of the program\' then \'extension\'");
+			printError("location " + toStr(num) + ":" + "cgi_exec: argument must be \'path of the program\' then \'extension\'");
 		it += 2;
 	}
 	else
-		printError("cgi_exec: argument must be \'path of the program\' then \'extension\'");
+		printError("location " + toStr(num) + ":" + "cgi_exec: argument must be \'path of the program\' then \'extension\'");
 	hasCgiExec = 1;
 	return (cgiExec);
 }
 
-std::vector<std::string>	parseCgiAllowMethods(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool &hasCgiAllowMethods)
+std::vector<std::string>	parseCgiAllowMethods(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool &hasCgiAllowMethods, int num)
 {
 	std::vector<std::string>	cgiAllowMethods;
 
 	if (hasCgiAllowMethods)
-		printError("location: duplicated cgi_allow_methods");
+		printError("location " + toStr(num) + ":" + " duplicated cgi_allow_methods");
 	int hasGet = 0;
 	int hasPost = 0;
 
 	if ((it + 1)->first != WORD)
-		printError("cgi_allowed_methods: argument must be \'GET\' or \'POST\'");
+		printError("location " + toStr(num) + ":" + " cgi_allowed_methods: argument must be \'GET\' or \'POST\'");
 	it += 1;
 	for (; it != tokens.end(); it++)
 	{
@@ -612,7 +625,7 @@ std::vector<std::string>	parseCgiAllowMethods(std::vector<std::pair<int, std::st
 				cgiAllowMethods.push_back(it->second);
 			}
 			else
-				printError("cgi_allowed_methods: duplicated method \'GET\'");
+				printError("location " + toStr(num) + ":" + " cgi_allowed_methods: duplicated method \'GET\'");
 		}
 		else if (it->second == "POST")
 		{
@@ -622,12 +635,12 @@ std::vector<std::string>	parseCgiAllowMethods(std::vector<std::pair<int, std::st
 				cgiAllowMethods.push_back(it->second);
 			}
 			else
-				printError("cgi_allowed_methods: duplicated method \'POST\'");
+				printError("location " + toStr(num) + ":" + " cgi_allowed_methods: duplicated method \'POST\'");
 		}
 		else if (it->first == END_OF_LINE)
 			break ;
 		else
-			printError("cgi_allowed_methods: argument must be \'GET\' or \'POST\'");
+			printError("location " + toStr(num) + ":" + " cgi_allowed_methods: argument must be \'GET\' or \'POST\'");
 	}
 	hasCgiAllowMethods = 1;
 	return (cgiAllowMethods);
@@ -669,6 +682,23 @@ Location	initializeLocation()
 	location.setUploadLocation("/upload");
 	return (location);
 }
+
+void	addServers(std::vector<Server> & servers, Server & tmpServer)
+{
+	std::vector<Server>::iterator	it = servers.begin();
+
+	for (; it != servers.end(); it++)
+	{
+		if (tmpServer.getHost() == it->getHost() && tmpServer.getPort() == it->getPort()
+			&& tmpServer.getServerName() == it->getServerName())
+		{
+			std::cerr << "config file: duplicated servers" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	servers.push_back(tmpServer);
+}
+
 Server	initializeServer()
 {
 	Server server;
@@ -684,6 +714,7 @@ std::vector<Server>	parser(char *file)
 {
 	std::vector<std::pair<int, std::string> > tokens = tokenizer(file);
 	std::vector<Server>	servers;
+	int serverNum = 0;
 
 	for (std::vector<std::pair<int, std::string> >::iterator it = tokens.begin(); it != tokens.end(); it++)
 	{
@@ -692,21 +723,23 @@ std::vector<Server>	parser(char *file)
 
 		if (it->first == SERVER)
 		{
+			int locationNum = 0;
+			serverNum++;
 			it += 1;
 			for (; it != tokens.end(); it++)
 				if (it->first != END_OF_LINE)
 					break ;
 			if (it == tokens.end())
-				printError("server: open bracket required");
+				printError("server " + toStr(serverNum) + ": open bracket required");
 			if ((it->first == OPEN_BRACKET) && ((it + 1)->first == END_OF_BRACKET))
 				it += 2;
 			else
-				printError("server: open bracket required");
+				printError("server " + toStr(serverNum) + ": open bracket required");
 			for (; it != tokens.end(); it++)
 				if (it->first != END_OF_LINE)
 					break ;
 			if (it == tokens.end())
-				printError("server: close bracket required");
+				printError("server " + toStr(serverNum) + ": close bracket required");
 			bool	hasListen = false;
 			bool	hasServerName = false;
 			for (; it != tokens.end(); it++)
@@ -717,37 +750,38 @@ std::vector<Server>	parser(char *file)
 				if (it == tokens.end())
 					break ;
 				if (it->first == LISTEN)
-					tmpServer.setListen(parseListen(it, tokens, hasListen));
+					tmpServer.setListen(parseListen(it, tokens, hasListen, serverNum));
 				else if (it->first == SERVER_NAME)
-					tmpServer.setServerName(parseOneStrArg(it, hasServerName, "server_name"));
+					tmpServer.setServerName(parseOneStrArg(it, hasServerName, "server_name", serverNum));
 				else if (it->first == LOCATION)
 				{
 					Location	tmpLocation = initializeLocation();
+					locationNum++;
 					if ((it + 1)->first == WORD)
 					{
 						it += 1;
 						if (isPath(it->second))
 							tmpLocation.setPath(it->second);
 						else
-							printError("location: invalid path");
+							printError("location " + toStr(locationNum) + " : invalid path");
 						it += 1;
 						for (; it != tokens.end(); it++)
 							if (it->first != END_OF_LINE)
 								break ;
 						if (it == tokens.end())
-							printError("location: open bracket required");
+							printError("location " + toStr(locationNum) + " : open bracket required");
 						if ((it->first == OPEN_BRACKET) && ((it + 1)->first == END_OF_BRACKET))
 							it += 2;
 						else
-							printError("location: open bracket required");
+							printError("location " + toStr(locationNum) + " : open bracket required");
 					}
 					else
-						printError("location: invalid path");
+						printError("location " + toStr(locationNum) + " : invalid path");
 					for (; it != tokens.end(); it++)
 						if (it->first != END_OF_LINE)
 							break ;
 					if (it == tokens.end())
-						printError("location: close bracket required");
+						printError("location " + toStr(locationNum) + " : close bracket required");
 					t_checkDup	check;
 					std::memset(&check, 0, sizeof(t_checkDup));
 					for (; it != tokens.end(); it++)
@@ -758,27 +792,27 @@ std::vector<Server>	parser(char *file)
 						if (it == tokens.end())
 							break ;
 						if (it->first == ROOT)
-							tmpLocation.setRoot(parseOneStrArg(it, check.hasRoot, "root"));
+							tmpLocation.setRoot(parseOneStrArg(it, check.hasRoot, "root", locationNum));
 						else if (it->first == INDEX)
-							tmpLocation.setIndex(parseIndex(it, tokens, check.hasIndex));
+							tmpLocation.setIndex(parseIndex(it, tokens, check.hasIndex, locationNum));
 						else if (it->first == ERROR_PAGE)
-							tmpLocation.setErrorPages(parseErrorPage(it, tokens));
+							tmpLocation.setErrorPages(parseErrorPage(it, tokens, locationNum), toStr(locationNum));
 						else if (it->first == CLIENT_MAX_BODY_SIZE)
-							tmpLocation.setClientMaxBodySize(parseClientMaxBodySize(it, check.hasClientMaxBodySize));
+							tmpLocation.setClientMaxBodySize(parseClientMaxBodySize(it, check.hasClientMaxBodySize, locationNum));
 						else if (it->first == RETURN)
-							tmpLocation.setRedirection(parseOneStrArg(it, check.hasReturn, "return"));
+							tmpLocation.setRedirection(parseOneStrArg(it, check.hasReturn, "return", locationNum));
 						else if (it->first == AUTO_INDEX)
-							tmpLocation.setAutoIndex(parseBool(it, check.hasAutoIndex, "auto_index"));
+							tmpLocation.setAutoIndex(parseBool(it, check.hasAutoIndex, "auto_index", locationNum));
 						else if (it->first == ALLOW_METHODS)
-							tmpLocation.setAllowMethods(parseAllowMethods(it, tokens, check.hasAllowMethods));
+							tmpLocation.setAllowMethods(parseAllowMethods(it, tokens, check.hasAllowMethods, locationNum));
 						else if (it->first == CGI_EXEC)
-							tmpLocation.setCgiExec(parseCgiExec(it, check.hasCgiExec));
+							tmpLocation.setCgiExec(parseCgiExec(it, check.hasCgiExec, locationNum));
 						else if (it->first == CGI_ALLOWED_METHODS)
-							tmpLocation.setCgiAllowMethods(parseCgiAllowMethods(it, tokens, check.hasCgiAllowMethods));
+							tmpLocation.setCgiAllowMethods(parseCgiAllowMethods(it, tokens, check.hasCgiAllowMethods, locationNum));
 						else if (it->first == ACCEPT_UPLOAD)
-							tmpLocation.setAcceptUpload(parseBool(it, check.hasAcceptUpload, "accept_upload"));
+							tmpLocation.setAcceptUpload(parseBool(it, check.hasAcceptUpload, "accept_upload", locationNum));
 						else if (it->first == UPLOAD_LOCATION)
-							tmpLocation.setUploadLocation(parseOneStrArg(it, check.hasUploadLocation, "upload_location"));
+							tmpLocation.setUploadLocation(parseOneStrArg(it, check.hasUploadLocation, "upload_location", locationNum));
 						else if (it->first == CLOSE_BRACKET)
 						{
 							it += 1;
@@ -786,13 +820,13 @@ std::vector<Server>	parser(char *file)
 							break ;
 						}
 						else
-							printError("location: invalid name \'" + it->second + "\'");
+							printError("location " + toStr(locationNum) + " : invalid name \'" + it->second + "\'");
 					}
 					if (!check.locationHasCloseBracket)
-						printError("location: close bracket required");
+						printError("location " + toStr(locationNum) + " : close bracket required");
 					if (tmpLocation.getErrorPages().size() == 0)
-						tmpLocation.setErrorPages(defErrorPage());
-					tmpServer.setLocations(tmpLocation);
+						tmpLocation.setErrorPages(defErrorPage(), toStr(locationNum));
+					tmpServer.setLocations(tmpLocation, toStr(serverNum));
 				}
 				else if (it->first == CLOSE_BRACKET)
 				{
@@ -800,17 +834,18 @@ std::vector<Server>	parser(char *file)
 					serverHasCloseBracket = 1;
 					break ;
 				}
-				else // if (it != tokens.end() && it->first != END_OF_LINE)
+				else
 				{
 					cout << it->first << endl;
-					printError("server: invalid names \'" + it->second + "\'");
+					printError("server " + toStr(serverNum) + " : invalid names \'" + it->second + "\'");
 				}
 			}
 			if (!serverHasCloseBracket)
-				printError("server: close bracket required");
+				printError("server " + toStr(serverNum) + " : close bracket required");
 			if (tmpServer.getLocations().size() == 0)
-				tmpServer.setLocations(defLocation());
-			servers.push_back(tmpServer);
+				tmpServer.setLocations(defLocation(), toStr(serverNum));
+			addServers(servers, tmpServer);
+			// servers.push_back(tmpServer);
 		}
 		else if (it->first != END_OF_LINE)
 			printError("config_file: invalid server context");
