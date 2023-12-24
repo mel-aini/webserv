@@ -26,11 +26,12 @@ class Server
 
 		Server(std::string port, std::string host);
 		std::string getPort() const;
-		unsigned int getSocket() const;
+		std::string getHost() const;
+		int getSocket() const;
 		std::vector<Client>& getClients();
 
 		void	setPort(std::string port);
-		void	setSocket(unsigned int socket);
+		void	setSocket(int socket);
 
 		// oth
 		void	setListen(std::pair<std::string, std::string> listen);

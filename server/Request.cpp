@@ -30,4 +30,8 @@ std::string& Request::getBuffer() {
     return this->buffer;
 }
 
+int Request::getSize() const {
+    return this->buffer.size();
+}
+
 Request::~Request() {}

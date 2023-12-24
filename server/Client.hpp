@@ -28,23 +28,23 @@ class Client
 		struct pollfd		*pollfd;
 		Request				request;
 		Response			response;
-
+		
 
 	public:
 		Client(int fd, struct sockaddr_in address);
 		~Client();
 
-		int			getFd() const;
-		struct sockaddr_in getAddress() const;
-		void		log();
-		void		readRequest(struct pollfd *pollfd);
-		void		sendResponse(std::string host);
-		void		reqHasRead();
-		void		resHasSent();
-		void		reset();
-		void		setPollfd(struct pollfd	*pollfd);
-		void		getMethod();
-		void		postMethod();
-		void		deleteMethod();
+		int					getFd() const;
+		struct sockaddr_in	getAddress() const;
+		void				log();
+		void				readRequest(struct pollfd *pollfd);
+		void				createResponse(std::string host);
+		void				reqHasRead();
+		void				resHasSent();
+		void				reset();
+		void				setPollfd(struct pollfd	*pollfd);
+		void				getMethod();
+		void				postMethod();
+		void				deleteMethod();
 };
 

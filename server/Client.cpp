@@ -35,47 +35,59 @@ void		Client::readRequest(struct pollfd *pollfd) {
 	}
 	// char buf[2];
 	char buf[1024] = {0};
-	int readed = recv(this->fd, buf, 1, 0);
+	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed == -1 || readed == 0) {
 		// this->request.resetBuffer();
 		this->reqHasRead();
-		// exit(1);
 		// then: close connection
-		// this->reqHasRead();
 	}
 	/*
 		read 1024, still 1000
 		read 1000, 
 	*/
-	// std::cout << buf << std::endl;
+	// std::cout << RED << buf << RESET << std::endl;
 	this->request.appendToBuffer(buf);
-	std::cout << "http request message: " << std::endl;
 	// std::cout << buf;
 	// this->request.resetBuffer();
 	this->reqHasRead();
 }
 
-void		Client::sendResponse(std::string host) {
+void		Client::createResponse(std::string host) {
 	/*
-		if (method is GET)
+		-> find location that matches with uri
+		-> get methods allowed, 
+		if methods allowed not specified
+		-> use GET POST DELETE
 
+		if (status != 200) {
+			then: a client error found in the request
+			-> send 4xx response(status)
+		}
+		else if (location has a redirect) {
+			-> perfrom redirect
+		}
+		else if (method is allowed) {
+			if (GET)
+				-> perform action, getMethod()
+			else if (POST)
+				-> perform action, postMethod()
+			else if (DELETE)
+				-> perform action, deleteMethod()
+		}
+		else {
+			then: Method Not Allowed
+			-> send_4xxResponse(405)
+		}
 	*/
 	// std::cout << "is Sent: " << this->resIsSent << std::endl;
 	// std::cout << "is Arrived: " << this->reqIsArrived << std::endl;
+	(void)host;
 	if (this->reqIsArrived) {
 		std::string res = "HTTP/1.1 200 OK\n";
-		std::string fileName;
-		if (host == "host1")
-			fileName = "public/html/index.html";
-		else if (host == "host2")
-			fileName = "public/html/index2.html";
-		else if (host == "host3")
-			fileName = "public/html/index3.html";
-		// std::cout << fileName;
+		std::string fileName = "public/html/index.html";
 		std::ifstream file(fileName, std::ios::in);
 		if (!file.is_open()) {
 			std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
-			exit(1);
             return ;
 		}
 		std::stringstream sstream;
@@ -109,13 +121,16 @@ void		Client::sendResponse(std::string host) {
 void	Client::reqHasRead()
 {
 	this->reqIsArrived = true;
-	std::cout << MAGENTA << "reqHasRead()" << RESET << std::endl;
+	std::cout << "request " << GREEN << "done" << RESET << std::endl;
+	// std::cout << "request size: " << GREEN << this->request.getSize() << RESET << std::endl;
+	// std::cout << "request: " << YELLOW << this->request.getBuffer() << RESET << std::endl;
 	this->pollfd->events = POLLIN | POLLOUT | POLLHUP;
 }
 
 void	Client::resHasSent()
 {
-	std::cout << YELLOW << "resHasSent()" << RESET << std::endl;
+	// std::cout << YELLOW << "resHasSent()" << RESET << std::endl;
+	std::cout << "response " << GREEN << "sent" << RESET << std::endl;
 	this->pollfd->events = POLLIN | POLLHUP;
 }
 

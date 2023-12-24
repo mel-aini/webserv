@@ -12,6 +12,14 @@ std::string Server::getPort() const {
 	return this->port;
 }
 
+std::string Server::getHost() const {
+	return this->host;
+}
+
+int Server::getSocket() const {
+	return this->socket;
+}
+
 std::vector<Client>& Server::getClients() {
 	return this->clients;
 }
@@ -20,7 +28,7 @@ void	Server::setPort(std::string port) {
 	this->port = port;
 }
 
-void	Server::setSocket(unsigned int socket) {
+void	Server::setSocket(int socket) {
 	this->socket = socket;
 }
 
@@ -105,7 +113,7 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 		val = "POLLOUT";
 	else if (event == POLLHUP)
 		val = "POLLHUP";
-	std::cout << BLUE << "-> event: " << val << " occured in fd: " << pollfd->fd << RESET << std::endl;
+	std::cout << CYAN << "-> event: " << val << " occured in fd: " << pollfd->fd << RESET << std::endl;
 
 	std::vector<Client>::iterator it;
 
@@ -125,7 +133,7 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 			*/
 		}
 		else if (event == POLLOUT) {
-			it->sendResponse(this->host);
+			it->createResponse(this->host);
 		}
 		else if (event == POLLHUP) {
 			this->removeClient(pollfds, it);

@@ -2,6 +2,7 @@
 
 #include <map>
 #include <iostream>
+#include "Location.hpp"
 
 class Request {
     private:
@@ -10,6 +11,7 @@ class Request {
         std::map<std::string, std::string>  headers;
         std::string                         buffer;
         int             					status;
+        Location                            *location;
 
         /*
             title: hedears we will need
@@ -25,12 +27,13 @@ class Request {
         Request() : status(0) {};
         ~Request();
 
-        const std::string& getUri() const;
-        int getMethod() const;
-        void appendToBuffer(const char *s);
-        int getStatus() const;
-        void setStatus(int status);
-        bool nextIsBody();
-        void resetBuffer();
-        std::string& getBuffer();
+        const std::string&  getUri() const;
+        int                 getMethod() const;
+        void                appendToBuffer(const char *s);
+        int                 getStatus() const;
+        void                setStatus(int status);
+        bool                nextIsBody();
+        void                resetBuffer();
+        int                 getSize() const;
+        std::string&        getBuffer();
 };
