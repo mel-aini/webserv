@@ -28,7 +28,7 @@ void Client::log() {
 	std::cout << "client with fd: " << this->fd << std::endl;
 }
 
-void		Client::readRequest(struct pollfd *pollfd) {
+bool		Client::readRequest(struct pollfd *pollfd) {
 	if (this->firstInteraction) {
 		setPollfd(pollfd);
 		this->firstInteraction = false;
@@ -50,6 +50,12 @@ void		Client::readRequest(struct pollfd *pollfd) {
 	// std::cout << buf;
 	// this->request.resetBuffer();
 	this->reqHasRead();
+	/*
+		if (still reading request)
+			return false;
+		then: request has finished reading, return true
+	*/
+	return true;
 }
 
 void		Client::createResponse(std::string host) {

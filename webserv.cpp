@@ -12,8 +12,6 @@
 #include <fcntl.h>
 #include "parsing/ConfigFile.hpp"
 
-#define PORT 8000
-
 using std::cerr;
 using std::cout;
 using std::endl;

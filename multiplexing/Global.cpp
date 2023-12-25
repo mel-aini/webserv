@@ -53,8 +53,14 @@ int	Global::isAlreadyUsed(std::string host, std::string port, int index)
 	
 	begin = this->servers.begin();
 	for (it = begin; it != this->servers.end() && it - begin < index; it++) {
-		if (it->getHost() == host && it->getPort() == port)
-			return it->getSocket();
+		if (it->getPort() == port) {
+			if (it->getHost() == host)
+				return it->getSocket();
+			else if (it->getHost() == "localhost" && host == "127.0.0.1")
+				return it->getSocket();
+			else if (it->getHost() == "127.0.0.1" && host == "localhost")
+				return it->getSocket();
+		}
 	}
 	return -1;
 }
@@ -64,9 +70,9 @@ void Global::checkAndProcessFd(struct pollfd *pollfd) {
 
 	if (((pollfd)->revents & POLLIN) == POLLIN) {
 		for (it = this->servers.begin(); it != this->servers.end(); it++) {
-			unsigned long sizeBefore = it->getClients().size();
+			size_t sizeBefore = it->getClients().size();
 
-			if (int newfd = it->processFd(this->pollfds, pollfd, POLLIN)) {
+			if (it->processFd(this->pollfds, pollfd, POLLIN)) {
 				std::vector<Client> &clients = it->getClients();
 				// std::cout << "size before: " << sizeBefore << std::endl;
 				// std::cout << "size after: " << clients.size() << std::endl;
@@ -88,13 +94,13 @@ void Global::checkAndProcessFd(struct pollfd *pollfd) {
 	}
 	if (((pollfd)->revents & POLLOUT) == POLLOUT) {
 		for (it = this->servers.begin(); it != this->servers.end(); it++) {
-			if (int newfd = it->processFd(this->pollfds, pollfd, POLLOUT))
+			if (it->processFd(this->pollfds, pollfd, POLLOUT))
 				break ;
 		}
 	}
 	if (((pollfd)->revents & POLLHUP) == POLLHUP) {
 		for (it = this->servers.begin(); it != this->servers.end(); it++) {
-			if (int newfd = it->processFd(this->pollfds, pollfd, POLLHUP)) {
+			if (it->processFd(this->pollfds, pollfd, POLLHUP)) {
 				this->nfds--;
 				break ;
 			}
@@ -114,6 +120,7 @@ void Global::create_servers()
 
 			int sockfd = isAddress"host:port" already in use
 			if (sockfd > 0) {
+				then: address already used
 				-> set socket to this server
 				it->setSocket(sockfd);
 				continue;
@@ -122,6 +129,7 @@ void Global::create_servers()
         int sockfd = this->isAlreadyUsed(it->getHost(), it->getPort(), it - servers.begin());
 		if (sockfd > 0) {
 			it->setSocket(sockfd);
+			std::cout << "a server is listening on Port: " << YELLOW << it->getPort() << RESET << std::endl;
 			continue;
 		}
 		struct addrinfo hints, *res;

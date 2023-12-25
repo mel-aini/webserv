@@ -124,7 +124,23 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 	else if (this->isClient(pollfd, it))
 	{
 		if (event == POLLIN) {
-			it->readRequest(pollfd);
+			bool read_complete = it->readRequest(pollfd);
+			/*
+				if (read complete) {
+					check for server_name if match request <Host>
+					if (true)
+						keep it as a client;
+					if (false) {
+						search in servers with same host:port for matching server_name with request <Host>
+						for (servers : server) {
+							if (host:port equal && server.server_name = request <Host>) {
+								transfer client to this server
+								break ;
+							}
+						}
+					}
+				}
+			*/
 			/*
 				-> parse it
 					generate response if needed, ex: bad request...

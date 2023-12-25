@@ -37,7 +37,7 @@ class Client
 		int					getFd() const;
 		struct sockaddr_in	getAddress() const;
 		void				log();
-		void				readRequest(struct pollfd *pollfd);
+		bool				readRequest(struct pollfd *pollfd);
 		void				createResponse(std::string host);
 		void				reqHasRead();
 		void				resHasSent();
