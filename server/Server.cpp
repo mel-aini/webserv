@@ -125,6 +125,7 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 	{
 		if (event == POLLIN) {
 			bool read_complete = it->readRequest(pollfd);
+			(void)read_complete;
 			/*
 				if (read complete) {
 					check for server_name if match request <Host>

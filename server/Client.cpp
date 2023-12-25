@@ -46,10 +46,11 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 		read 1000, 
 	*/
 	// std::cout << RED << buf << RESET << std::endl;
-	this->request.appendToBuffer(buf);
+	this->request.readRequest(buf, readed);
+	this->request.printRequest();
 	// std::cout << buf;
 	// this->request.resetBuffer();
-	this->reqHasRead();
+	//this->reqHasRead();
 	/*
 		if (still reading request)
 			return false;

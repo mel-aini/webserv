@@ -1,39 +1,71 @@
-#pragma once
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Request.hpp                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/12/23 11:50:56 by hel-mamo          #+#    #+#             */
+/*   Updated: 2023/12/24 16:07:57 by hel-mamo         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
 
-#include <map>
-#include <iostream>
-#include "Location.hpp"
+# ifndef Request_HPP
+# define Request_HPP
 
-class Request {
-    private:
-        int                                 method;
-        std::string                         uri;
-        std::map<std::string, std::string>  headers;
-        std::string                         buffer;
-        int             					status;
-        Location                            *location;
+# include <iostream>
+# include <string>
+# include <map>
+# include <vector>
+# include <sstream>
+# include <fstream>
 
-        /*
-            title: hedears we will need
-            1- Host
-            2- Connection
-            3- Content-Length
-            4- Content-Type
-            5- Transfer-Encoding
-        */
-        std::string                         body;
-
-    public:
-        Request() : status(0) {};
-        ~Request();
-
-        const std::string&  getUri() const;
-        int                 getMethod() const;
-        void                appendToBuffer(const char *s);
-        int                 getStatus() const;
-        void                setStatus(int status);
-        bool                nextIsBody();
-        void                resetBuffer();
-        int                 getSize() const;
-        std::string&        getBuffer();
+enum State{
+    START,
+    METHOD,
+    HEADER,
+    CONTENT_LENGTH,
+    CHUNKED,
+    BOUNDARY,
+    END
 };
+
+enum ChunkState{
+    CHUNK_SIZE_START,
+    CHUNK_SIZE,
+    CHUNK_DATA,
+    CHUNK_END
+};
+
+
+class Request
+{
+    private:
+        State _state;
+        ChunkState _chunkState;
+        size_t _lengthState;
+        std::string _request;
+        std::string _method;
+        std::string _url;
+        std::string _version;
+        std::string currentHeaderKey;
+        std::string currentHeaderValue;
+        std::map<std::string, std::string> _headers;
+        std::string _filename;
+    public:
+        Request();
+        Request(Request const &src);
+        Request &operator=(Request const &rhs);
+        int readRequest(char *buffer, int size);
+        void printRequest();
+        size_t getContentLenght();
+        std::string getTransferEncoding();
+        bool ContentLengthExists();
+        bool TransferEncodingExists();
+        bool isChunked();
+        int readByChunk();
+        
+};
+
+
+#endif
