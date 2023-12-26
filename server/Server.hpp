@@ -13,12 +13,13 @@
 class Server
 {
 	private:
-		std::string					port;
-		std::string					host;
-		std::string					serverName;
-		std::vector<Location>		locations;
-		int							socket;
-		std::vector<Client>			clients;
+		std::string						port;
+		std::string						host;
+		std::string						serverName;
+		std::vector<Location>			locations;
+		int								socket;
+		std::vector<Client>				clients;
+		std::vector<Server>::iterator	it;
 
 	public:
 		Server();
@@ -37,10 +38,13 @@ class Server
 		void	setListen(std::pair<std::string, std::string> listen);
 		void	setServerName(std::string serverName);
 		void	setLocations(Location location, std::string num);
+		void	setIt(std::vector<Server>::iterator it);
+
 		std::vector<Location>	getLocations(void);
 		std::string	getPort(void);
 		std::string	getHost(void);
 		std::string	getServerName(void);
+		std::vector<Server>::iterator	getIt(void);
 
 		void	addClient();
 		bool	processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, int event);

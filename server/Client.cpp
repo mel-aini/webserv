@@ -61,9 +61,7 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 void		Client::createResponse(std::string host) {
 	/*
 		-> find location that matches with uri
-		-> get methods allowed, 
-		if methods allowed not specified
-		-> use GET POST DELETE
+		-> get methods allowed
 
 		if (status != 200) {
 			then: a client error found in the request

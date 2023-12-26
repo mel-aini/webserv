@@ -48,5 +48,18 @@ typedef struct s_ckeckDup
 }			t_checkDup;
 
 std::vector<Server>	parser(char *file);
+std::vector<std::pair<int, std::string> >	tokenizer(char *file);
+void	printError(std::string name);
+int		toInt(std::string str);
+std::string	toStr(int num);
+int	isNum(std::string str);
+int	isAlpha(std::string str);
+int	isAlnum(std::string str);
+int	isPath(std::string str);
+int	isFile(std::string str);
+int	isUrl(std::string str);
+int	isExtension(std::string str);
+int	isIp(std::string str);
+int	isWord(std::string str);
 
 #endif

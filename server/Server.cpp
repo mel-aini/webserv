@@ -216,3 +216,13 @@ std::string	Server::getServerName(void)
 {
 	return (this->serverName);
 }
+
+std::vector<Server>::iterator	Server::getIt(void)
+{
+	return (it);
+}
+
+void	Server::setIt(std::vector<Server>::iterator it)
+{
+	this->it = it;
+}
