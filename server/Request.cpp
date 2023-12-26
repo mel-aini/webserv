@@ -201,8 +201,9 @@ int Request::readRequest(char *buffer, int size)
             }
             else
             {
-                file << this->_request.substr(0, this->getContentLenght());
-                this->_request = this->_request.substr(this->getContentLenght());
+                size_t reqsize = this->getContentLenght();
+                file << this->_request.substr(0, reqsize);
+                this->_request = this->_request.substr(reqsize);
                 file.close();
             }
             this->_state = END;  
