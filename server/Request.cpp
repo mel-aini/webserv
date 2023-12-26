@@ -118,7 +118,7 @@ int Request::readByChunk()
     //     this->_body << this->_request.substr(0, sizeToread);
     //     this->_request = this->_request.substr(sizeToread + 2);
     // }
-    return ((1));
+    return (1);
 }
 
 
@@ -168,7 +168,7 @@ int Request::readRequest(char *buffer, int size)
             if (this->ContentLengthExists())
             {
                 this->_state = CONTENT_LENGTH;
-                this->_lengthState = 0;
+                this->_lengthState = this->getContentLenght();  
             }
             else if (this->isChunked())
             {
@@ -184,13 +184,20 @@ int Request::readRequest(char *buffer, int size)
                 if Content-Length is found in the headers
             */
             std::ofstream file(this->_filename, std::ios::out | std::ios::app);
-            this->_lengthState += this->_request.length();
-            if (this->_lengthState < this->getContentLenght())
+            this->_lengthState -= this->_request.length();
+            if (this->_lengthState > 0)
             {
                 file << this->_request;
                 this->_request = "";
                 file.close();
                 break;
+            }
+            else if (this->_lengthState == 0)
+            {
+
+                file << this->_request;
+                this->_request = "";
+                file.close();
             }
             else
             {
