@@ -28,6 +28,8 @@ class Location
 					std::string uploadLocation);
 		~Location(void);
 
+		const std::string& getRedirection() const;
+
 		void	setPath(std::string path);
 		void	setRoot(std::string root);
 		void	setIndex(std::vector<std::string> index);

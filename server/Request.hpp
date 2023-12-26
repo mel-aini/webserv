@@ -11,7 +11,6 @@ class Request {
         std::map<std::string, std::string>  headers;
         std::string                         buffer;
         int             					status;
-        Location                            *location;
 
         /*
             title: hedears we will need
@@ -36,4 +35,9 @@ class Request {
         void                resetBuffer();
         int                 getSize() const;
         std::string&        getBuffer();
+
+        class RequestFailed : public std::exception {
+			public:
+				const char * what() const throw();
+		};
 };

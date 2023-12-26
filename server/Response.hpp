@@ -2,12 +2,19 @@
 #include <iostream>
 #include <map>
 #include "Location.hpp"
+#include <sstream>
+#include <unistd.h>
+#include <sys/socket.h>
+#include "../public/Colors.hpp"
 
 class Response {
     private:
         unsigned int                        status;
+        std::string                         message;
         std::string                         body;
         std::map<std::string, std::string>  headers;
+        Location                            *location;
+        unsigned int                        level;
 
     public:
         Response();
@@ -17,10 +24,16 @@ class Response {
         int                 getStatus() const;
         void                setStatus(unsigned int status);
 
-        void    redirect(std::string uri);
-		void    send_4xxResponse(unsigned int status);
-        void    send_respone_line();
-        void    send_headers();
-        void    send_body();
-        Location *findLocation();
+		void        send_4xxResponse(unsigned int status);
+        void        send_status_line_and_headers(int fd);
+        void        send_body(int fd);
+        Location    *findLocation();
+        void        setLocation(Location *location);
+        Location    *getLocation();
+        void        redirect(int fd, const std::string& location);
+
+        class ResponseFailed : public std::exception {
+			public:
+				const char * what() const throw();
+		};
 };

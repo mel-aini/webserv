@@ -58,12 +58,10 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 	return true;
 }
 
-void		Client::createResponse(std::string host) {
+void		Client::createResponse(std::vector<Location> &locations) {
 	/*
 		-> find location that matches with uri
-		-> get methods allowed, 
-		if methods allowed not specified
-		-> use GET POST DELETE
+		-> get methods allowed
 
 		if (status != 200) {
 			then: a client error found in the request
@@ -85,9 +83,15 @@ void		Client::createResponse(std::string host) {
 			-> send_4xxResponse(405)
 		}
 	*/
-	// std::cout << "is Sent: " << this->resIsSent << std::endl;
-	// std::cout << "is Arrived: " << this->reqIsArrived << std::endl;
-	(void)host;
+	this->response.setLocation(&locations[0]);
+	const std::string &location = this->response.getLocation()->getRedirection();
+	if (location != "") {
+		// then: location has a redirect
+		this->response.redirect(this->fd, location);
+		this->resIsSent = true;
+		this->resHasSent();
+		return;
+	}
 	if (this->reqIsArrived) {
 		std::string res = "HTTP/1.1 200 OK\n";
 		std::string fileName = "public/html/index.html";

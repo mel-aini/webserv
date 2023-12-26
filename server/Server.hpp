@@ -47,4 +47,9 @@ class Server
 		bool	isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it);
 		void	logClients();
 		void	removeClient(std::vector<struct pollfd> &pollfds, std::vector<Client>::iterator &it);
+
+		class ClientFailed : public std::exception {
+			public:
+				const char * what() const throw();
+		};
 };

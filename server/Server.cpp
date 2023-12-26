@@ -39,13 +39,20 @@ void	Server::addClient() {
 	struct sockaddr_in clientAddress;
 	socklen_t s_size = sizeof(clientAddress);
 
-	int clientSocket = accept(this->socket, (struct sockaddr *)&clientAddress, &s_size);
-	if (clientSocket == -1)
-	    perror("accept");
-	fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
-	Client newClient(clientSocket, clientAddress);
-	this->clients.push_back(newClient);
-	std::cout << GREEN << "server active in port: " << this->port << " accepted new request" << RESET << std::endl;
+	try {
+		int clientSocket = accept(this->socket, (struct sockaddr *)&clientAddress, &s_size);
+		if (clientSocket == -1)
+			throw ClientFailed();
+		int check = fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
+		if (check == -1)
+			throw ClientFailed();
+		Client newClient(clientSocket, clientAddress);
+		this->clients.push_back(newClient);
+		std::cout << GREEN << "server active in port: " << this->port << " accepted new request" << RESET << std::endl;
+	}
+	catch (std::exception &e) {
+		std::cout << RED << e.what() << RESET << std::endl;
+	}
 }
 
 void	Server::removeClient(std::vector<struct pollfd> &pollfds, std::vector<Client>::iterator &it)
@@ -123,9 +130,14 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 	}
 	else if (this->isClient(pollfd, it))
 	{
-		if (event == POLLIN) {
+		try
+		{
+			if (event == POLLIN) {
 			bool read_complete = it->readRequest(pollfd);
+			(void)read_complete;
 			/*
+				title: transfer client to the right server or keep it
+
 				if (read complete) {
 					check for server_name if match request <Host>
 					if (true)
@@ -147,14 +159,20 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 				-> assign Client Request members
 				-> 
 			*/
+			}
+			else if (event == POLLOUT) {
+				it->createResponse(this->locations);
+			}
+			else if (event == POLLHUP) {
+				this->removeClient(pollfds, it);
+			}
+			return true;
 		}
-		else if (event == POLLOUT) {
-			it->createResponse(this->host);
-		}
-		else if (event == POLLHUP) {
+		catch (const std::exception& e) {
+			// then: an error occured in read or send...
 			this->removeClient(pollfds, it);
+			std::cout << RED << e.what() << RESET << std::endl;
 		}
-		return true;
 	}
 	// do nothing
 	// std::cout << "in processFd(), server with socket: " << this->socket << ", fd: " << fd << std::endl;
@@ -215,4 +233,11 @@ std::string	Server::getHost(void)
 std::string	Server::getServerName(void)
 {
 	return (this->serverName);
+}
+
+
+// title: exceptions
+
+const char	*Server::ClientFailed::what() const throw() {
+	return "Can't accept this client connection";
 }
