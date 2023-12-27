@@ -65,7 +65,8 @@ class Request
         bool TransferEncodingExists();
         bool isChunked();
         int readByChunk();
-        
+        int validateRequestLine();
+        int validateHeaderLine();
 };
 
 

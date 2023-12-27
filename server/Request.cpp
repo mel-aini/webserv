@@ -79,6 +79,35 @@ std::string Request::getTransferEncoding()
     return it->second;
 }
 
+int Request::validateRequestLine()
+{
+    std::string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=";
+    std::cout << "validateRequestLine" << std::endl;
+    if (this->_method != "GET" && this->_method != "POST" && this->_method != "DELETE" 
+        && this->_method != "PUT" && this->_method != "HEAD" && this->_method != "OPTIONS" 
+        && this->_method != "TRACE" && this->_method != "CONNECT")
+    {
+        this->status = 400;
+        return 0;
+    }
+    if (this->_url.find_first_not_of(allowed) != std::string::npos)
+    {
+        this->status = 400;
+        return 0;
+    }
+    if (this->_uri[0] != '/' || this->_version != "HTTP/1.1")
+    {
+        this->status = 400;
+        return 0;
+    }
+    if (this->_url.length() > 2048)
+    {
+        this->status = 414;
+        return 0;
+    }
+    return 1;
+}
+
 int Request::readByChunk()
 {
     /*
