@@ -61,5 +61,6 @@ int	isUrl(std::string str);
 int	isExtension(std::string str);
 int	isIp(std::string str);
 int	isWord(std::string str);
+int	isLocationPath(std::string str);
 
 #endif

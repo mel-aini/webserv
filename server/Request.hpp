@@ -11,7 +11,6 @@ class Request {
         std::map<std::string, std::string>  headers;
         std::string                         buffer;
         int             					status;
-        Location                            *location;
 
         /*
             title: hedears we will need

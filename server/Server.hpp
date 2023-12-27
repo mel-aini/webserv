@@ -39,12 +39,13 @@ class Server
 		void	setServerName(std::string serverName);
 		void	setLocations(Location location, std::string num);
 		void	setIt(std::vector<Server>::iterator it);
+		std::string	eraseSlash(std::string path);
 
-		std::vector<Location>	getLocations(void);
-		std::string	getPort(void);
-		std::string	getHost(void);
-		std::string	getServerName(void);
-		std::vector<Server>::iterator	getIt(void);
+		std::vector<Location>	&getLocations(void);
+		std::string	&getPort(void);
+		std::string	&getHost(void);
+		std::string	&getServerName(void);
+		std::vector<Server>::iterator	&getIt(void);
 
 		void	addClient();
 		bool	processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, int event);

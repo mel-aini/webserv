@@ -149,7 +149,7 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 			*/
 		}
 		else if (event == POLLOUT) {
-			it->createResponse(this->host);
+			it->createResponse(this->locations);
 		}
 		else if (event == POLLHUP) {
 			this->removeClient(pollfds, it);
@@ -182,13 +182,31 @@ void	Server::setServerName(std::string serverName)
 	this->serverName = serverName;
 }
 
+std::string	Server::eraseSlash(std::string path)
+{
+	std::string res = path;
+
+	if (res != "/")
+	{
+		if (res[res.length() - 1] == '/')
+			res.erase(res.length() - 1);
+		if (res[0] == '/')
+			res.erase(0, 1);
+	}
+	return (res);
+}
+
 void	Server::setLocations(Location location, std::string num)
 {
 	std::vector<Location>::iterator	it = this->locations.begin();
+	std::string path1;
+	std::string path2;
 
 	for (; it != locations.end(); it++)
 	{
-		if (location.getPath() == it->getPath())
+		path1 = eraseSlash(location.getPath());
+		path2 = eraseSlash(it->getPath());
+		if (path1 == path2)
 		{
 			std::cerr << "server " + num + ":" + " duplicated location" << std::endl;
 			exit(EXIT_FAILURE);
@@ -197,27 +215,27 @@ void	Server::setLocations(Location location, std::string num)
 	this->locations.push_back(location);
 }
 
-std::vector<Location>	Server::getLocations(void)
+std::vector<Location>	&Server::getLocations(void)
 {
 	return (this->locations);
 }
 
-std::string	Server::getPort(void)
+std::string	&Server::getPort(void)
 {
 	return (this->port);
 }
 
-std::string	Server::getHost(void)
+std::string	&Server::getHost(void)
 {
 	return (this->host);
 }
 
-std::string	Server::getServerName(void)
+std::string	&Server::getServerName(void)
 {
 	return (this->serverName);
 }
 
-std::vector<Server>::iterator	Server::getIt(void)
+std::vector<Server>::iterator	&Server::getIt(void)
 {
 	return (it);
 }

@@ -436,6 +436,7 @@ std::vector<Server>	parser(char *file)
 
 		if (it->first == SERVER)
 		{
+			int hasRootLocation = false;
 			int locationNum = 0;
 			serverNum++;
 			it += 1;
@@ -473,8 +474,12 @@ std::vector<Server>	parser(char *file)
 					if ((it + 1)->first == WORD)
 					{
 						it += 1;
-						if (isPath(it->second))
+						if (isLocationPath(it->second))
+						{
+							if (it->second == "/")
+								hasRootLocation = true;
 							tmpLocation.setPath(it->second);
+						}
 						else
 							printError("location " + toStr(locationNum) + " : invalid path");
 						it += 1;
@@ -556,6 +561,8 @@ std::vector<Server>	parser(char *file)
 			if (!serverHasCloseBracket)
 				printError("server " + toStr(serverNum) + " : close bracket required");
 			if (tmpServer.getLocations().size() == 0)
+				tmpServer.setLocations(defLocation(), toStr(serverNum));
+			else if (!hasRootLocation)
 				tmpServer.setLocations(defLocation(), toStr(serverNum));
 			addServers(servers, tmpServer);
 		}

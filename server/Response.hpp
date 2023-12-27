@@ -8,6 +8,7 @@ class Response {
         unsigned int                        status;
         std::string                         body;
         std::map<std::string, std::string>  headers;
+        Location                            *location;
 
     public:
         Response();
@@ -22,5 +23,5 @@ class Response {
         void    send_respone_line();
         void    send_headers();
         void    send_body();
-        Location *findLocation();
+        Location *findLocation(std::vector<Location> &locations, std::string uri);
 };

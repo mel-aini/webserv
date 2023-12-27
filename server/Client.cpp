@@ -58,9 +58,14 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 	return true;
 }
 
-void		Client::createResponse(std::string host) {
+void		Client::createResponse(std::vector<Location> &locations) {
+
+	// -> find location that matches with uri
+	Location *loc = this->response.findLocation(locations, this->request.getUri());
+
 	/*
 		-> find location that matches with uri
+
 		-> get methods allowed
 
 		if (status != 200) {
@@ -85,7 +90,6 @@ void		Client::createResponse(std::string host) {
 	*/
 	// std::cout << "is Sent: " << this->resIsSent << std::endl;
 	// std::cout << "is Arrived: " << this->reqIsArrived << std::endl;
-	(void)host;
 	if (this->reqIsArrived) {
 		std::string res = "HTTP/1.1 200 OK\n";
 		std::string fileName = "public/html/index.html";

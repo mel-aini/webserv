@@ -28,6 +28,13 @@ Location::~Location()
 
 void	Location::setPath(std::string path)
 {
+	if (path == "/")
+	{
+		this->path = path;
+		return ;
+	}
+	if (path[path.length() - 1] == '/')
+		path.erase(path.length() - 1);
 	this->path = path;
 }
 
