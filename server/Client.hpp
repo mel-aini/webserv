@@ -46,5 +46,6 @@ class Client
 		void				getMethod();
 		void				postMethod();
 		void				deleteMethod();
+		Location			*findMatchingLocation(std::vector<Location> &locations);
 };
 

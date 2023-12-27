@@ -106,7 +106,7 @@ int	isLocationPath(std::string str)
 	i++;
 	while (str[i])
 	{
-		if (!isalpha(str[i]) && str[i] != '/' && str[i] != '_')
+		if (!isalpha(str[i]) && str[i] != '/' && str[i] != '_' && str[i] != '.')
 			return (0);
 		i++;
 	}
@@ -145,7 +145,7 @@ int	isUrl(std::string str)
 	while (str[i])
 	{
 		// if (!isalpha(str[i]) && str[i] != '.' && str[i] != '/' && str[i] != ':')
-		if ((!str[i] >= 0 && str[i] <= 127))
+		if (!(str[i] >= 0 && str[i] <= 127))
 			return (0);
 		i++;
 	}
@@ -197,7 +197,7 @@ int	isWord(std::string str)
 	while (str[i])
 	{
 		// if (!isalnum(str[i]) && str[i] != '.' && str[i] != '/' && str[i] != '_' && str[i] != ':')
-		if ((!str[i] >= 0 && str[i] <= 127))
+		if (!(str[i] >= 0 && str[i] <= 127))
 			return (0);
 		i++;
 	}

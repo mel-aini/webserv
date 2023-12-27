@@ -88,8 +88,15 @@ void		Client::createResponse(std::vector<Location> &locations) {
 			-> send_4xxResponse(405)
 		}
 	*/
-	// std::cout << "is Sent: " << this->resIsSent << std::endl;
-	// std::cout << "is Arrived: " << this->reqIsArrived << std::endl;
+	this->response.setLocation(loc);
+	const std::string &location = this->response.getLocation()->getRedirection();
+	if (location != "") {
+		// then: location has a redirect
+		this->response.redirect(this->fd, location);
+		this->resIsSent = true;
+		this->resHasSent();
+		return;
+	}
 	if (this->reqIsArrived) {
 		std::string res = "HTTP/1.1 200 OK\n";
 		std::string fileName = "public/html/index.html";

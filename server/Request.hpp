@@ -35,4 +35,9 @@ class Request {
         void                resetBuffer();
         int                 getSize() const;
         std::string&        getBuffer();
+
+        class RequestFailed : public std::exception {
+			public:
+				const char * what() const throw();
+		};
 };

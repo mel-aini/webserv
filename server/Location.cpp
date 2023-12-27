@@ -26,6 +26,10 @@ Location::~Location()
 {
 }
 
+const std::string& Location::getRedirection() const {
+	return this->redirection;
+}
+
 void	Location::setPath(std::string path)
 {
 	if (path == "/")
