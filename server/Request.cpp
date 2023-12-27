@@ -95,7 +95,7 @@ int Request::validateRequestLine()
         this->status = 400;
         return 0;
     }
-    if (this->_uri[0] != '/' || this->_version != "HTTP/1.1")
+    if (this->_url[0] != '/' || this->_version != "HTTP/1.1")
     {
         this->status = 400;
         return 0;
@@ -112,37 +112,7 @@ int Request::readByChunk()
 {
     /*
     */
-    // if (this->_request.find("\r\n") == std::string::npos)
-    //     return 1;
-    // std::string chunkSize = this->_request.substr(0, this->_request.find("\r\n"));
-    // if (chunkSize == "0")
-    // {
-    //     this->_state = END;
-    //     return 1;
-    // }
-    // std::stringstream ss(chunkSize);
-    // size_t sizeToread;
-    // ss >> std::hex >> sizeToread;
-    // // if (sizeToread == 0)
-    // // {
-    // //     this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
-    // //     this->_state = END;
-    // //     return 1;
-    // // }
-    // // read by chunk size
-    // this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
-    // this->_lengthState += this->_request.length();
-    // if (this->_lengthState <= sizeToread)
-    // {
-    //     this->_body << this->_request;
-    //     this->_request = "";
-    //     return 1;
-    // }
-    // else
-    // {
-    //     this->_body << this->_request.substr(0, sizeToread);
-    //     this->_request = this->_request.substr(sizeToread + 2);
-    // }
+    
     return (1);
 }
 
