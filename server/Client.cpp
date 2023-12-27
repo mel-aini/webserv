@@ -49,7 +49,7 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 	std::cout << "readed: " << readed << std::endl;
 	if (this->request.readRequest(buf, readed))
 		this->reqHasRead();
-	//this->request.printRequest();
+	this->request.printRequest();
 	// std::cout << buf;
 	// this->request.resetBuffer();
 	//this->reqHasRead();

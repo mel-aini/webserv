@@ -12,12 +12,8 @@
 
 #include "Request.hpp"
 
-Request::Request()
+Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0)
 {
-    this->_state = START;
-    this->_chunkState = CHUNK_SIZE_START;
-    this->_lengthState = 0;
-    this->_filename = "body";
 }
 
 Request::Request(Request const &src)
@@ -184,6 +180,13 @@ int Request::readRequest(char *buffer, int size)
                 if Content-Length is found in the headers
             */
             std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+            if (this->_request.length() > this->_lengthState)
+            {
+                file << this->_request.substr(0, this->_lengthState);
+                this->_request = this->_request.substr(this->_lengthState);
+                file.close();
+                break;
+            }
             this->_lengthState -= this->_request.length();
             if (this->_lengthState > 0)
             {
@@ -197,13 +200,6 @@ int Request::readRequest(char *buffer, int size)
 
                 file << this->_request;
                 this->_request = "";
-                file.close();
-            }
-            else
-            {
-                size_t reqsize = this->getContentLenght();
-                file << this->_request.substr(0, reqsize);
-                this->_request = this->_request.substr(reqsize);
                 file.close();
             }
             this->_state = END;  

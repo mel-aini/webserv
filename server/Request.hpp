@@ -41,6 +41,7 @@ enum ChunkState{
 class Request
 {
     private:
+        int     status;
         State _state;
         ChunkState _chunkState;
         size_t _lengthState;
