@@ -8,17 +8,17 @@ class Location
 {
 	// private:
 	public:
-		std::string	path;
-		std::string root;
-		std::vector<std::string> index;
-		int	clientMaxBodySize;
-		std::vector<std::string> allowMethods;
-		std::string		redirection;
-		bool	autoIndex;
-		std::vector<std::string> cgiExec;
-		std::vector<std::string> cgiAllowMethods;
-		bool	acceptUpload;
-		std::string		uploadLocation;
+		std::string												path;
+		std::string												root;
+		std::vector<std::string>								index;
+		int														clientMaxBodySize;
+		std::vector<std::string>								allowMethods;
+		std::string												redirection;
+		bool													autoIndex;
+		std::vector<std::string>								cgiExec;
+		std::vector<std::string>								cgiAllowMethods;
+		bool													acceptUpload;
+		std::string												uploadLocation;
 		std::vector<std::pair<std::string, std::vector<int> > >	errorPages;
 
 		Location(void);

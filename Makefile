@@ -1,9 +1,10 @@
 NAME = webserv
 
 HEADERS = multiplexing/Global.hpp server/Server.hpp server/Client.hpp server/Location.hpp server/Request.hpp server/Response.hpp public/Colors.hpp \
-		parsing/ConfigFile.hpp
+		parsing/ConfigFile.hpp server/HtmlTemplate.hpp
 
-SRC = webserv.cpp server/Location.cpp server/Server.cpp parsing/ConfigFile.cpp server/Request.cpp server/Response.cpp multiplexing/Global.cpp server/Client.cpp
+SRC = webserv.cpp server/Location.cpp server/Server.cpp parsing/ConfigFile.cpp server/Request.cpp server/Response.cpp multiplexing/Global.cpp \
+		server/Client.cpp server/HtmlTemplate.cpp
 
 OBJ = $(SRC:.cpp=.o)
 

@@ -10,11 +10,10 @@
 #include "Request.hpp"
 #include "Response.hpp"
 
-enum read_state {
-	REQUEST_LINE,
-	HEADERS,
-	BODY,
-	EOR,
+enum proccess_response {
+	INITIAL,
+	SENDING,
+	PROCESSED,
 };
 
 class Client
@@ -22,13 +21,11 @@ class Client
 	private:
 		int					fd;
 		struct sockaddr_in	address;
-		bool				resIsSent;
-		bool				reqIsArrived;
-		bool				firstInteraction;
 		struct pollfd		*pollfd;
 		Request				request;
 		Response			response;
-		
+		int					processing_level;
+		bool				isAllowedMethod;
 
 	public:
 		Client(int fd, struct sockaddr_in address);
@@ -46,6 +43,7 @@ class Client
 		void				getMethod();
 		void				postMethod();
 		void				deleteMethod();
-		Location			*findMatchingLocation(std::vector<Location> &locations);
+		bool				methodIsAllowed(std::vector<std::string> &allowMethods, std::string method);
+		void				executeMethods();
 };
 

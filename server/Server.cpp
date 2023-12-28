@@ -41,11 +41,16 @@ void	Server::addClient() {
 
 	try {
 		int clientSocket = accept(this->socket, (struct sockaddr *)&clientAddress, &s_size);
-		if (clientSocket == -1)
+		if (clientSocket == -1) {
+			std::cout << "clientSocket: " << clientSocket << std::endl;
 			throw ClientFailed();
-		int check = fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
-		if (check == -1)
+		}
+		int flags = fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
+		if (flags == -1) {
+			std::cout << "fcntl flags: " << flags << std::endl;
+			close(clientSocket);
 			throw ClientFailed();
+		}
 		Client newClient(clientSocket, clientAddress);
 		this->clients.push_back(newClient);
 		std::cout << GREEN << "server active in port: " << this->port << " accepted new request" << RESET << std::endl;
