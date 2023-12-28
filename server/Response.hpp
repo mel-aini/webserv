@@ -58,6 +58,7 @@ class Response {
         bool        isInErrorPages();
         void        redirect(const std::string& location);
         void        reset();
+        bool        sendFile(std::string fileName);
     
         class ResponseFailed : public std::exception {
 			public:

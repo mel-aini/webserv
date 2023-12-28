@@ -73,6 +73,40 @@ bool	Response::isInErrorPages()
 	return false;
 }
 
+bool	Response::sendFile(std::string fileName)
+{
+	char buf[1024] = {0};
+
+	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
+	if (!file.is_open()) {
+		std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
+		throw ResponseFailed();
+	}
+	file.seekg(this->bodyOffset, std::ios::beg);
+	if (!file || file.eof())
+		this->sending_level = SENDING_END;
+
+	file.read(buf, sizeof(buf));
+	if (!file)
+		this->sending_level = SENDING_END;
+
+	int bytesRead = file.gcount();
+	bodyOffset += bytesRead;
+
+	if (bytesRead != 0)
+		send(this->socket, buf, bytesRead, 0);
+
+	// std::cout << RED << buf << RESET << std::endl;
+
+	if (file.eof()) {
+		this->sending_level = SENDING_END;
+		file.close();
+		return true;
+	}
+	file.close();
+	return false;
+}
+
 bool	Response::send_response_error()
 {
 	// std::cout << MAGENTA << "Here!" << RESET << std::endl;
@@ -105,35 +139,8 @@ bool	Response::send_response_error()
 	if (this->sending_level == SENDING_BODY)
 	{
 		if (this->sendingFile) {
-			char buf[1024] = {0};
-			std::string fileName = this->location->root + "/" + this->errPage;
-			std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
-			if (!file.is_open()) {
-				std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
-				throw ResponseFailed();
-			}
-			file.seekg(this->bodyOffset, std::ios::beg);
-			if (!file || file.eof())
-				this->sending_level = SENDING_END;
-
-			file.read(buf, sizeof(buf));
-			if (!file)
-				this->sending_level = SENDING_END;
-
-			int bytesRead = file.gcount();
-			bodyOffset += bytesRead;
-
-			if (bytesRead != 0)
-				send(this->socket, buf, bytesRead, 0);
-
-			std::cout << RED << buf << RESET << std::endl;
-
-			if (file.eof()) {
-				this->sending_level = SENDING_END;
-				file.close();
+			if (this->sendFile(this->location->root + "/" + this->errPage))
 				return true;
-			}
-			file.close();
 			return false;
 		}
 		else {
@@ -238,7 +245,7 @@ void	Response::send_status_line_and_headers()
 	}
 
 	std::string response = status_line + headers + "\r\n\r\n";
-	std::cout << YELLOW << response << RESET << std::endl; 
+	// std::cout << YELLOW << response << RESET << std::endl; 
 	// std::cout << YELLOW << response << RESET << std::endl;
 	const char *buf = response.c_str();
 	if (send(this->socket, buf, response.size(), 0) == -1)

@@ -98,7 +98,7 @@ void		Client::createResponse(std::vector<Location> &locations) {
 	{
 		this->response.setLocation(location);
 		// -> this line below is to test error pages
-		this->response.setStatus(403);
+		// this->response.setStatus(403);
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
@@ -136,7 +136,7 @@ void	Client::send_response()
 		}
 	*/
 	if (this->response.getResponseType() == OK) {
-		bool isResponseEnd = false;
+		// bool isResponseEnd = false;
 		/*
 			if (GET)
 				-> perform action, getMethod()
@@ -145,7 +145,7 @@ void	Client::send_response()
 			else if (DELETE)
 				-> perform action, deleteMethod()
 		*/
-		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
+		// this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 	}
 	else if (this->response.getResponseType() == REDIRECT) {
 		this->response.redirect(this->response.getLocation()->getRedirection());
