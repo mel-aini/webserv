@@ -144,8 +144,8 @@ int Request::readByChunk()
         }
         case CHUNK_DATA :
         {
-            // if (this->_request.find("\r\n") == std::string::npos)
-            //     return 1;
+            if (this->_request.find("\r\n") == std::string::npos)
+                return 1;
             std::ofstream file(this->_filename, std::ios::out | std::ios::app);
             if (this->_lengthState < this->_request.length())
             {
