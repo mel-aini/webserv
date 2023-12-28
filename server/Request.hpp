@@ -34,7 +34,6 @@ enum ChunkState{
     CHUNK_SIZE_START,
     CHUNK_SIZE,
     CHUNK_DATA,
-    CHUNK_END
 };
 
 
@@ -47,7 +46,7 @@ class Request
         size_t _lengthState;
         std::string _request;
         std::string _method;
-        std::string _url;
+        std::string _uri;
         std::string _version;
         std::string currentHeaderKey;
         std::string currentHeaderValue;

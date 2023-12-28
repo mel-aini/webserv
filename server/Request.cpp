@@ -11,8 +11,9 @@
 /* ************************************************************************** */
 
 #include "Request.hpp"
+#include <unistd.h>
 
-Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0)
+Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("tmp")
 {
 }
 
@@ -30,7 +31,7 @@ Request &Request::operator=(Request const &rhs)
         this->_lengthState = rhs._lengthState;
         this->_request = rhs._request;
         this->_method = rhs._method;
-        this->_url = rhs._url;
+        this->_uri = rhs._uri;
         this->_version = rhs._version;
         this->_headers = rhs._headers;
         this->_filename = rhs._filename;
@@ -82,7 +83,6 @@ std::string Request::getTransferEncoding()
 int Request::validateRequestLine()
 {
     std::string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=";
-    std::cout << "validateRequestLine" << std::endl;
     if (this->_method != "GET" && this->_method != "POST" && this->_method != "DELETE" 
         && this->_method != "PUT" && this->_method != "HEAD" && this->_method != "OPTIONS" 
         && this->_method != "TRACE" && this->_method != "CONNECT")
@@ -90,17 +90,17 @@ int Request::validateRequestLine()
         this->status = 400;
         return 0;
     }
-    if (this->_url.find_first_not_of(allowed) != std::string::npos)
+    if (this->_uri.find_first_not_of(allowed) != std::string::npos)
     {
         this->status = 400;
         return 0;
     }
-    if (this->_url[0] != '/' || this->_version != "HTTP/1.1")
+    if (this->_uri[0] != '/' || this->_version != "HTTP/1.1")
     {
         this->status = 400;
         return 0;
     }
-    if (this->_url.length() > 2048)
+    if (this->_uri.length() > 2048)
     {
         this->status = 414;
         return 0;
@@ -111,9 +111,73 @@ int Request::validateRequestLine()
 int Request::readByChunk()
 {
     /*
+       Read the request by chunk
     */
-    
-    return (1);
+   switch (this->_chunkState)
+   {
+        case CHUNK_SIZE_START :
+        {
+            if (this->_request.find("\r\n") == std::string::npos)
+                break;
+            this->_chunkState = CHUNK_SIZE;
+        }
+        case CHUNK_SIZE :
+        {
+            if (this->_lengthState == 0)
+            {
+                std::string chunkSize = this->_request.substr(0, this->_request.find("\r\n"));
+                std::stringstream ss(chunkSize);
+                ss >> std::hex >> this->_lengthState;
+                if (this->_lengthState == 0)
+                {
+                    this->_state = END; 
+                    return 1;
+                }
+                this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
+                this->_chunkState = CHUNK_DATA;
+            }
+            else
+            {
+                this->_chunkState = CHUNK_SIZE_START;
+                return 1;
+            }
+        }
+        case CHUNK_DATA :
+        {
+            if (this->_request.find("\r\n") == std::string::npos)
+                return 1;
+            std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+            if (this->_lengthState < this->_request.length())
+            {
+                file << this->_request.substr(0, this->_lengthState);
+                this->_request = this->_request.substr(this->_lengthState + 2);
+                this->_lengthState = 0;
+                this->_chunkState = CHUNK_SIZE_START;
+                file.close();
+                return (readByChunk());
+            }
+            else if (this->_lengthState > 0)
+            {
+                this->_request = this->_request.substr(0, this->_request.find("\r\n"));
+                file << this->_request;
+                this->_lengthState -= this->_request.length();
+                this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
+                this->_chunkState = CHUNK_SIZE_START;
+                file.close();
+                break;
+            }
+            else if (this->_lengthState == 0)
+            {
+                this->_request = this->_request.substr(0, this->_request.find("\r\n"));
+                file << this->_request;
+                this->_request = "";
+                this->_chunkState = CHUNK_SIZE_START;
+                this->_lengthState -= this->_request.length();
+                file.close();
+            }
+        }
+   }
+    return 1;
 }
 
 
@@ -133,7 +197,7 @@ int Request::readRequest(char *buffer, int size)
             std::string requestLine = this->_request.substr(0, this->_request.find("\r\n"));
             std::stringstream ss(requestLine);
             std::getline(ss, this->_method, ' ');
-            std::getline(ss, this->_url, ' ');
+            std::getline(ss, this->_uri, ' ');
             std::getline(ss, this->_version, ' ');
             this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
             this->_state = HEADER;
@@ -196,7 +260,6 @@ int Request::readRequest(char *buffer, int size)
             }
             else if (this->_lengthState == 0)
             {
-
                 file << this->_request;
                 this->_request = "";
                 file.close();
@@ -208,8 +271,8 @@ int Request::readRequest(char *buffer, int size)
             /*
                 if Transfer-Encoding: chunked is found in the headers
             */
-            // if (readByChunk())
-            //     break;
+            if (readByChunk())
+                break;
            
         }
         case BOUNDARY :
@@ -229,7 +292,7 @@ int Request::readRequest(char *buffer, int size)
 void Request::printRequest()
 {
     std::cout << "Method: " << this->_method << std::endl;
-    std::cout << "Path: " << this->_url << std::endl;
+    std::cout << "Path: " << this->_uri << std::endl;
     std::cout << "Version: " << this->_version << std::endl;
     std::cout << "Headers: " << std::endl;
     for (std::map<std::string, std::string>::iterator it = this->_headers.begin(); it != this->_headers.end(); it++)
@@ -237,3 +300,8 @@ void Request::printRequest()
         std::cout << it->first << ": " << it->second << std::endl;
     }
 }
+
+            //    file << this->_request.substr(0, this->_request.find("\r\n"));
+            //     this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
+            //     this->_lengthState -= this->_request.length();
+            //     file.close();
