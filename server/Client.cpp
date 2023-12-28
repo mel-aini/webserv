@@ -72,8 +72,9 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 void		Client::createResponse(std::vector<Location> &locations) {
 
 	// -> find location that matches with uri
-	Location *loc = this->response.findLocation(locations, this->request.getUri());
-
+	std::string str = "as";
+	this->request.setUri(str);
+	Location *location = this->response.findLocation(locations, this->request.getUri());
 	/*
 		-> find location that matches with uri
 
@@ -101,8 +102,7 @@ void		Client::createResponse(std::vector<Location> &locations) {
 	*/
 	if (processing_level == INITIAL)
 	{
-		this->response.setLocation(loc);
-		Location *location = this->response.getLocation();
+		this->response.setLocation(location);
 		// -> this line below is to test error pages
 		// this->response.setStatus(403);
 		if (!location || this->response.getStatus() != 200) {
@@ -115,13 +115,10 @@ void		Client::createResponse(std::vector<Location> &locations) {
 			this->processing_level = PROCESSED;
 			return;
 		}
-		const std::string &uri = location->getRedirection();
-		if (this->response.getStatus() != 200) {
-			this->response.send_response_error();
-		}
-		else if (!uri.empty()) {
+		const std::string &redirection = location->getRedirection();
+		if (!redirection.empty()) {
 			// then: location has a redirect
-			this->response.redirect(uri);
+			this->response.redirect(redirection);
 			this->processing_level = PROCESSED;
 			return;
 		}

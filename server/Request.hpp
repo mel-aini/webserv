@@ -27,6 +27,7 @@ class Request {
         ~Request();
 
         const std::string&  getUri() const;
+        void                setUri(std::string& uri);
         int                 getMethod() const;
         void                appendToBuffer(const char *s);
         int                 getStatus() const;

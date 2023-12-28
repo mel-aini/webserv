@@ -304,6 +304,11 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	std::vector<Location>::iterator	it;
 	std::string tmp = uri;
 
+	if (tmp.empty() || tmp[0] != '/') {
+			this->setStatus(400);
+			return NULL;
+	}
+
 	if (locations.size() > 1)
 		std::sort(locations.begin(), locations.end(), compareByLength);
 	if (tmp[tmp.length() - 1] == '/')
@@ -314,6 +319,7 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 		}
 		tmp.erase(tmp.length() - 1);
 	}
+
 	long long pos;
 
 	while (true)
@@ -331,6 +337,7 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	}
 	if (it == locations.end())
 		it = locations.end() - 1;
+	std::cout << YELLOW << it->getPath() << RESET << std::endl;
 	return &(*it);
 }
 

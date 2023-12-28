@@ -34,6 +34,11 @@ int Request::getSize() const {
     return this->buffer.size();
 }
 
+void    Request::setUri(std::string& uri)
+{
+    this->uri = uri;
+}
+
 const std::string&  Request::getUri() const
 {
     return (this->uri);

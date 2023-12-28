@@ -79,6 +79,7 @@ int main(int ac, char* av[])
         }
         else if (fd == 0) {
             // then: no event occurs in that specified time
+            /*
             std::cout << YELLOW << "no event occurs in that specified time" << RESET << std::endl;
             for (unsigned int i = 0; i < global.getNfds(); i++) {
                 if ((pollfds + i)->fd > 0) {
@@ -92,6 +93,7 @@ int main(int ac, char* av[])
                     std::cout << std::endl;
                 }
             }
+            */
             continue;
         }
         try
