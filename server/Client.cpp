@@ -70,8 +70,13 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 }
 
 void		Client::createResponse(std::vector<Location> &locations) {
+
+	// -> find location that matches with uri
+	Location *loc = this->response.findLocation(locations, this->request.getUri());
+
 	/*
 		-> find location that matches with uri
+
 		-> get methods allowed
 
 		if (status != 200) {
@@ -96,10 +101,10 @@ void		Client::createResponse(std::vector<Location> &locations) {
 	*/
 	if (processing_level == INITIAL)
 	{
-		this->response.setLocation(&locations[0]);
+		this->response.setLocation(loc);
 		Location *location = this->response.getLocation();
 		// -> this line below is to test error pages
-		this->response.setStatus(403);
+		// this->response.setStatus(403);
 		if (!location || this->response.getStatus() != 200) {
 			/*
 				then: no matching location

@@ -294,6 +294,46 @@ void	Response::reset() {
 	this->bodyOffset = 0;
 }
 
+bool compareByLength(Location& a, Location& b)
+{
+    return (a.getPath().length() > b.getPath().length());
+}
+
+Location *Response::findLocation(std::vector<Location> &locations, std::string uri)
+{
+	std::vector<Location>::iterator	it;
+	std::string tmp = uri;
+
+	if (locations.size() > 1)
+		std::sort(locations.begin(), locations.end(), compareByLength);
+	if (tmp[tmp.length() - 1] == '/')
+	{
+		if (tmp[tmp.length() - 2] == '/') {
+			this->setStatus(400);
+			return NULL;
+		}
+		tmp.erase(tmp.length() - 1);
+	}
+	long long pos;
+
+	while (true)
+	{
+		it = locations.begin();
+		for (; it != locations.end(); it++)
+			if (tmp == it->getPath())
+				break ;
+		if (it != locations.end())
+			break ;
+		pos = tmp.rfind('/');
+		if (pos == -1 || pos == 0)
+			break ;
+		tmp = tmp.substr(0, pos);
+	}
+	if (it == locations.end())
+		it = locations.end() - 1;
+	return &(*it);
+}
+
 // title: exceptions
 
 const char	*Response::ResponseFailed::what() const throw() {

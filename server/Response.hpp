@@ -42,7 +42,7 @@ class Response {
 		bool        send_response_error();
         void        send_status_line_and_headers();
         void        send_body();
-        Location    *findLocation();
+        Location    *findLocation(std::vector<Location> &locations, std::string uri);
         void        setLocation(Location *location);
         Location    *getLocation();
         bool        isInErrorPages(std::string& errPage);

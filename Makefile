@@ -4,7 +4,7 @@ HEADERS = multiplexing/Global.hpp server/Server.hpp server/Client.hpp server/Loc
 		parsing/ConfigFile.hpp server/HtmlTemplate.hpp
 
 SRC = webserv.cpp server/Location.cpp server/Server.cpp parsing/ConfigFile.cpp server/Request.cpp server/Response.cpp multiplexing/Global.cpp \
-		server/Client.cpp server/HtmlTemplate.cpp
+		server/Client.cpp server/HtmlTemplate.cpp parsing/parserUtils.cpp parsing/tokenizer.cpp
 
 OBJ = $(SRC:.cpp=.o)
 
