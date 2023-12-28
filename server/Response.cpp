@@ -78,44 +78,29 @@ bool	Response::send_response_error()
 	// std::cout << MAGENTA << "Here!" << RESET << std::endl;
 	if (this->sending_level == SENDING_HEADERS)
 	{
+		std::stringstream sizestream;
 		if (this->location && this->isInErrorPages())
 		{
-			std::stringstream ss;
 			std::string fileName = this->location->root + "/" + errPage;
 			std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 			if (file.is_open()) {
 				struct stat fileInfo;
 				if (stat(fileName.c_str(), &fileInfo) == 0) {
-					ss << fileInfo.st_size;
+					sizestream << fileInfo.st_size;
 					this->sendingFile = true;
 				}
 			}
-			else if (!this->sendingFile) {
-				std::string message = this->getStatusMessage();
-				HtmlTemplate htmlErrorPage(this->status, message);
-				ss << htmlErrorPage.getHtml().size();
-			}
-			this->headers["Content-Type: "] = "text/html";
-			this->headers["Content-Length: "] = ss.str();
-
-			send_status_line_and_headers();
-			this->sending_level = SENDING_BODY;
 		}
-		/*
-			switch (sending_level)
-			{
-				case SENDING_HEADERS:
-					if (sending a file) {
-						if (file exist)
-							get content-length from file;
-							sending a file = false
-						else if (file not exist or failed)
-							get content-length from html template
-						...
-					}
-					add
-			}
-		*/
+		if (!this->sendingFile) {
+			std::string message = this->getStatusMessage();
+			HtmlTemplate htmlErrorPage(this->status, message);
+			sizestream << htmlErrorPage.getHtml().size();
+		}
+		this->headers["Content-Type: "] = "text/html";
+		this->headers["Content-Length: "] = sizestream.str();
+
+		send_status_line_and_headers();
+		this->sending_level = SENDING_BODY;
 	}
 	if (this->sending_level == SENDING_BODY)
 	{
