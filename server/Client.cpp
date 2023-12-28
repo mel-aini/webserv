@@ -39,6 +39,7 @@ bool	Client::methodIsAllowed(std::vector<std::string> &allowMethods, std::string
 		if (method == *it)
 			return true;
 	}
+	this->response.setStatus(405);
 	return false;
 }
 
@@ -52,14 +53,7 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 		this->reqHasRead();
 		// then: close connection
 	}
-	/*
-		read 1024, still 1000
-		read 1000, 
-	*/
-	// std::cout << RED << buf << RESET << std::endl;
 	this->request.appendToBuffer(buf);
-	// std::cout << buf;
-	// this->request.resetBuffer();
 	this->reqHasRead();
 	/*
 		if (still reading request)
@@ -72,7 +66,7 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 void		Client::createResponse(std::vector<Location> &locations) {
 
 	// -> find location that matches with uri
-	std::string str = "as";
+	std::string str = "/";
 	this->request.setUri(str);
 	Location *location = this->response.findLocation(locations, this->request.getUri());
 	/*
@@ -104,37 +98,45 @@ void		Client::createResponse(std::vector<Location> &locations) {
 	{
 		this->response.setLocation(location);
 		// -> this line below is to test error pages
-		// this->response.setStatus(403);
-		if (!location || this->response.getStatus() != 200) {
-			/*
-				then: no matching location
-				!location case:
-					-> this->response.setStatus(400);
-			*/
-			this->response.send_response_error();
-			this->processing_level = PROCESSED;
-			return;
-		}
-		const std::string &redirection = location->getRedirection();
-		if (!redirection.empty()) {
-			// then: location has a redirect
-			this->response.redirect(redirection);
-			this->processing_level = PROCESSED;
-			return;
+		// this->response.setStatus(411);
+		if (!location || this->response.getStatus() != 200)
+			this->response.setResponseType(ERROR);
+		else {
+			if (!location->getRedirection().empty()) 
+				this->response.setResponseType(REDIRECT);
+			else if (!this->methodIsAllowed(location->allowMethods, "GET"))
+				this->response.setResponseType(ERROR);
 		}
 		processing_level = SENDING;
-		if (this->methodIsAllowed(location->allowMethods, "GOT"))
-			this->isAllowedMethod = true;
 	}
 	else if (processing_level == SENDING)
-		this->executeMethods();
+		this->send_response();
 	else if (processing_level == PROCESSED)
 		this->resHasSent();
 }
 
-void	Client::executeMethods()
+void	Client::send_response()
 {
-	if (this->isAllowedMethod) {
+	/*
+		if (OK) {
+			if (GET)
+				-> perform action, getMethod()
+			else if (POST)
+				-> perform action, postMethod()
+			else if (DELETE)
+				-> perform action, deleteMethod()
+		}
+		else if (REDIRECT) {
+			this->response.redirect(redirection);
+			this->processing_level = PROCESSED;
+		}
+		else if (ERROR) {
+			bool isResponseEnd = this->response.send_response_error();
+			this->processing_level = isResponseEnd ? PROCESSED : SENDING;
+		}
+	*/
+	if (this->response.getResponseType() == OK) {
+		bool isResponseEnd = false;
 		/*
 			if (GET)
 				-> perform action, getMethod()
@@ -143,8 +145,13 @@ void	Client::executeMethods()
 			else if (DELETE)
 				-> perform action, deleteMethod()
 		*/
+		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 	}
-	else {
+	else if (this->response.getResponseType() == REDIRECT) {
+		this->response.redirect(this->response.getLocation()->getRedirection());
+		this->processing_level = PROCESSED;
+	}
+	else if (this->response.getResponseType() == ERROR) {
 		bool isResponseEnd = this->response.send_response_error();
 		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 	}

@@ -44,6 +44,6 @@ class Client
 		void				postMethod();
 		void				deleteMethod();
 		bool				methodIsAllowed(std::vector<std::string> &allowMethods, std::string method);
-		void				executeMethods();
+		void				send_response();
 };
 

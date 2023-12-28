@@ -5,6 +5,7 @@ Response::Response()
 	status(200), 
 	location(NULL),
 	sending_level(SENDING_HEADERS),
+	response_type(OK),
 	bodyOffset(0)
 {
 	status_codes[200] = "OK";
@@ -36,6 +37,15 @@ void	Response::setLocation(Location *location) {
 
 Location    *Response::getLocation() {
 	return this->location;
+}
+
+unsigned int	Response::getResponseType() const {
+	return this->response_type;
+}
+
+void	Response::setResponseType(unsigned int response_type)
+{
+	this->response_type = response_type;
 }
 
 std::string Response::getStatusMessage() {
@@ -157,7 +167,6 @@ bool	Response::send_response_error()
 		int bytesRead = file.gcount();
 		bodyOffset += bytesRead;
 
-
 		if (bytesRead != 0)
 			send(this->socket, buf, bytesRead, 0);
 
@@ -208,81 +217,6 @@ void    Response::redirect(const std::string& location)
 	this->status = 301;
 	this->headers["Location: "] = location;
 	send_status_line_and_headers();
-}
-
-bool	Response::methodNotAllowed(std::vector<std::string> &allowMethods)
-{
-	if (this->sending_level == SENDING_HEADERS)
-	{
-		this->status = 405;
-
-		std::string AllowValue;
-		std::vector<std::string>::iterator it = allowMethods.begin();
-		while (it != allowMethods.end()) {
-			AllowValue += *it;
-			it++;
-			if (it != allowMethods.end())
-				AllowValue += ", ";
-		}
-		this->headers["Allow: "] = AllowValue;
-		// file length
-		std::string fileName = "public/html/err.html";
-		std::ifstream file(fileName.c_str(), std::ios::in/* | std::ios::binary*/);
-		if (!file.is_open()) {
-			std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
-			throw ResponseFailed();
-		}
-		std::stringstream sstream;
-		sstream << file.rdbuf();
-		std::string body = sstream.str();
-		// this->responsefile.close();
-		int len = body.size();
-		std::ostringstream s;
-		s << len;
-		// file length
-	
-		this->headers["Content-Length: "] = s.str();
-	
-		send_status_line_and_headers();
-		this->sending_level = SENDING_BODY;
-	}
-	else if (this->sending_level == SENDING_BODY)
-	{
-		// char buf[1024] = {0};
-		// std::string fileName = "public/html/err.html";
-		// std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
-		// if (!file.is_open()) {
-		// 	std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
-		// 	throw ResponseFailed();
-		// }
-		// file.seekg(this->bodyOffset, std::ios::beg);
-		// if (!file || file.eof())
-		// 	this->sending_level = SENDING_END;
-
-		// file.read(buf, sizeof(buf));
-		// if (!file)
-		// 	this->sending_level = SENDING_END;
-
-		// int bytesRead = file.gcount();
-		// bodyOffset += bytesRead;
-
-
-		// if (bytesRead != 0)
-		// 	send(this->socket, buf, bytesRead, 0);
-
-		// std::cout << RED << buf << RESET << std::endl;
-
-		// if (file.eof()) {
-		// 	file.close();
-		// 	this->sending_level = SENDING_END;
-		// }
-	}
-	else if (this->sending_level == SENDING_END)
-	{
-		this->reset();
-		return true;
-	}
-	return false;
 }
 
 void	Response::reset() {
