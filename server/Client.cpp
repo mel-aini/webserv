@@ -98,7 +98,7 @@ void		Client::createResponse(std::vector<Location> &locations) {
 	{
 		this->response.setLocation(location);
 		// -> this line below is to test error pages
-		// this->response.setStatus(411);
+		// this->response.setStatus(403);
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
@@ -127,19 +127,15 @@ bool	Client::getMethod(Location *location)
 	{
 		if (S_ISREG(fileInf.st_mode))
 		{
-			std::string	finalPath = location->getPath() + location->getRoot();
-			std::fstream	file;
-			file.open(finalPath, std::fstream::in);
-			if (file.is_open())
-			{
-				return (true);
-			}
-			else
-			{
-				this->response.setStatus(404);
-				this->response.setResponseType(ERROR);
-				return (false);
-			}
+			std::string	finalPath = location->getRoot() + location->getPath();
+			std::fstream	file(finalPath.c_str(), std::fstream::in | std::ios::binary);
+			return (true);
+			// else
+			// {
+			// 	this->response.setStatus(404);
+			// 	this->response.setResponseType(ERROR);
+			// 	return (false);
+			// }
 		}
 		else
 		{}

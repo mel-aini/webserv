@@ -6,7 +6,8 @@ Response::Response()
 	location(NULL),
 	sending_level(SENDING_HEADERS),
 	response_type(OK),
-	bodyOffset(0)
+	bodyOffset(0),
+	sendingFile(false)
 {
 	status_codes[200] = "OK";
 	status_codes[201] = "Created";
@@ -56,7 +57,7 @@ void	Response::setSocket(int fd) {
 	this->socket = fd;
 }
 
-bool	Response::isInErrorPages(std::string& errPage)
+bool	Response::isInErrorPages()
 {
 	std::vector<std::pair<std::string, std::vector<int> > >::iterator	it;
 
@@ -64,7 +65,7 @@ bool	Response::isInErrorPages(std::string& errPage)
 		std::vector<int>::iterator it2;
 		for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
 			if (this->status == (unsigned int)*it2) {
-				errPage = it->first;
+				this->errPage = it->first;
 				return true;
 			}
 		}
@@ -74,49 +75,81 @@ bool	Response::isInErrorPages(std::string& errPage)
 
 bool	Response::send_response_error()
 {
-	std::cout << MAGENTA << "Here!" << RESET << std::endl;
+	// std::cout << MAGENTA << "Here!" << RESET << std::endl;
 	if (this->sending_level == SENDING_HEADERS)
 	{
-		/*
-			switch (sending_level)
-			{
-				case SENDING_HEADERS:
-					if (sending a file) {
-						if (file exist)
-							get content-length from file;
-							sending a file = false
-						else if (file not exist or failed)
-							get content-length from html template
-						...
-					}
-					add
+		std::stringstream sizestream;
+		if (this->location && this->isInErrorPages())
+		{
+			std::string fileName = this->location->root + "/" + errPage;
+			std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
+			if (file.is_open()) {
+				struct stat fileInfo;
+				if (stat(fileName.c_str(), &fileInfo) == 0) {
+					sizestream << fileInfo.st_size;
+					this->sendingFile = true;
+				}
 			}
-		*/
-		std::string message = this->getStatusMessage();
-		HtmlTemplate htmlErrorPage(this->status, message);
-		std::stringstream ss;
-		ss << htmlErrorPage.getHtml().size();
-
+		}
+		if (!this->sendingFile) {
+			std::string message = this->getStatusMessage();
+			HtmlTemplate htmlErrorPage(this->status, message);
+			sizestream << htmlErrorPage.getHtml().size();
+		}
 		this->headers["Content-Type: "] = "text/html";
-		this->headers["Content-Length: "] = ss.str();
+		this->headers["Content-Length: "] = sizestream.str();
 
 		send_status_line_and_headers();
 		this->sending_level = SENDING_BODY;
 	}
 	if (this->sending_level == SENDING_BODY)
 	{
-		std::string message = this->getStatusMessage();
-		HtmlTemplate htmlErrorPage(this->status, message);
+		if (this->sendingFile) {
+			char buf[1024] = {0};
+			std::string fileName = this->location->root + "/" + this->errPage;
+			std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
+			if (!file.is_open()) {
+				std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
+				throw ResponseFailed();
+			}
+			file.seekg(this->bodyOffset, std::ios::beg);
+			if (!file || file.eof())
+				this->sending_level = SENDING_END;
 
-		const std::string& response = htmlErrorPage.getHtml();
-		std::cout << RED << response << RESET << std::endl;
-		std::cout << RED << "size: "<< response.size() << RESET << std::endl;
+			file.read(buf, sizeof(buf));
+			if (!file)
+				this->sending_level = SENDING_END;
 
-		const char *buf = response.c_str();
-		if (send(this->socket, buf, response.size(), 0) == -1)
-			throw ResponseFailed();
+			int bytesRead = file.gcount();
+			bodyOffset += bytesRead;
 
-		this->sending_level = SENDING_END;
+			if (bytesRead != 0)
+				send(this->socket, buf, bytesRead, 0);
+
+			std::cout << RED << buf << RESET << std::endl;
+
+			if (file.eof()) {
+				this->sending_level = SENDING_END;
+				file.close();
+				return true;
+			}
+			file.close();
+			return false;
+		}
+		else {
+			std::string message = this->getStatusMessage();
+			HtmlTemplate htmlErrorPage(this->status, message);
+
+			const std::string& response = htmlErrorPage.getHtml();
+			std::cout << RED << response << RESET << std::endl;
+			std::cout << RED << "size: "<< response.size() << RESET << std::endl;
+
+			const char *buf = response.c_str();
+			if (send(this->socket, buf, response.size(), 0) == -1)
+				throw ResponseFailed();
+
+			this->sending_level = SENDING_END;
+		}
 	}
 	else if (this->sending_level == SENDING_END)
 	{
@@ -147,7 +180,7 @@ bool	Response::send_response_error()
 	*/
 	std::string errPage;
 
-	if (this->location && this->isInErrorPages(errPage))
+	if (this->location && this->isInErrorPages())
 	{
 		char buf[1024] = {0};
 		std::string fileName = this->location->root + "/" + errPage;
@@ -173,10 +206,11 @@ bool	Response::send_response_error()
 		std::cout << RED << buf << RESET << std::endl;
 
 		if (file.eof()) {
-			file.close();
 			this->sending_level = SENDING_END;
+			file.close();
 			return true;
 		}
+		file.close();
 		return false;
 	}
 	std::string message = this->getStatusMessage();

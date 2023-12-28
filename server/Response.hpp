@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include "../public/Colors.hpp"
 #include "HtmlTemplate.hpp"
+#include <sys/stat.h>
 
 enum sending_level{
     SENDING_HEADERS,
@@ -34,7 +35,8 @@ class Response {
         size_t                              bodyOffset;
         std::map<int, std::string>          status_codes;
         int                                 socket;
-
+        bool                                sendingFile;
+        std::string                         errPage;
     public:
         Response();
         ~Response();
@@ -53,7 +55,7 @@ class Response {
         Location    *findLocation(std::vector<Location> &locations, std::string uri);
         void        setLocation(Location *location);
         Location    *getLocation();
-        bool        isInErrorPages(std::string& errPage);
+        bool        isInErrorPages();
         void        redirect(const std::string& location);
         void        reset();
     
