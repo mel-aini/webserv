@@ -45,8 +45,6 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 		read 1024, still 1000
 		read 1000, 
 	*/
-	// std::cout << RED << buf << RESET << std::endl;
-	//std::cout << "readed: " << readed << std::endl;
 	if (this->request.readRequest(buf, readed))
 		this->reqHasRead();
 	//this->request.printRequest();

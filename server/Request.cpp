@@ -131,7 +131,7 @@ int Request::readByChunk()
                 if (this->_lengthState == 0)
                 {
                     this->_state = END; 
-                    return 1;
+                    return 0;
                 }
                 this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
                 this->_chunkState = CHUNK_DATA;
@@ -144,8 +144,8 @@ int Request::readByChunk()
         }
         case CHUNK_DATA :
         {
-            if (this->_request.find("\r\n") == std::string::npos)
-                return 1;
+            // if (this->_request.find("\r\n") == std::string::npos)
+            //     return 1;
             std::ofstream file(this->_filename, std::ios::out | std::ios::app);
             if (this->_lengthState < this->_request.length())
             {
@@ -158,22 +158,23 @@ int Request::readByChunk()
             }
             else if (this->_lengthState > 0)
             {
-                this->_request = this->_request.substr(0, this->_request.find("\r\n"));
-                file << this->_request;
-                this->_lengthState -= this->_request.length();
-                this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
-                this->_chunkState = CHUNK_SIZE_START;
-                file.close();
-                break;
-            }
-            else if (this->_lengthState == 0)
-            {
-                this->_request = this->_request.substr(0, this->_request.find("\r\n"));
-                file << this->_request;
-                this->_request = "";
-                this->_chunkState = CHUNK_SIZE_START;
-                this->_lengthState -= this->_request.length();
-                file.close();
+                if (this->_lengthState > this->_request.length())
+                {
+                    file << this->_request;
+                    this->_lengthState -= this->_request.length();
+                    this->_request = "";
+                    file.close();
+                    return 1;
+                }
+                else if (this->_lengthState == this->_request.length())
+                {
+                    file << this->_request;
+                    this->_lengthState = 0;
+                    this->_request = "";
+                    file.close();
+                    this->_chunkState = CHUNK_SIZE_START;
+                    return 1;
+                }
             }
         }
    }
@@ -264,7 +265,7 @@ int Request::readRequest(char *buffer, int size)
                 this->_request = "";
                 file.close();
             }
-            this->_state = END;  
+            this->_state = END;
         }
         case CHUNKED :
         {
