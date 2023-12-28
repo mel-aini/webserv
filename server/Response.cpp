@@ -271,7 +271,6 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	}
 	if (it == locations.end())
 		it = locations.end() - 1;
-	std::cout << YELLOW << it->getPath() << RESET << std::endl;
 	return &(*it);
 }
 

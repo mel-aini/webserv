@@ -7,6 +7,7 @@
 #include <cstring>
 #include <string>
 #include <fstream>
+#include <sys/stat.h>
 #include "Request.hpp"
 #include "Response.hpp"
 
@@ -40,7 +41,7 @@ class Client
 		void				resHasSent();
 		void				reset();
 		void				setPollfd(struct pollfd	*pollfd);
-		void				getMethod();
+		bool				getMethod(Location *location);
 		void				postMethod();
 		void				deleteMethod();
 		bool				methodIsAllowed(std::vector<std::string> &allowMethods, std::string method);

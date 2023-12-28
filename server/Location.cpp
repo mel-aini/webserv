@@ -125,6 +125,11 @@ std::string	Location::getPath(void)
 	return (this->path);
 }
 
+std::string	Location::getRoot(void)
+{
+	return (this->root);
+}
+
 std::ostream & operator<<(std::ostream & out, const Location & obj)
 {
 	out << " path: " << obj.path

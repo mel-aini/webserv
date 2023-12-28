@@ -29,6 +29,13 @@ int main(int ac, char* av[])
 		cerr << "Error" << endl << "invalid arguments" << endl;
 		return (1);
 	}
+    std::string	file = av[1];
+	long long pos = file.rfind('.');
+	if ((pos != -1 && file.substr(pos) != ".conf") || pos == -1)
+	{
+		cerr << "Error" << endl << "config file must be \'.conf\'" << endl;
+		return (1);
+	}
     Global global;
     // -> parsing
     global.setServers(parser(av[1]));

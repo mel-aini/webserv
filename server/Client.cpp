@@ -66,7 +66,7 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 void		Client::createResponse(std::vector<Location> &locations) {
 
 	// -> find location that matches with uri
-	std::string str = "/";
+	std::string str = "/index.html";
 	this->request.setUri(str);
 	Location *location = this->response.findLocation(locations, this->request.getUri());
 	/*
@@ -102,7 +102,7 @@ void		Client::createResponse(std::vector<Location> &locations) {
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
-			if (!location->getRedirection().empty()) 
+			if (!location->getRedirection().empty())
 				this->response.setResponseType(REDIRECT);
 			else if (!this->methodIsAllowed(location->allowMethods, "GET"))
 				this->response.setResponseType(ERROR);
@@ -113,6 +113,44 @@ void		Client::createResponse(std::vector<Location> &locations) {
 		this->send_response();
 	else if (processing_level == PROCESSED)
 		this->resHasSent();
+}
+
+// std::string	getRequestedResource()
+// {
+// }
+
+bool	Client::getMethod(Location *location)
+{
+	// getRequestedResource();
+	struct stat	fileInf;
+	if (stat(location->getPath().c_str(), &fileInf) == 0)
+	{
+		if (S_ISREG(fileInf.st_mode))
+		{
+			std::string	finalPath = location->getPath() + location->getRoot();
+			std::fstream	file;
+			file.open(finalPath, std::fstream::in);
+			if (file.is_open())
+			{
+				return (true);
+			}
+			else
+			{
+				this->response.setStatus(404);
+				this->response.setResponseType(ERROR);
+				return (false);
+			}
+		}
+		else
+		{}
+	}
+	else
+	{
+		this->response.setStatus(404);
+		this->response.setResponseType(ERROR);
+		return (false);
+	}
+	return (true);
 }
 
 void	Client::send_response()
@@ -137,6 +175,7 @@ void	Client::send_response()
 	*/
 	if (this->response.getResponseType() == OK) {
 		bool isResponseEnd = false;
+		isResponseEnd = this->getMethod(this->response.getLocation());
 		/*
 			if (GET)
 				-> perform action, getMethod()
