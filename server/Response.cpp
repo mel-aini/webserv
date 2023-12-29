@@ -185,43 +185,6 @@ bool	Response::send_response_error()
 			-> generate an html response template(405, "Method Not Allowed")
 		}
 	*/
-	std::string errPage;
-
-	if (this->location && this->isInErrorPages())
-	{
-		char buf[1024] = {0};
-		std::string fileName = this->location->root + "/" + errPage;
-		std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
-		if (!file.is_open()) {
-			std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
-			throw ResponseFailed();
-		}
-		file.seekg(this->bodyOffset, std::ios::beg);
-		if (!file || file.eof())
-			this->sending_level = SENDING_END;
-
-		file.read(buf, sizeof(buf));
-		if (!file)
-			this->sending_level = SENDING_END;
-
-		int bytesRead = file.gcount();
-		bodyOffset += bytesRead;
-
-		if (bytesRead != 0)
-			send(this->socket, buf, bytesRead, 0);
-
-		std::cout << RED << buf << RESET << std::endl;
-
-		if (file.eof()) {
-			this->sending_level = SENDING_END;
-			file.close();
-			return true;
-		}
-		file.close();
-		return false;
-	}
-	std::string message = this->getStatusMessage();
-	HtmlTemplate htmlErrorPage(this->status, message);
 	return true;
 }
 

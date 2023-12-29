@@ -65,44 +65,20 @@ int	Global::isAlreadyUsed(std::string host, std::string port, int index)
 	return -1;
 }
 
-void Global::checkAndProcessFd(struct pollfd *pollfd) {
-	std::vector<Server>::iterator it;
+void Global::checkAndProcessFd(struct pollfd *pollfds, int fds) {
+	int	processed_fds = 0;
 
-	if (((pollfd)->revents & POLLIN) == POLLIN) {
-		for (it = this->servers.begin(); it != this->servers.end(); it++) {
-			size_t sizeBefore = it->getClients().size();
-
-			if (it->processFd(this->pollfds, pollfd, POLLIN)) {
-				std::vector<Client> &clients = it->getClients();
-				// std::cout << "size before: " << sizeBefore << std::endl;
-				// std::cout << "size after: " << clients.size() << std::endl;
-				if (clients.size() > sizeBefore) {
-					/*
-						then : a new client added
-						-> should add it to pollfds to monitor
-					*/
-					struct pollfd fd;
-					fd.fd = clients[clients.size() - 1].getFd();
-					fd.events = POLLIN | POLLHUP;
-					fd.revents = 0;
-					std::cout << "new Client fd: " << fd.fd << std::endl;
-					this->monitorFd(fd);
+	for (unsigned int i = 0; i < this->getNfds(); i++) {
+		if ((pollfds + i)->fd >= 0) {
+			std::vector<Server>::iterator it;
+			for (it = this->servers.begin(); it != this->servers.end(); it++) {
+				if (it->processFd(this->pollfds, (pollfds + i), this->nfds))
+				{
+					processed_fds++;
+					if (i >= this->getNfds() || processed_fds >= fds)
+						return ;
+					break;
 				}
-				break ;
-			}
-		}
-	}
-	if (((pollfd)->revents & POLLOUT) == POLLOUT) {
-		for (it = this->servers.begin(); it != this->servers.end(); it++) {
-			if (it->processFd(this->pollfds, pollfd, POLLOUT))
-				break ;
-		}
-	}
-	if (((pollfd)->revents & POLLHUP) == POLLHUP) {
-		for (it = this->servers.begin(); it != this->servers.end(); it++) {
-			if (it->processFd(this->pollfds, pollfd, POLLHUP)) {
-				this->nfds--;
-				break ;
 			}
 		}
 	}

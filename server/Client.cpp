@@ -8,6 +8,9 @@ Client::Client(int fd, struct sockaddr_in address)
 	processing_level(INITIAL),
 	isAllowedMethod(false)
 {
+	// set timout
+	this->logtime = 0;
+	this->logtime_start = time(0);
 	this->response.setSocket(this->fd);
 }
 
@@ -43,9 +46,20 @@ bool	Client::methodIsAllowed(std::vector<std::string> &allowMethods, std::string
 	return false;
 }
 
+bool	Client::checkLogTime()
+{
+	this->logtime = time(0) - this->logtime_start;
+	if (this->logtime >= CLIENT_TIMEOUT) {
+		std::cout << RED << "TIMEOUT PASSED" << RESET << std::endl;
+		return true;
+	}
+	// std::cout << "time passed as a client is " << this->logtime << "s" << std::endl;
+	return false;
+}
+
 bool		Client::readRequest(struct pollfd *pollfd) {
 	setPollfd(pollfd);
-
+	this->logtime = 0;
 	char buf[1024] = {0};
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed == -1 || readed == 0) {
@@ -63,7 +77,7 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 	return true;
 }
 
-void		Client::createResponse(std::vector<Location> &locations) {
+bool	Client::createResponse(std::vector<Location> &locations) {
 
 	// -> find location that matches with uri
 	std::string str = "/";
@@ -98,7 +112,7 @@ void		Client::createResponse(std::vector<Location> &locations) {
 	{
 		this->response.setLocation(location);
 		// -> this line below is to test error pages
-		// this->response.setStatus(403);
+		this->response.setStatus(403);
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
@@ -111,8 +125,11 @@ void		Client::createResponse(std::vector<Location> &locations) {
 	}
 	else if (processing_level == SENDING)
 		this->send_response();
-	else if (processing_level == PROCESSED)
+	else if (processing_level == PROCESSED) {
 		this->resHasSent();
+		return true;
+	}
+	return false;
 }
 
 void	Client::send_response()
@@ -136,7 +153,11 @@ void	Client::send_response()
 		}
 	*/
 	if (this->response.getResponseType() == OK) {
-		// bool isResponseEnd = false;
+		bool isResponseEnd = false;
+		if (true)
+		{
+			
+		}
 		/*
 			if (GET)
 				-> perform action, getMethod()
@@ -145,7 +166,7 @@ void	Client::send_response()
 			else if (DELETE)
 				-> perform action, deleteMethod()
 		*/
-		// this->processing_level = isResponseEnd ? PROCESSED : SENDING;
+		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 	}
 	else if (this->response.getResponseType() == REDIRECT) {
 		this->response.redirect(this->response.getLocation()->getRedirection());

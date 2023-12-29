@@ -72,12 +72,12 @@ int main(int ac, char* av[])
         */
         pollfds = &global.getPollfds()[0];
 
-        int fd = poll(pollfds, global.getNfds(), 5000);
-        if (fd == -1) {
+        int fds = poll(pollfds, global.getNfds(), 5000);
+        if (fds == -1) {
             perror("poll");
             continue;
         }
-        else if (fd == 0) {
+        else if (fds == 0) {
             // then: no event occurs in that specified time
             /*
             std::cout << YELLOW << "no event occurs in that specified time" << RESET << std::endl;
@@ -96,13 +96,9 @@ int main(int ac, char* av[])
             */
             continue;
         }
-        try
-        {
-            for (unsigned int i = 0; i < global.getNfds(); i++) {
-                if ((pollfds + i)->fd > 0) {
-                    global.checkAndProcessFd(pollfds + i);
-                }
-            }
+        try  {
+            // std::cout << "fds: " << fds << std::endl;
+            global.checkAndProcessFd(pollfds, fds);
         } catch(const std::exception& e) {
             std::cerr << RED << e.what() << RESET << std::endl;
         }

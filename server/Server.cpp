@@ -32,7 +32,7 @@ void	Server::setSocket(int socket) {
 	this->socket = socket;
 }
 
-void	Server::addClient() {
+void	Server::addClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds) {
 	/* 
 		title : accept new connection
 	*/
@@ -54,13 +54,22 @@ void	Server::addClient() {
 		Client newClient(clientSocket, clientAddress);
 		this->clients.push_back(newClient);
 		std::cout << GREEN << "server active in port: " << this->port << " accepted new request" << RESET << std::endl;
+
+		// -> monitor new fd
+		struct pollfd fd;
+		fd.fd = clientSocket;
+		fd.events = POLLIN | POLLHUP;
+		fd.revents = 0;
+		std::cout << "new Client fd: " << fd.fd << std::endl;
+		pollfds.push_back(fd);
+		nfds++;
 	}
 	catch (std::exception &e) {
 		std::cout << RED << e.what() << RESET << std::endl;
 	}
 }
 
-void	Server::removeClient(std::vector<struct pollfd> &pollfds, std::vector<Client>::iterator &it)
+void	Server::removeClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds, std::vector<Client>::iterator &it)
 {
 	std::vector<struct pollfd>::iterator it2;
 
@@ -71,7 +80,7 @@ void	Server::removeClient(std::vector<struct pollfd> &pollfds, std::vector<Clien
 			close(it->getFd());
 			// erase it from pollfds vector
 			pollfds.erase(it2);
-			// nfds--
+			nfds--;
 			break;
 		}
 	}
@@ -86,7 +95,7 @@ bool	Server::isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it) 
 	return false;
 }
 
-bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, int event) {
+bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, nfds_t& nfds) {
 	/* 
 		title : process file descriptor and perform operations
 	*/
@@ -119,25 +128,39 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 		fd hasn't processed -> return false
 	*/
 	std::string val;
-	if (event == POLLIN)
+	bool eventOccured = true;
+	if ((pollfd->revents & POLLIN) == POLLIN)
 		val = "POLLIN";
-	else if (event == POLLOUT)
+	else if ((pollfd->revents & POLLOUT) == POLLOUT)
 		val = "POLLOUT";
-	else if (event == POLLHUP)
+	else if ((pollfd->revents & POLLHUP) == POLLHUP)
 		val = "POLLHUP";
-	std::cout << CYAN << "-> event: " << val << " occured in fd: " << pollfd->fd << RESET << std::endl;
+ 	else
+		eventOccured = false;
+
+	if (eventOccured)
+		std::cout << CYAN << "-> event: " << val << " occured in fd: " << pollfd->fd << RESET << std::endl;
 
 	std::vector<Client>::iterator it;
 
-	if (pollfd->fd == this->socket) {
-		this->addClient();
+	if (eventOccured && pollfd->fd == this->socket) {
+		this->addClient(pollfds, nfds);
 		return true;
 	}
 	else if (this->isClient(pollfd, it))
 	{
 		try
 		{
-			if (event == POLLIN) {
+			if (!eventOccured) {
+				// then: no event occured
+				// todo: increament client time passed, check for timeout
+				if (it->checkLogTime()) {
+					this->removeClient(pollfds, nfds, it);
+					return true;
+				}
+				return false;
+			}
+			if ((pollfd->revents & POLLIN) == POLLIN) {
 			bool read_complete = it->readRequest(pollfd);
 			(void)read_complete;
 			/*
@@ -158,26 +181,29 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 					}
 				}
 			*/
-			/*
-				-> parse it
-					generate response if needed, ex: bad request...
-				-> assign Client Request members
-				-> 
-			*/
 			}
-			else if (event == POLLOUT) {
-				it->createResponse(this->locations);
+			else if ((pollfd->revents & POLLOUT) == POLLOUT) {
+				bool send_complete = it->createResponse(this->locations);
+				(void)send_complete;
+				/*
+					if (send complete) {
+						if (connection: keep-alive)
+							-> keep it as a client
+						if (connection: close)
+							-> this->removeClient(pollfds, it);
+					}
+				*/
 			}
-			else if (event == POLLHUP) {
-				this->removeClient(pollfds, it);
+			else if ((pollfd->revents & POLLHUP) == POLLHUP) {
+				this->removeClient(pollfds, nfds, it);
 			}
-			return true;
 		}
 		catch (const std::exception& e) {
 			// then: an error occured in read or send...
-			this->removeClient(pollfds, it);
+			this->removeClient(pollfds, nfds, it);
 			std::cout << RED << e.what() << RESET << std::endl;
 		}
+		return true;
 	}
 	// do nothing
 	// std::cout << "in processFd(), server with socket: " << this->socket << ", fd: " << fd << std::endl;
