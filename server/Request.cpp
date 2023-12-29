@@ -13,9 +13,10 @@
 #include "Request.hpp"
 #include <unistd.h>
 
-Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("tmp")
+Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("./server/uploaded_files/")
 {
 }
+
 
 Request::Request(Request const &src)
 {
@@ -38,8 +39,6 @@ Request &Request::operator=(Request const &rhs)
     }
     return *this;
 }
-
-
 
 bool Request::ContentLengthExists()
 {
@@ -80,6 +79,27 @@ std::string Request::getTransferEncoding()
     return it->second;
 }
 
+int Request::thereIsBoundary()
+{
+    std::map<std::string, std::string>::iterator it = this->_headers.find("content-type");
+    if (it == this->_headers.end())
+        return 0;
+    std::string contentType = it->second;
+    if (contentType.find("multipart/form-data") == std::string::npos)
+        return 0;
+    std::stringstream ss(contentType);
+    std::string token;
+    while (std::getline(ss, token, ';'))
+    {
+        if (token.find("boundary") != std::string::npos)
+        {
+            this->_boundary = token.substr(token.find("=") + 1);
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int Request::validateRequestLine()
 {
     std::string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=";
@@ -103,6 +123,64 @@ int Request::validateRequestLine()
     if (this->_uri.length() > 2048)
     {
         this->status = 414;
+        return 0;
+    }
+    return 1;
+}
+
+int Request::validateHeaderLine()
+{
+    std::string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=";
+    if (this->currentHeaderKey.find_first_not_of(allowed) != std::string::npos)
+    {
+        this->status = 400;
+        return 0;
+    }
+    if (this->currentHeaderValue.find_first_not_of(allowed) != std::string::npos)
+    {
+        this->status = 400;
+        return 0;
+    }
+    return 1;
+}
+
+int Request::readHeaders()
+{
+    if (this->_request.find("\r\n\r\n") == std::string::npos)
+        return 1;
+    std::string headers = this->_request.substr(0, this->_request.find("\r\n\r\n"));
+    std::stringstream ss(headers);
+    std::string line;
+    while (std::getline(ss, line, '\n'))
+    {
+        if (line == "\r")
+            break;
+        std::string key;
+        std::string value;
+        std::stringstream ss2(line);
+        std::getline(ss2, key, ':');
+        if (ss2.peek() == ' ')// skip the space after the :
+            ss2.seekg(1, ss2.cur);
+        std::getline(ss2, value, '\r');
+        std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+        this->_headers[key] = value;
+    }
+    this->_request = this->_request.substr(this->_request.find("\r\n\r\n") + 4);
+    if (this->isChunked())
+    {
+        this->_state = CHUNKED;
+        this->_lengthState = 0;
+    }
+    else if (this->thereIsBoundary())
+        this->_state = BOUNDARY;
+    else if (this->ContentLengthExists())
+    {
+        this->_state = CONTENT_LENGTH;
+        this->_lengthState = this->getContentLenght();  
+    }
+    else
+    {
+        this->status = 400;
         return 0;
     }
     return 1;
@@ -146,7 +224,7 @@ int Request::readByChunk()
         {
             if (this->_request.find("\r\n") == std::string::npos)
                 return 1;
-            std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+            std::ofstream file(this->_filename + this->_fd, std::ios::out | std::ios::app);
             if (this->_lengthState < this->_request.length())
             {
                 file << this->_request.substr(0, this->_lengthState);
@@ -181,10 +259,62 @@ int Request::readByChunk()
     return 1;
 }
 
+int Request::readByContentLength()
+{
+    std::ofstream file(this->_filename + this->_fd, std::ios::out | std::ios::app);
+    if (this->_request.length() > this->_lengthState)
+    {
+        file << this->_request.substr(0, this->_lengthState);
+        this->_request = this->_request.substr(this->_lengthState);
+        file.close();
+        return 1;
+    }
+    this->_lengthState -= this->_request.length();
+    if (this->_lengthState > 0)
+    {
+        file << this->_request;
+        this->_request = "";
+        file.close();
+        return 1;
+    }
+    else if (this->_lengthState == 0)
+    {
+        file << this->_request;
+        this->_request = "";
+        file.close();
+    }
+    this->_state = END;
+    return 0;
+}
 
-int Request::readRequest(char *buffer, int size)
+int Request::readBoundary()
+{
+    /*
+        append the request to a file until the end of the request
+    */
+    if (this->_request.find(this->_boundary + "--") == std::string::npos)
+    {
+        std::ofstream file(this->_filename + this->_fd, std::ios::out | std::ios::app);
+        file << this->_request;
+        this->_request = "";
+        file.close();
+        return 1;
+    }
+    else 
+    {
+        std::ofstream file(this->_filename + this->_fd, std::ios::out | std::ios::app);
+        file << this->_boundary + "--";
+        this->_request = "";
+        file.close();
+        this->_state = END;
+        return 0;
+    }
+}
+
+int Request::parseRequest(char *buffer, int size, int fd)
 {   
     this->_request += std::string(buffer, size);
+    this->_fd = std::to_string(fd);
     switch (this->_state)
     {
         case START : 
@@ -200,91 +330,38 @@ int Request::readRequest(char *buffer, int size)
             std::getline(ss, this->_method, ' ');
             std::getline(ss, this->_uri, ' ');
             std::getline(ss, this->_version, ' ');
+            if (!validateRequestLine())
+                goto end;
             this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
             this->_state = HEADER;
         }
         case HEADER :
         {
-            if (this->_request.find("\r\n\r\n") == std::string::npos)
-                break;
-            std::string headers = this->_request.substr(0, this->_request.find("\r\n\r\n"));
-            std::stringstream ss(headers);
-            std::string line;
-            while (std::getline(ss, line, '\n'))
-            {
-                if (line == "\r")
-                    break;
-                std::string key;
-                std::string value;
-                std::stringstream ss2(line);
-                std::getline(ss2, key, ':');
-                if (ss2.peek() == ' ')// skip the space after the :
-                    ss2.seekg(1, ss2.cur);
-                std::getline(ss2, value, '\r');
-                std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-                this->_headers[key] = value;
-            }
-            this->_request = this->_request.substr(this->_request.find("\r\n\r\n") + 4);
-            if (this->ContentLengthExists())
-            {
-                this->_state = CONTENT_LENGTH;
-                this->_lengthState = this->getContentLenght();  
-            }
-            else if (this->isChunked())
-            {
-                this->_state = CHUNKED;
-                this->_lengthState = 0;
-            }
-            else
-                this->_state = END;
+            if (readHeaders())
+                break ;
+            goto end;
         }
         case CONTENT_LENGTH :
-        {           
-            /*
-                if Content-Length is found in the headers
-            */
-            std::ofstream file(this->_filename, std::ios::out | std::ios::app);
-            if (this->_request.length() > this->_lengthState)
-            {
-                file << this->_request.substr(0, this->_lengthState);
-                this->_request = this->_request.substr(this->_lengthState);
-                file.close();
-                break;
-            }
-            this->_lengthState -= this->_request.length();
-            if (this->_lengthState > 0)
-            {
-                file << this->_request;
-                this->_request = "";
-                file.close();
-                break;
-            }
-            else if (this->_lengthState == 0)
-            {
-                file << this->_request;
-                this->_request = "";
-                file.close();
-            }
-            this->_state = END;
+        {            
+            if (readByContentLength())
+                break ;
+            goto end;
         }
         case CHUNKED :
         {
-            /*
-                if Transfer-Encoding: chunked is found in the headers
-            */
             if (readByChunk())
-                break;
-           
+                break ;
+            goto end;     
         }
         case BOUNDARY :
         {
-            /*
-                if Transfer-Encoding: chunked is found in the headers
-            */
+            if (readBoundary())
+               break ;
         }
         case END :
         {
-            return 1;
+            end:
+                return 1;
         }
     }
     return 0;
@@ -301,8 +378,3 @@ void Request::printRequest()
         std::cout << it->first << ": " << it->second << std::endl;
     }
 }
-
-            //    file << this->_request.substr(0, this->_request.find("\r\n"));
-            //     this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
-            //     this->_lengthState -= this->_request.length();
-            //     file.close();

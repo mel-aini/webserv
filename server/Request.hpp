@@ -17,6 +17,8 @@
 # include <string>
 # include <map>
 # include <vector>
+# include <algorithm>
+# include <iterator>
 # include <sstream>
 # include <fstream>
 
@@ -30,7 +32,7 @@ enum State{
     END
 };
 
-enum ChunkState{
+enum Chunk_State{
     CHUNK_SIZE_START,
     CHUNK_SIZE,
     CHUNK_DATA,
@@ -40,32 +42,39 @@ enum ChunkState{
 class Request
 {
     private:
-        int     status;
-        State _state;
-        ChunkState _chunkState;
-        size_t _lengthState;
-        std::string _request;
-        std::string _method;
-        std::string _uri;
-        std::string _version;
-        std::string currentHeaderKey;
-        std::string currentHeaderValue;
-        std::map<std::string, std::string> _headers;
-        std::string _filename;
+        int             status;
+        std::string     _fd;
+        State           _state;
+        Chunk_State     _chunkState;
+        size_t          _lengthState;
+        std::string     _request;
+        std::string     _method;
+        std::string     _uri;
+        std::string     _version;
+        std::string     currentHeaderKey;
+        std::string     currentHeaderValue;
+        std::map        <std::string, std::string> _headers;
+        std::string     _filename;
+        std::string     _boundary;
+
     public:
         Request();
         Request(Request const &src);
-        Request &operator=(Request const &rhs);
-        int readRequest(char *buffer, int size);
-        void printRequest();
-        size_t getContentLenght();
+        Request     &operator=(Request const &rhs);
+        int         parseRequest(char *buffer, int size, int fd);
+        void        printRequest();
+        size_t      getContentLenght();
         std::string getTransferEncoding();
-        bool ContentLengthExists();
-        bool TransferEncodingExists();
-        bool isChunked();
-        int readByChunk();
-        int validateRequestLine();
-        int validateHeaderLine();
+        bool        ContentLengthExists();
+        bool        TransferEncodingExists();
+        bool        isChunked();
+        int         readByChunk();
+        int         readByContentLength();
+        int         readHeaders();
+        int         readBoundary();
+        int         validateRequestLine();
+        int         validateHeaderLine();
+        int         thereIsBoundary();
 };
 
 
