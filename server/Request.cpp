@@ -197,6 +197,11 @@ int Request::readHeaders()
         return 0;
     }
     this->_request = this->_request.substr(this->_request.find("\r\n\r\n") + 4);
+    if (this->_method != "POST")
+    {
+        this->_state = END;
+        return 0;
+    }
     if (this->isChunked())
     {
         this->_state = CHUNKED;
@@ -348,8 +353,8 @@ int Request::readBoundary()
 
 int Request::parseRequest(char *buffer, int size, int fd)
 {   
+    (void)fd;
     this->_request += std::string(buffer, size);
-    this->_fd = std::to_string(fd);
     switch (this->_state)
     {
         case START : 

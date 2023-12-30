@@ -71,13 +71,14 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 
 	if (this->request.parseRequest(buf, readed, this->fd)) {
 		this->reqHasRead();
+		return true;
 	}
+	return false;
 	/*
 		if (still reading request)
 			return false;
 		then: request has finished reading, return true
 	*/
-	return true;
 }
 
 bool	Client::createResponse(std::vector<Location> &locations) {

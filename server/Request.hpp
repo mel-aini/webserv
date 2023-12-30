@@ -43,7 +43,6 @@ class Request
 {
     private:
         int             status;
-        std::string     _fd;
         State           _state;
         Chunk_State     _chunkState;
         size_t          _lengthState;
