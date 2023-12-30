@@ -53,7 +53,6 @@ bool	Client::checkLogTime()
 		std::cout << RED << "TIMEOUT PASSED" << RESET << std::endl;
 		return true;
 	}
-	// std::cout << "time passed as a client is " << this->logtime << "s" << std::endl;
 	return false;
 }
 
