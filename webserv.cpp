@@ -107,7 +107,6 @@ int main(int ac, char* av[])
         {
             for (unsigned int i = 0; i < global.getNfds(); i++) {
                 if ((pollfds + i)->fd > 0) {
-                    std::cout << "fd: " << (pollfds + i)->fd << std::endl;
                     global.checkAndProcessFd(pollfds + i);
                 }
             }

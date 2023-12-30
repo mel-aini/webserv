@@ -66,7 +66,7 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 void		Client::createResponse(std::vector<Location> &locations) {
 
 	// -> find location that matches with uri
-	std::string str = "/index.html";
+	std::string str = "/public/html/";
 	this->request.setUri(str);
 	Location *location = this->response.findLocation(locations, this->request.getUri());
 	/*
@@ -119,36 +119,6 @@ void		Client::createResponse(std::vector<Location> &locations) {
 // {
 // }
 
-bool	Client::getMethod(Location *location)
-{
-	// getRequestedResource();
-	struct stat	fileInf;
-	if (stat(location->getPath().c_str(), &fileInf) == 0)
-	{
-		if (S_ISREG(fileInf.st_mode))
-		{
-			std::string	finalPath = location->getRoot() + location->getPath();
-			std::fstream	file(finalPath.c_str(), std::fstream::in | std::ios::binary);
-			return (true);
-			// else
-			// {
-			// 	this->response.setStatus(404);
-			// 	this->response.setResponseType(ERROR);
-			// 	return (false);
-			// }
-		}
-		else
-		{}
-	}
-	else
-	{
-		this->response.setStatus(404);
-		this->response.setResponseType(ERROR);
-		return (false);
-	}
-	return (true);
-}
-
 void	Client::send_response()
 {
 	/*
@@ -171,7 +141,7 @@ void	Client::send_response()
 	*/
 	if (this->response.getResponseType() == OK) {
 		bool isResponseEnd = false;
-		isResponseEnd = this->getMethod(this->response.getLocation());
+		isResponseEnd = this->response.getMethod(this->request.getUri());
 		/*
 			if (GET)
 				-> perform action, getMethod()

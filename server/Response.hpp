@@ -10,6 +10,7 @@
 #include "../public/Colors.hpp"
 #include "HtmlTemplate.hpp"
 #include <sys/stat.h>
+#include <dirent.h>
 
 enum sending_level{
     SENDING_HEADERS,
@@ -46,9 +47,13 @@ class Response {
         void                setStatus(unsigned int status);
         std::string         getStatusMessage();
         unsigned int        getResponseType() const;
+        unsigned int        getSendingLevel() const;
         void                setSocket(int fd);
 
+        void                setSendingLevel(unsigned int level);
+
 		bool        send_response_error();
+        bool        send_response_index_files(std::string path, std::vector<std::string> content);
         void        send_status_line_and_headers();
         void        send_body();
         void        setResponseType(unsigned int response_type);
@@ -58,6 +63,8 @@ class Response {
         bool        isInErrorPages();
         void        redirect(const std::string& location);
         void        reset();
+        bool        sendFile(std::string fileName);
+        bool        getMethod(std::string uri);
     
         class ResponseFailed : public std::exception {
 			public:

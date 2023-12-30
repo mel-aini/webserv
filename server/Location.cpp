@@ -92,6 +92,11 @@ void	Location::setUploadLocation(std::string uploadLocation)
 	this->uploadLocation = uploadLocation;
 }
 
+std::vector<std::string>	Location::getCgiExec(void)
+{
+	return (this->cgiExec);
+}
+
 void	Location::setErrorPages(std::pair<std::string, std::vector<int> > errorPage, std::string num)
 {
 	std::vector<std::pair<std::string, std::vector<int> > >::iterator	it = this->errorPages.begin();
@@ -128,6 +133,16 @@ std::string	Location::getPath(void)
 std::string	Location::getRoot(void)
 {
 	return (this->root);
+}
+
+std::vector<std::string>	Location::getIndex(void)
+{
+	return (this->index);
+}
+
+bool	Location::getAutoIndex(void)
+{
+	return (this->autoIndex);
 }
 
 std::ostream & operator<<(std::ostream & out, const Location & obj)

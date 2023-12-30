@@ -7,8 +7,8 @@ using std::endl;
 Location	defLocation()
 {
 	std::vector<std::string>	index;
-	index.push_back("index.html");
-	index.push_back("index.htm");
+	// index.push_back("index.html");
+	// index.push_back("index.htm");
 	std::vector<std::string>	allowMethods;
 	allowMethods.push_back("GET");
 	allowMethods.push_back("POST");
@@ -40,17 +40,19 @@ std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &
 				printError("location " + toStr(num) + ":" + " return: URL argument required");
 		}
 	}
-	else if (name == "upload_location")
+	else if (name == "upload_location" || name == "root")
 	{
 		if (it->first == WORD && (it + 1)->first == END_OF_LINE)
 		{
 			if (isPath(it->second))
 			{
 				data = it->second;
+				if (data[data.length() - 1] == '/')
+					data.erase(data.length() - 1);
 				it += 1;
 			}
 			else
-				printError("location " + toStr(num) + ":" + " upload_location: path argument required");
+				printError("location " + toStr(num) + ": " + name + " : path argument required");
 		}
 	}
 	else if (it->first == WORD && (it + 1)->first == END_OF_LINE)
@@ -61,20 +63,10 @@ std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &
 			it += 1;
 		}
 		else
-		{
-			if (name == "root")
-				printError("location " + toStr(num) + ":" + name + " : alphanumeric argument required");
-			else if (name == "server_name")
-				printError("server " + toStr(num) + ":" + name + " : alphanumeric argument required");
-		}
+			printError("server " + toStr(num) + ": " + name + " : alphanumeric argument required");
 	}
 	else
-	{
-		if (name == "root")
-			printError("location " + toStr(num) + ":" + name + " : alphanumeric argument required");
-		else if (name == "server_name")
-			printError("server " + toStr(num) + ":" + name + " : alphanumeric argument required");
-	}
+		printError("server " + toStr(num) + ":" + name + " : alphanumeric argument required");
 	hasData = 1;
 	return (data);
 }
@@ -135,7 +127,11 @@ std::vector<std::string>	parseIndex(std::vector<std::pair<int, std::string> >::i
 		if (it->first == WORD)
 		{
 			if (isFile(it->second))
+			{
+				if (it->second[0] == '/')
+					it->second.erase(0, 1);
 				index.push_back(it->second);
+			}
 			else
 				printError("location " + toStr(num) + ":" + " index: invalid argument");
 		}
@@ -144,6 +140,8 @@ std::vector<std::string>	parseIndex(std::vector<std::pair<int, std::string> >::i
 		else
 			printError("location " + toStr(num) + ":" + " index: invalid argument");
 	}
+	if (index.size() == 0)
+		printError("location " + toStr(num) + ":" + " index: invalid argument");
 	hasIndex = 1;
 	return (index);
 }
@@ -381,8 +379,8 @@ Location	initializeLocation()
 	location.setPath("/");
 	location.setRoot("root");
 	std::vector<std::string> index;
-	index.push_back("index.html");
-	index.push_back("index.htm");
+	// index.push_back("index.html");
+	// index.push_back("index.htm");
 	location.setIndex(index);
 	location.setClientMaxBodySize(50);
 	std::vector<std::string> allowMethods;
