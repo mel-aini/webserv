@@ -66,8 +66,11 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 		this->reqHasRead();
 		// then: close connection
 	}
-	this->request.appendToBuffer(buf);
-	this->reqHasRead();
+
+
+	if (this->request.parseRequest(buf, readed, this->fd)) {
+		this->reqHasRead();
+	}
 	/*
 		if (still reading request)
 			return false;
@@ -79,8 +82,6 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 bool	Client::createResponse(std::vector<Location> &locations) {
 
 	// -> find location that matches with uri
-	std::string str = "/";
-	this->request.setUri(str);
 	Location *location = this->response.findLocation(locations, this->request.getUri());
 	/*
 		-> find location that matches with uri
