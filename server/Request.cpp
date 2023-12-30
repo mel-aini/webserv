@@ -13,7 +13,7 @@
 #include "Request.hpp"
 #include <unistd.h>
 
-Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("./server/_files/" + std::to_string(time(0)) + ".tmp")
+Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("/tmp/" + std::to_string(time(0)) + ".tmp")
 {
 }
 
