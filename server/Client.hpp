@@ -10,6 +10,9 @@
 #include <sys/stat.h>
 #include "Request.hpp"
 #include "Response.hpp"
+#include <ctime>
+
+#define CLIENT_TIMEOUT 5
 
 enum proccess_response {
 	INITIAL,
@@ -27,6 +30,8 @@ class Client
 		Response			response;
 		int					processing_level;
 		bool				isAllowedMethod;
+		time_t				logtime;
+		time_t				logtime_start;
 
 	public:
 		Client(int fd, struct sockaddr_in address);
@@ -36,7 +41,7 @@ class Client
 		struct sockaddr_in	getAddress() const;
 		void				log();
 		bool				readRequest(struct pollfd *pollfd);
-		void				createResponse(std::vector<Location> &locations);
+		bool				createResponse(std::vector<Location> &locations);
 		void				reqHasRead();
 		void				resHasSent();
 		void				reset();
@@ -46,5 +51,6 @@ class Client
 		void				deleteMethod();
 		bool				methodIsAllowed(std::vector<std::string> &allowMethods, std::string method);
 		void				send_response();
+		bool				checkLogTime();
 };
 

@@ -38,6 +38,7 @@ class Response {
         int                                 socket;
         bool                                sendingFile;
         std::string                         errPage;
+
     public:
         Response();
         ~Response();

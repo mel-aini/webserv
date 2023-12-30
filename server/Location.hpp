@@ -46,7 +46,6 @@ class Location
 		std::vector<std::pair<std::string, std::vector<int> > >	getErrorPages(void);
 		std::string	getPath(void);
 		std::string	getRoot(void);
-		std::string	getRoot(void);
 		std::vector<std::string>	getIndex(void);
 		bool	getAutoIndex(void);
 		std::vector<std::string>	getCgiExec(void);

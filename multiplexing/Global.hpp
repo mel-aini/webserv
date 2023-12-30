@@ -35,7 +35,7 @@ class Global
 		void	monitorFd(struct pollfd fd);
 		void	forgetFd(int fd);
 		void	setServers(std::vector<Server> servers);
-		void	checkAndProcessFd(struct pollfd *pollfd);
+		void	checkAndProcessFd(struct pollfd *pollfd, int fds);
 		int		isAlreadyUsed(std::string host, std::string port, int index);
 };
 

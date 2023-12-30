@@ -47,11 +47,11 @@ class Server
 		std::string	&getServerName(void);
 		std::vector<Server>::iterator	&getIt(void);
 
-		void	addClient();
-		bool	processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, int event);
+		void	addClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds);
+		bool	processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, nfds_t& nfds);
 		bool	isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it);
 		void	logClients();
-		void	removeClient(std::vector<struct pollfd> &pollfds, std::vector<Client>::iterator &it);
+		void	removeClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds, std::vector<Client>::iterator &it);
 
 		class ClientFailed : public std::exception {
 			public:
