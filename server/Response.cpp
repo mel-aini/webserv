@@ -47,6 +47,14 @@ unsigned int	Response::getResponseType() const {
 	return this->response_type;
 }
 
+unsigned int        Response::getSendingLevel() const {
+	return this->sending_level;
+}
+
+void                Response::setSendingLevel(unsigned int level) {
+	this->sending_level = level;
+}
+
 void	Response::setResponseType(unsigned int response_type)
 {
 	this->response_type = response_type;
@@ -188,7 +196,43 @@ bool	Response::send_response_error()
 			-> generate an html response template(405, "Method Not Allowed")
 		}
 	*/
-	return true;
+	// return true;
+	return false;
+}
+bool	Response::send_response_index_files(std::string path, std::vector<std::string> content)
+{
+	// std::cout << MAGENTA << "Here!" << RESET << std::endl;
+	if (this->sending_level == SENDING_HEADERS)
+	{
+		std::stringstream	sizestream;
+		HtmlTemplate htmlErrorPage(path, content);
+		sizestream << htmlErrorPage.getHtml().size();
+		this->headers["Content-Type: "] = "text/html";
+		this->headers["Content-Length: "] = sizestream.str();
+
+		send_status_line_and_headers();
+		this->sending_level = SENDING_BODY;
+	}
+	if (this->sending_level == SENDING_BODY)
+	{
+		HtmlTemplate htmlErrorPage(path, content);
+
+		const std::string& response = htmlErrorPage.getHtml();
+		std::cout << RED << response << RESET << std::endl;
+		std::cout << RED << "size: "<< response.size() << RESET << std::endl;
+
+		const char *buf = response.c_str();
+		if (send(this->socket, buf, response.size(), 0) == -1)
+			throw ResponseFailed();
+
+		this->sending_level = SENDING_END;
+	}
+	else if (this->sending_level == SENDING_END)
+	{
+		this->reset();
+		return true;
+	}
+	return false;
 }
 
 void	Response::send_status_line_and_headers()
@@ -246,8 +290,8 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	std::string tmp = uri;
 
 	if (tmp.empty() || tmp[0] != '/') {
-			this->setStatus(400);
-			return NULL;
+		this->setStatus(400);
+		return NULL;
 	}
 
 	if (locations.size() > 1)
@@ -279,6 +323,135 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	if (it == locations.end())
 		it = locations.end() - 1;
 	return &(*it);
+}
+
+bool	Response::getMethod(std::string uri)
+{
+	// getRequestedResource();
+	std::string	fileCase = this->location->getRoot() + this->location->getPath();
+
+
+	struct stat	fileInf;
+	if (stat(fileCase.c_str(), &fileInf) == 0 || stat(this->location->getRoot().c_str(), &fileInf) == 0)
+	{
+		if (S_ISREG(fileInf.st_mode))
+		{
+			if (this->location->getCgiExec().size() != 0)
+			{}
+			else
+			{
+				if (this->sending_level == SENDING_HEADERS)
+				{
+					std::stringstream sizestream;
+					sizestream << fileInf.st_size;
+					this->headers["Content-Type: "] = "text/html";
+					this->headers["Content-Lenght: "] = sizestream.str();
+					this->send_status_line_and_headers();
+					this->sending_level = SENDING_BODY;
+				}
+				else if (this->sending_level == SENDING_BODY)
+				{
+					if (this->sendFile(fileCase))
+						this->sending_level = SENDING_END;
+					return (false);
+				}
+				else if (this->sending_level == SENDING_END)
+					return true;
+			}
+		}
+		else if (S_ISDIR(fileInf.st_mode))
+		{
+			if (uri[uri.length() - 1] != '/')
+			{
+				redirect(uri + "/");
+				return (true);
+			}
+			else
+			{
+				if (this->location->getIndex().size() != 0)
+				{
+					std::vector<std::string>	index = this->location->getIndex();
+					std::vector<std::string>::iterator	it = index.begin();
+					std::string	dirCase;
+					struct stat	dirCaseInf;
+					for (; it != index.end(); it++)
+					{
+						dirCase = this->location->getRoot() + "/" + *it;
+						if (stat(dirCase.c_str(), &dirCaseInf) == 0)
+							if (S_ISREG(dirCaseInf.st_mode))
+								break ;
+					}
+					if (this->location->getCgiExec().size() != 0)
+					{}
+					else
+					{
+						if (it != index.end())
+						{
+							if (this->sending_level == SENDING_HEADERS)
+							{
+								std::stringstream sizestream;
+								sizestream << fileInf.st_size;
+								this->headers["Content-Type: "] = "text/html";
+								this->headers["Content-Lenght: "] = sizestream.str();
+								this->send_status_line_and_headers();
+								this->sending_level = SENDING_BODY;
+							}
+							else if (this->sending_level == SENDING_BODY)
+							{
+								if (this->sendFile(dirCase))
+									this->sending_level = SENDING_END;
+								return (false);
+							}
+							else if (this->sending_level == SENDING_END)
+								return true;
+						}
+						else
+						{
+							this->status = 404;
+							this->response_type = ERROR;
+							return (false);
+						}
+					}
+				}
+				else
+				{
+					if (this->location->getAutoIndex())
+					{
+						DIR *dir = opendir(uri.erase(0, 1).c_str());
+						if (dir)
+						{
+							struct dirent *dirContent;
+							std::vector<std::string> content;
+							while ((dirContent = readdir(dir)) != NULL)
+								content.push_back(dirContent->d_name);
+							if (this->send_response_index_files(uri, content))
+								return (true);
+						}
+						return (false);
+					}
+					else
+					{
+						this->status = 403;
+						this->response_type = ERROR;
+						return (false);
+					}
+				}
+			}
+		}
+		else
+		{
+			this->status = 404;
+			this->response_type = ERROR;
+			return (false);
+		}
+	}
+	else
+	{
+		this->status = 404;
+		this->response_type = ERROR;
+		return (false);
+	}
+	return (false);
 }
 
 // title: exceptions

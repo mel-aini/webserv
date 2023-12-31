@@ -75,18 +75,19 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 
 	if (this->request.parseRequest(buf, readed, this->fd)) {
 		std::cout << RED << "salat" << RESET << std::endl;
-		std::cout << RED << this->request.getStatus() << RESET << std::endl;
+		// std::cout << RED << this->request.getStatus() << RESET << std::endl;
 		this->reqHasRead();
-		this->response.setStatus(this->request.getStatus());
+		// this->response.setStatus(this->request.getStatus());
 
-		std::map<std::string, std::string>::iterator it;
-		std::map<std::string, std::string> headers = this->request.getHeaders();
+		// std::map<std::string, std::string>::iterator it;
+		// std::map<std::string, std::string> headers = this->request.getHeaders();
 	
-		for (it = headers.begin(); it != headers.end(); it++) {
-			std::cout << YELLOW << it->first << " = " << it->second << RESET << std::endl;
-		}
+		// for (it = headers.begin(); it != headers.end(); it++) {
+		// 	std::cout << YELLOW << it->first << " = " << it->second << RESET << std::endl;
+		// }
 		return true;
 	}
+	return false;
 	/*
 		if (still reading request)
 			return false;
@@ -99,6 +100,9 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 bool	Client::createResponse(std::vector<Location> &locations) {
 
 	// -> find location that matches with uri
+	// std::string str = "/public/html/";
+	// this->request.setUri(str);
+	// std::cout << this->request.getUri() << std::endl;
 	Location *location = this->response.findLocation(locations, this->request.getUri());
 	/*
 		-> find location that matches with uri
@@ -129,12 +133,17 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	{
 		this->response.setLocation(location);
 		// -> this line below is to test error pages
-		// this->response.setStatus(403);
+		this->response.setStatus(200);
+		// std::cout << YELLOW << "path: " << location->path << RESET << std::endl;
+		// std::cout << YELLOW << "root: " << location->root << RESET << std::endl;
+		std::cout << YELLOW << "redirection: " << location->redirection << RESET << std::endl;
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
-			if (!location->getRedirection().empty()) 
+			if (!location->getRedirection().empty()) {
+				std::cout << RED << "Is Redirect" << RESET << std::endl;
 				this->response.setResponseType(REDIRECT);
+			}
 			else if (!this->methodIsAllowed(location->allowMethods, this->request.getMethod()))
 				this->response.setResponseType(ERROR);
 		}
@@ -148,6 +157,10 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	}
 	return false;
 }
+
+// std::string	getRequestedResource()
+// {
+// }
 
 void	Client::send_response()
 {
@@ -170,11 +183,8 @@ void	Client::send_response()
 		}
 	*/
 	if (this->response.getResponseType() == OK) {
-		bool isResponseEnd = false;
-		if (true)
-		{
-			
-		}
+		bool isResponseEnd = this->response.getMethod(this->request.getUri());
+		std::cout << GREEN << "GET METHOD" << RESET << std::endl;
 		/*
 			if (GET)
 				-> perform action, getMethod()

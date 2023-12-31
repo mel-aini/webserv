@@ -97,6 +97,7 @@ bool	Server::isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it) 
 
 bool	Server::hostsMatch(std::vector<Client>::iterator& it)
 {
+	std::cout << CYAN << this->serverName << " | " << it->getRequest().getHeader("host") << RESET << std::endl;
 	if (this->serverName == it->getRequest().getHeader("host"))
 		return true;
 	return false;
@@ -112,12 +113,16 @@ void	Server::findRelatedHost(std::vector<Client>::iterator& it)
 	std::vector<Server>::iterator server = this->getServersBegin();
 	std::vector<Server>::iterator end = this->getServersEnd();
 
+	std::cout << CYAN << "finding match server..." << RESET << std::endl;
+
 	for (; server != end; server++) {
+		std::cout << CYAN << this->getHost() + ":" + this->getPort() << " | " << server->getHost() + ":" + server->getPort()  << RESET << std::endl;
 		if (this->getPort() == server->getPort() && this->getHost() == server->getHost()) {
 			if (server->hostsMatch(it)) {
 				server->transferClient(it);
 				size_t index = std::distance(this->clients.begin(), it);
 				this->clients.erase(this->clients.begin() + index);
+				std::cout << GREEN << "match server is: " << server->getServerName() << RESET << std::endl;
 				break;
 			}
 		}
