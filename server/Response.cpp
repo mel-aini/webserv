@@ -20,6 +20,9 @@ Response::Response()
 	status_codes[411] = "Length Required";
 	status_codes[413] = "Payload Too Large";
 	status_codes[414] = "URI Too Long";
+	status_codes[500] = "Internal Server Error";
+	status_codes[501] = "Not Implemented";
+	status_codes[505] = "HTTP Version Not Supported";
 }
 
 Response::~Response() {}

@@ -13,7 +13,7 @@
 #include "Request.hpp"
 #include <unistd.h>
 
-Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("./server/_files/" + std::to_string(time(0)) + ".tmp")
+Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("/tmp/" + std::to_string(time(0)) + ".tmp")
 {
 }
 
@@ -40,6 +40,11 @@ Request &Request::operator=(Request const &rhs)
     return *this;
 }
 
+int         Request::getStatus()
+{
+    return this->status;
+}
+
 std::string Request::getMethod()
 {
     return this->_method;
@@ -63,6 +68,10 @@ std::string Request::getHeader(std::string key)
     return it->second;
 }
 
+std::map<std::string, std::string> Request::getHeaders()
+{
+    return this->_headers;
+}
 
 bool Request::ContentLengthExists()
 {
@@ -197,6 +206,11 @@ int Request::readHeaders()
         return 0;
     }
     this->_request = this->_request.substr(this->_request.find("\r\n\r\n") + 4);
+    if (this->_method != "POST")
+    {
+        this->_state = END;
+        return 0;
+    }
     if (this->isChunked())
     {
         this->_state = CHUNKED;
@@ -348,8 +362,8 @@ int Request::readBoundary()
 
 int Request::parseRequest(char *buffer, int size, int fd)
 {   
+    (void)fd;
     this->_request += std::string(buffer, size);
-    this->_fd = std::to_string(fd);
     switch (this->_state)
     {
         case START : 

@@ -106,6 +106,10 @@ void Global::create_servers()
 		if (sockfd > 0) {
 			it->setSocket(sockfd);
 			std::cout << "a server is listening on Port: " << YELLOW << it->getPort() << RESET << std::endl;
+
+			// assign begin and end iterators of servers to each server
+			it->setServersBegin(this->servers.begin());
+			it->setServersEnd(this->servers.end());
 			continue;
 		}
 		struct addrinfo hints, *res;
@@ -180,6 +184,9 @@ void Global::create_servers()
 
         this->monitorFd(fd);
 
+		// assign begin and end iterators of servers to each server
+		it->setServersBegin(this->servers.begin());
+		it->setServersEnd(this->servers.end());
         std::cout << "a server is listening on Port: " << YELLOW << it->getPort() << RESET << std::endl;
     }
     if (servers.size() == 0) {

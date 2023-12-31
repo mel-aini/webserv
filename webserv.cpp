@@ -39,7 +39,6 @@ int main(int ac, char* av[])
     Global global;
     // -> parsing
     global.setServers(parser(av[1]));
-
     // create_servers(global);
     global.create_servers();
     struct pollfd *pollfds;

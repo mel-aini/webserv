@@ -19,7 +19,8 @@ class Server
 		std::vector<Location>			locations;
 		int								socket;
 		std::vector<Client>				clients;
-		std::vector<Server>::iterator	it;
+		std::vector<Server>::iterator	serversBegin;
+		std::vector<Server>::iterator	serversEnd;
 
 	public:
 		Server();
@@ -38,20 +39,25 @@ class Server
 		void	setListen(std::pair<std::string, std::string> listen);
 		void	setServerName(std::string serverName);
 		void	setLocations(Location location, std::string num);
-		void	setIt(std::vector<Server>::iterator it);
+		void	setServersBegin(std::vector<Server>::iterator it);
+		void	setServersEnd(std::vector<Server>::iterator it);
 		std::string	eraseSlash(std::string path);
 
 		std::vector<Location>	&getLocations(void);
 		std::string	&getPort(void);
 		std::string	&getHost(void);
 		std::string	&getServerName(void);
-		std::vector<Server>::iterator	&getIt(void);
+		std::vector<Server>::iterator	&getServersBegin();
+		std::vector<Server>::iterator	&getServersEnd();
 
 		void	addClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds);
 		bool	processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, nfds_t& nfds);
 		bool	isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it);
 		void	logClients();
 		void	removeClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds, std::vector<Client>::iterator &it);
+		bool	hostsMatch(std::vector<Client>::iterator& it);
+		void	findRelatedHost(std::vector<Client>::iterator& it);
+		void	transferClient(std::vector<Client>::iterator& it);
 
 		class ClientFailed : public std::exception {
 			public:

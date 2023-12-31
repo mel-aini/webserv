@@ -95,54 +95,48 @@ bool	Server::isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it) 
 	return false;
 }
 
-bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, nfds_t& nfds) {
-	/* 
-		title : process file descriptor and perform operations
-	*/
-	/*
-		if (fd == this->socket) {
-			then : a new connection request
-			-> this->addClient();
-			fd has processed -> return true
-		}
-		else if (search for fd in this server) {
-			then : already a connected client
-			if (event == POLLIN) {
-				-> read request
-				-> parse it
-				-> fill members
-				-> validate request
-				// -> perform read action
-			}
-			else if (event == POLLOUT)
-				-> generate response
-				-> perform write action
-			else if (event == POLLHUB)
-				-> delete client
-			fd has processed -> return true
-		}
-		else {
-			then : fd is not related to this server
-			-> do nothing
-		}
-		fd hasn't processed -> return false
-	*/
-	std::string val;
-	bool eventOccured = true;
-	if ((pollfd->revents & POLLIN) == POLLIN)
-		val = "POLLIN";
-	else if ((pollfd->revents & POLLOUT) == POLLOUT)
-		val = "POLLOUT";
-	else if ((pollfd->revents & POLLHUP) == POLLHUP)
-		val = "POLLHUP";
- 	else
-		eventOccured = false;
+bool	Server::hostsMatch(std::vector<Client>::iterator& it)
+{
+	std::cout << CYAN << this->serverName << " | " << it->getRequest().getHeader("host") << RESET << std::endl;
+	if (this->serverName == it->getRequest().getHeader("host"))
+		return true;
+	return false;
+}
 
-	if (eventOccured)
-		std::cout << CYAN << "-> event: " << val << " occured in fd: " << pollfd->fd << RESET << std::endl;
+void	Server::transferClient(std::vector<Client>::iterator& it)
+{
+	this->clients.push_back(*it);
+}
+
+void	Server::findRelatedHost(std::vector<Client>::iterator& it)
+{
+	std::vector<Server>::iterator server = this->getServersBegin();
+	std::vector<Server>::iterator end = this->getServersEnd();
+
+	std::cout << CYAN << "finding match server..." << RESET << std::endl;
+
+	for (; server != end; server++) {
+		std::cout << CYAN << this->getHost() + ":" + this->getPort() << " | " << server->getHost() + ":" + server->getPort()  << RESET << std::endl;
+		if (this->getPort() == server->getPort() && this->getHost() == server->getHost()) {
+			if (server->hostsMatch(it)) {
+				server->transferClient(it);
+				size_t index = std::distance(this->clients.begin(), it);
+				this->clients.erase(this->clients.begin() + index);
+				std::cout << GREEN << "match server is: " << server->getServerName() << RESET << std::endl;
+				break;
+			}
+		}
+	}
+}
+
+bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, nfds_t& nfds) {
+	std::string val;
+	bool eventOccured = false;
 
 	std::vector<Client>::iterator it;
-
+	if (pollfd->revents & POLLIN || pollfd->revents & POLLOUT || pollfd->revents & POLLHUP)
+		eventOccured = true;
+	
 	if (eventOccured && pollfd->fd == this->socket) {
 		this->addClient(pollfds, nfds);
 		return true;
@@ -160,41 +154,22 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 				}
 				return false;
 			}
-			if ((pollfd->revents & POLLIN) == POLLIN) {
+			if (pollfd->revents & POLLIN) {
 			bool read_complete = it->readRequest(pollfd);
-			(void)read_complete;
-			/*
-				title: transfer client to the right server or keep it
-
-				if (read complete) {
-					check for server_name if match request <Host>
-					if (true)
-						keep it as a client;
-					if (false) {
-						search in servers with same host:port for matching server_name with request <Host>
-						for (servers : server) {
-							if (host:port equal && server.server_name = request <Host>) {
-								transfer client to this server
-								break ;
-							}
-						}
+			//	todo: transfer client to the right server or keep it
+				if (read_complete && !this->hostsMatch(it))
+					this->findRelatedHost(it);
+			}
+			else if ((pollfd->revents & POLLOUT)) {
+				bool send_complete = it->createResponse(this->locations);
+				if (send_complete) {
+					if (it->getRequest().getHeader("connection") != "keep-alive") {
+						std::cout << "Connection: " << it->getRequest().getHeader("connection") << std::endl;
+						this->removeClient(pollfds, nfds, it);
 					}
 				}
-			*/
 			}
-			else if ((pollfd->revents & POLLOUT) == POLLOUT) {
-				bool send_complete = it->createResponse(this->locations);
-				(void)send_complete;
-				/*
-					if (send complete) {
-						if (connection: keep-alive)
-							-> keep it as a client
-						if (connection: close)
-							-> this->removeClient(pollfds, it);
-					}
-				*/
-			}
-			else if ((pollfd->revents & POLLHUP) == POLLHUP) {
+			else if (pollfd->revents & POLLHUP) {
 				this->removeClient(pollfds, nfds, it);
 			}
 		}
@@ -284,14 +259,20 @@ std::string	&Server::getServerName(void)
 	return (this->serverName);
 }
 
-std::vector<Server>::iterator	&Server::getIt(void)
-{
-	return (it);
+std::vector<Server>::iterator	&Server::getServersBegin() {
+	return (this->serversBegin);
 }
 
-void	Server::setIt(std::vector<Server>::iterator it)
-{
-	this->it = it;
+std::vector<Server>::iterator	&Server::getServersEnd() {
+	return (this->serversEnd);
+}
+
+void	Server::setServersBegin(std::vector<Server>::iterator it) {
+	this->serversBegin = it;
+}
+
+void	Server::setServersEnd(std::vector<Server>::iterator it) {
+	this->serversEnd = it;
 }
 
 // title: exceptions

@@ -21,6 +21,7 @@
 # include <iterator>
 # include <sstream>
 # include <fstream>
+# include "../public/Colors.hpp"
 
 enum State{
     START,
@@ -43,7 +44,6 @@ class Request
 {
     private:
         int             status;
-        std::string     _fd;
         State           _state;
         Chunk_State     _chunkState;
         size_t          _lengthState;
@@ -76,6 +76,8 @@ class Request
         int         validateHeaderLine();
         int         thereIsBoundary();
 
+        int         getStatus();
+        std::map<std::string, std::string> getHeaders();
         std::string getMethod();
         std::string getUri();
         std::string getVersion();

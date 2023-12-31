@@ -52,5 +52,6 @@ class Client
 		bool				methodIsAllowed(std::vector<std::string> &allowMethods, std::string method);
 		void				send_response();
 		bool				checkLogTime();
+		Request				getRequest() const;
 };
 
