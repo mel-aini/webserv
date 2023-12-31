@@ -104,6 +104,7 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	// this->request.setUri(str);
 	// std::cout << this->request.getUri() << std::endl;
 	Location *location = this->response.findLocation(locations, this->request.getUri());
+	std::cout << location->getPath() << std::endl;
 	/*
 		-> find location that matches with uri
 
