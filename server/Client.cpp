@@ -24,6 +24,10 @@ struct sockaddr_in Client::getAddress() const {
 	return this->address;
 }
 
+Request	Client::getRequest() const {
+	return this->request;
+}
+
 // title : log methods
 
 void	Client::setPollfd(struct pollfd	*pollfd) {
@@ -59,6 +63,7 @@ bool	Client::checkLogTime()
 bool		Client::readRequest(struct pollfd *pollfd) {
 	setPollfd(pollfd);
 	this->logtime = 0;
+
 	char buf[1024] = {0};
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed == -1 || readed == 0) {
@@ -69,14 +74,26 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 
 
 	if (this->request.parseRequest(buf, readed, this->fd)) {
+		std::cout << RED << "salat" << RESET << std::endl;
+		std::cout << RED << this->request.getStatus() << RESET << std::endl;
 		this->reqHasRead();
+		this->response.setStatus(this->request.getStatus());
+
+		std::map<std::string, std::string>::iterator it;
+		std::map<std::string, std::string> headers = this->request.getHeaders();
+	
+		for (it = headers.begin(); it != headers.end(); it++) {
+			std::cout << YELLOW << it->first << " = " << it->second << RESET << std::endl;
+		}
+		return true;
 	}
 	/*
 		if (still reading request)
 			return false;
 		then: request has finished reading, return true
 	*/
-	return true;
+	std::cout << YELLOW << "mazal" << RESET << std::endl;
+	return false;
 }
 
 bool	Client::createResponse(std::vector<Location> &locations) {
@@ -112,13 +129,13 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	{
 		this->response.setLocation(location);
 		// -> this line below is to test error pages
-		this->response.setStatus(403);
+		// this->response.setStatus(403);
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
 			if (!location->getRedirection().empty()) 
 				this->response.setResponseType(REDIRECT);
-			else if (!this->methodIsAllowed(location->allowMethods, "GET"))
+			else if (!this->methodIsAllowed(location->allowMethods, this->request.getMethod()))
 				this->response.setResponseType(ERROR);
 		}
 		processing_level = SENDING;

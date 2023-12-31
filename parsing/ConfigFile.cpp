@@ -572,8 +572,11 @@ std::vector<Server>	parser(char *file)
 	if (servers.size() == 0)
 		printError("config_file: at least one server context required");
 
-	std::vector<Server>::iterator	serverIt = servers.begin();
-	for (; serverIt != servers.end(); serverIt++)
-		serverIt->setIt(servers.begin());
+	std::vector<Server>::iterator	serversBegin = servers.begin();
+	std::vector<Server>::iterator	serversEnd = servers.end();
+	for (; serversBegin != serversEnd; serversBegin++) {
+		serversBegin->setServersBegin(servers.begin());
+		serversBegin->setServersEnd(serversEnd);
+	}
 	return (servers);
 }

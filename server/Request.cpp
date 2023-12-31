@@ -40,6 +40,11 @@ Request &Request::operator=(Request const &rhs)
     return *this;
 }
 
+int         Request::getStatus()
+{
+    return this->status;
+}
+
 std::string Request::getMethod()
 {
     return this->_method;
@@ -63,6 +68,10 @@ std::string Request::getHeader(std::string key)
     return it->second;
 }
 
+std::map<std::string, std::string> Request::getHeaders()
+{
+    return this->_headers;
+}
 
 bool Request::ContentLengthExists()
 {

@@ -20,6 +20,9 @@ Response::Response()
 	status_codes[411] = "Length Required";
 	status_codes[413] = "Payload Too Large";
 	status_codes[414] = "URI Too Long";
+	status_codes[500] = "Internal Server Error";
+	status_codes[501] = "Not Implemented";
+	status_codes[505] = "HTTP Version Not Supported";
 }
 
 Response::~Response() {}
@@ -275,7 +278,6 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	}
 	if (it == locations.end())
 		it = locations.end() - 1;
-	std::cout << YELLOW << it->getPath() << RESET << std::endl;
 	return &(*it);
 }
 
