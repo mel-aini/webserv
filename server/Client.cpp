@@ -87,6 +87,7 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	// this->request.setUri(str);
 	std::cout << this->request.getUri() << std::endl;
 	Location *location = this->response.findLocation(locations, this->request.getUri());
+	std::cout << location->getPath() << std::endl;
 	/*
 		-> find location that matches with uri
 
@@ -116,7 +117,7 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	{
 		this->response.setLocation(location);
 		// -> this line below is to test error pages
-		this->response.setStatus(403);
+		// this->response.setStatus(403);
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {

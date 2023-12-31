@@ -322,6 +322,62 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	return &(*it);
 }
 
+std::vector<std::string>	parseQueryString(std::string uri)
+{
+    std::vector<std::string>	queryString;
+	size_t i;
+	for (i = 0; i < uri.length(); i++)
+		if (uri[i] == '?')
+		{
+		    i++;
+			break ;
+		}
+	if (i == uri.length())
+		return (queryString);
+	size_t j = i;
+	for (; j < uri.length(); j++)
+	{
+		if (uri[j] == '&')
+		{
+		    j++;
+			std::string	tmp = uri.substr(i, j - i - 1);
+			size_t l = 0;
+			for (; l < tmp.length(); l++)
+			{
+				if (tmp[l] == '+')
+					tmp[l] = ' ';
+				else if (tmp[l] == '%')
+				{
+					std::string hexChar = tmp.substr(l + 1, 2);
+					std::stringstream ss(hexChar);
+					int c;
+					ss >> std::hex >> c;
+					tmp = tmp.substr(0, l) + static_cast<char>(c) + tmp.substr(l + 3);
+				}
+			}
+			queryString.push_back(tmp);
+			i = j;
+		}
+	}
+	std::string	tmp = uri.substr(i, j - i);
+	size_t l = 0;
+	for (; l < tmp.length(); l++)
+	{
+		if (tmp[l] == '+')
+			tmp[l] = ' ';
+		else if (tmp[l] == '%')
+		{
+			std::string hexChar = tmp.substr(l + 1, 2);
+			std::stringstream ss(hexChar);
+			int c;
+			ss >> std::hex >> c;
+			tmp = tmp.substr(0, l) + static_cast<char>(c) + tmp.substr(l + 3);
+		}
+	}
+	queryString.push_back(tmp);
+	return (queryString);
+}
+
 bool	Response::getMethod(std::string uri)
 {
 	// getRequestedResource();
@@ -334,7 +390,35 @@ bool	Response::getMethod(std::string uri)
 		if (S_ISREG(fileInf.st_mode))
 		{
 			if (this->location->getCgiExec().size() != 0)
-			{}
+			{
+				int	fd[2];
+				if (pipe(fd) == -1)
+				{
+					std::cerr << "pipe() fail" << std::endl; // generate a error message
+					std::exit(EXIT_FAILURE);
+				}
+				pid_t	pid = fork();
+				if (pid == -1)
+				{
+					std::cerr << "fork() fail" << std::endl; // generate a error message
+					std::exit(EXIT_FAILURE);
+				}
+				if (pid == 0)
+				{
+					dup2(fd[1], 1);
+					close(fd[0]);
+					close(fd[1]);
+					char* arg[2] = {const_cast<char *>(uri.c_str()), NULL};
+					char* env[2] = {"REQUEST_METHOD=GET", NULL};
+					execve("cgi/php-cgi", arg, env);
+					std::cerr << "execve() fail" << std::endl; // generate a error message
+					std::exit(EXIT_FAILURE);
+				}
+				dup2(fd[0], 0);
+				close(fd[0]);
+				close(fd[1]);
+				wait(0);
+			}
 			else
 			{
 				if (this->sending_level == SENDING_HEADERS)
