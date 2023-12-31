@@ -24,58 +24,12 @@ enum mothods {
 
 int main(int ac, char* av[])
 {
-    if (ac != 2)
-	{
-		cerr << "Error" << endl << "invalid arguments" << endl;
-		return (1);
-	}
-    std::string	file = av[1];
-	long long pos = file.rfind('.');
-	if ((pos != -1 && file.substr(pos) != ".conf") || pos == -1)
-	{
-		cerr << "Error" << endl << "config file must be \'.conf\'" << endl;
-		return (1);
-	}
     Global global;
-    // -> parsing
-    global.setServers(parser(av[1]));
-    // create_servers(global);
+    global.setServers(parser(ac, av));
     global.create_servers();
     struct pollfd *pollfds;
-
     while (true)
     {
-        /*
-            title : pseudo code for multiservers
-        */
-        /*
-            -> poll()
-
-            for (through fds : fd) {
-                if ((client + fd)->fd > 0 (valid fd) {
-                    if (((client + fd)->revents & POLLIN) == POLLIN)
-                    {
-                        then : fd is ready to read from
-                        for (iterate through servers) {
-                            if (server.processFd((client + fd)->fd), POLLIN) {
-                                then : server has processed fd
-                                break ;
-                            }
-                        }
-                    }
-                    if (((client + fd)->revents & POLLOUT) == POLLOUT)
-                    {
-                        then : fd is ready to write in
-                        for (iterate through servers) {
-                            if (server.processFd((client + fd)->fd), POLLOUT) {
-                                then : server has processed fd
-                                break ;
-                            }
-                        }
-                    }
-                }
-            }
-        */
         pollfds = &global.getPollfds()[0];
 
         int fds = poll(pollfds, global.getNfds(), 5000);
@@ -85,25 +39,9 @@ int main(int ac, char* av[])
         }
         else if (fds == 0) {
             // then: no event occurs in that specified time
-            /*
-            std::cout << YELLOW << "no event occurs in that specified time" << RESET << std::endl;
-            for (unsigned int i = 0; i < global.getNfds(); i++) {
-                if ((pollfds + i)->fd > 0) {
-                    std::cout << "fd: " << (pollfds + i)->fd << " monitor: ";
-                    if (((pollfds + i)->events & POLLIN) == POLLIN)
-                        std::cout << "POLLIN, ";
-                    if (((pollfds + i)->events & POLLOUT) == POLLOUT)
-                        std::cout << "POLLOUT, ";
-                    if (((pollfds + i)->events & POLLHUP) == POLLHUP)
-                        std::cout << "POLLHUP";
-                    std::cout << std::endl;
-                }
-            }
-            */
             continue;
         }
         try  {
-            // std::cout << "fds: " << fds << std::endl;
             global.checkAndProcessFd(pollfds, fds);
         } catch(const std::exception& e) {
             std::cerr << RED << e.what() << RESET << std::endl;

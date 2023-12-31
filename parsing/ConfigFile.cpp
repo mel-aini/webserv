@@ -421,9 +421,20 @@ Server	initializeServer()
 	return (server);
 }
 
-std::vector<Server>	parser(char *file)
+std::vector<Server>	parser(int ac, char* av[])
 {
-	std::vector<std::pair<int, std::string> > tokens = tokenizer(file);
+	if (ac != 2) {
+		cerr << "Error" << endl << "invalid arguments" << endl;
+		std::exit(1);
+	}
+    std::string	file = av[1];
+	long long pos = file.rfind('.');
+	if ((pos != -1 && file.substr(pos) != ".conf") || pos == -1)
+	{
+		cerr << "Error" << endl << "config file must be \'.conf\'" << endl;
+		std::exit(1);
+	}
+	std::vector<std::pair<int, std::string> > tokens = tokenizer(av[1]);
 	std::vector<Server>	servers;
 	int serverNum = 0;
 

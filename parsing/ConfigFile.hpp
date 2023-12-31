@@ -47,7 +47,7 @@ typedef struct s_ckeckDup
 	bool	hasUploadLocation;
 }			t_checkDup;
 
-std::vector<Server>	parser(char *file);
+std::vector<Server>	parser(int ac, char* av[]);
 std::vector<std::pair<int, std::string> >	tokenizer(char *file);
 void	printError(std::string name);
 int		toInt(std::string str);

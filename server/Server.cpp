@@ -113,16 +113,12 @@ void	Server::findRelatedHost(std::vector<Client>::iterator& it)
 	std::vector<Server>::iterator server = this->getServersBegin();
 	std::vector<Server>::iterator end = this->getServersEnd();
 
-	std::cout << CYAN << "finding match server..." << RESET << std::endl;
-
 	for (; server != end; server++) {
-		std::cout << CYAN << this->getHost() + ":" + this->getPort() << " | " << server->getHost() + ":" + server->getPort()  << RESET << std::endl;
 		if (this->getPort() == server->getPort() && this->getHost() == server->getHost()) {
 			if (server->hostsMatch(it)) {
 				server->transferClient(it);
 				size_t index = std::distance(this->clients.begin(), it);
 				this->clients.erase(this->clients.begin() + index);
-				std::cout << GREEN << "match server is: " << server->getServerName() << RESET << std::endl;
 				break;
 			}
 		}
@@ -147,7 +143,6 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 		{
 			if (!eventOccured) {
 				// then: no event occured
-				// todo: increament client time passed, check for timeout
 				if (it->checkLogTime()) {
 					this->removeClient(pollfds, nfds, it);
 					return true;
@@ -155,8 +150,8 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 				return false;
 			}
 			if (pollfd->revents & POLLIN) {
-			bool read_complete = it->readRequest(pollfd);
-			//	todo: transfer client to the right server or keep it
+				bool read_complete = it->readRequest(pollfd);
+				//	todo: transfer client to the right server or keep it
 				if (read_complete && !this->hostsMatch(it))
 					this->findRelatedHost(it);
 			}
@@ -180,8 +175,6 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 		}
 		return true;
 	}
-	// do nothing
-	// std::cout << "in processFd(), server with socket: " << this->socket << ", fd: " << fd << std::endl;
 	return false;
 }
 

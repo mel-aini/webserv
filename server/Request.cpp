@@ -36,6 +36,7 @@ Request &Request::operator=(Request const &rhs)
         this->_version = rhs._version;
         this->_headers = rhs._headers;
         this->_filename = rhs._filename;
+        this->status = rhs.status;
     }
     return *this;
 }
@@ -206,8 +207,10 @@ int Request::readHeaders()
         return 0;
     }
     this->_request = this->_request.substr(this->_request.find("\r\n\r\n") + 4);
+    
     if (this->_method != "POST")
     {
+        std::cout << "#####" + this->_method << std::endl;
         this->_state = END;
         return 0;
     }
