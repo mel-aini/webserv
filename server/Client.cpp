@@ -73,7 +73,7 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 	}
 
 
-	// std::cout << RED << "before: " << this->request.getStatus() << RESET << std::endl;
+	// std::cout << RED << "before: " << this->request.getStatus() << RESET << std::endl;git p
 	if (this->request.parseRequest(buf, readed, this->fd)) {
 		// std::cout << RED << "salat" << RESET << std::endl;
 		this->reqHasRead();
