@@ -11,6 +11,7 @@
 #include "Request.hpp"
 #include "Response.hpp"
 #include <ctime>
+#include <map>
 
 #define CLIENT_TIMEOUT 5
 
@@ -23,15 +24,16 @@ enum proccess_response {
 class Client
 {
 	private:
-		int					fd;
-		struct sockaddr_in	address;
-		struct pollfd		*pollfd;
-		Request				request;
-		Response			response;
-		int					processing_level;
-		bool				isAllowedMethod;
-		time_t				logtime;
-		time_t				logtime_start;
+		int									fd;
+		struct sockaddr_in					address;
+		struct pollfd						*pollfd;
+		Request								request;
+		Response							response;
+		int									processing_level;
+		bool								isAllowedMethod;
+		time_t								logtime;
+		time_t								logtime_start;
+		std::map<std::string, std::string>	serverInfo;
 
 	public:
 		Client(int fd, struct sockaddr_in address);
@@ -53,5 +55,6 @@ class Client
 		void				send_response();
 		bool				checkLogTime();
 		Request				getRequest() const;
+		void				setServerInfo(std::string port, std::string host, std::string s_name);
 };
 

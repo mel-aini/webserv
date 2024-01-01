@@ -18,6 +18,24 @@ enum sending_level{
     SENDING_END,
 };
 
+enum method_level{
+    FINDRESOURCE,
+    DATA_SENDING,
+    // DATA_SEND,
+};
+
+enum request_case{
+    OTHER_CASE,
+    DIR_CASE,
+    FILE_CASE,
+    NO_CASE,
+};
+
+enum match_index{
+    YES,
+    NO,
+};
+
 enum response_state {
     OK,
     ERROR,
@@ -32,12 +50,16 @@ class Response {
         std::map<std::string, std::string>  headers;
         Location                            *location;
         unsigned int                        sending_level;
+        unsigned int                        method_level;
+        unsigned int                        request_case;
         unsigned int                        response_type;
+        unsigned int                        match_index;
         size_t                              bodyOffset;
         std::map<int, std::string>          status_codes;
         int                                 socket;
         bool                                sendingFile;
         std::string                         errPage;
+        struct stat                         fileInf;
 
     public:
         Response();
@@ -66,6 +88,9 @@ class Response {
         void        reset();
         bool        sendFile(std::string fileName);
         bool        getMethod(std::string uri);
+        bool        getRequestedResource(std::string uri);
+        std::pair<std::string, size_t>	getMatchIndex();
+        bool    readAndSendFile(std::string path, size_t size);
     
         class ResponseFailed : public std::exception {
 			public:

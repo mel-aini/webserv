@@ -1,11 +1,15 @@
 #include "Response.hpp"
+#include <fcntl.h>
 
 Response::Response() 
 	:
 	status(200), 
 	location(NULL),
 	sending_level(SENDING_HEADERS),
+	method_level(FINDRESOURCE),
+	request_case(NO_CASE),
 	response_type(OK),
+	match_index(NO),
 	bodyOffset(0),
 	sendingFile(false)
 {
@@ -174,29 +178,6 @@ bool	Response::send_response_error()
 		this->reset();
 		return true;
 	}
-	/*
-		if (this error in error pages) {
-			get error page
-			if (found) {
-				read from it
-				return
-			}
-		}
-		if (status == 400)
-			then: a 400 Bad Request response
-			-> generate an html response template(400, "Bad Request")
-		else if (status == 403)
-			then: a 403 Forbidden response
-			-> generate an html response template(403, "Forbidden")
-		else if (status == 404)
-			then: a 404 Not Found response
-			-> generate an html response template(404, "Not Found")
-		else if (status == 405)
-			then: a 405 Method Not Allowed response
-			-> generate an html response template(405, "Method Not Allowed")
-		}
-	*/
-	// return true;
 	return false;
 }
 bool	Response::send_response_index_files(std::string path, std::vector<std::string> content)
@@ -273,6 +254,9 @@ void    Response::redirect(const std::string& location)
 void	Response::reset() {
 	this->status = 200;
 	this->sending_level = SENDING_HEADERS;
+	this->method_level = FINDRESOURCE;
+	this->request_case = NO_CASE;
+	this->match_index = NO;
 	this->headers.clear();
 	this->body = "";
 	this->location = NULL;
@@ -325,125 +309,240 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	return &(*it);
 }
 
-std::vector<std::string>	parseQueryString(std::string uri)
+// std::vector<std::string>	parseQueryString(std::string uri)
+// {
+//     std::vector<std::string>	queryString;
+// 	size_t i;
+// 	for (i = 0; i < uri.length(); i++)
+// 		if (uri[i] == '?')
+// 		{
+// 		    i++;
+// 			break ;
+// 		}
+// 	if (i == uri.length())
+// 		return (queryString);
+// 	size_t j = i;
+// 	for (; j < uri.length(); j++)
+// 	{
+// 		if (uri[j] == '&')
+// 		{
+// 		    j++;
+// 			std::string	tmp = uri.substr(i, j - i - 1);
+// 			size_t l = 0;
+// 			for (; l < tmp.length(); l++)
+// 			{
+// 				if (tmp[l] == '+')
+// 					tmp[l] = ' ';
+// 				else if (tmp[l] == '%')
+// 				{
+// 					std::string hexChar = tmp.substr(l + 1, 2);
+// 					std::stringstream ss(hexChar);
+// 					int c;
+// 					ss >> std::hex >> c;
+// 					tmp = tmp.substr(0, l) + static_cast<char>(c) + tmp.substr(l + 3);
+// 				}
+// 			}
+// 			queryString.push_back(tmp);
+// 			i = j;
+// 		}
+// 	}
+// 	std::string	tmp = uri.substr(i, j - i);
+// 	size_t l = 0;
+// 	for (; l < tmp.length(); l++)
+// 	{
+// 		if (tmp[l] == '+')
+// 			tmp[l] = ' ';
+// 		else if (tmp[l] == '%')
+// 		{
+// 			std::string hexChar = tmp.substr(l + 1, 2);
+// 			std::stringstream ss(hexChar);
+// 			int c;
+// 			ss >> std::hex >> c;
+// 			tmp = tmp.substr(0, l) + static_cast<char>(c) + tmp.substr(l + 3);
+// 		}
+// 	}
+// 	queryString.push_back(tmp);
+// 	return (queryString);
+// }
+
+bool	hasQueryString(std::string uri)
 {
-    std::vector<std::string>	queryString;
-	size_t i;
+	size_t	i;
 	for (i = 0; i < uri.length(); i++)
 		if (uri[i] == '?')
-		{
-		    i++;
 			break ;
-		}
 	if (i == uri.length())
-		return (queryString);
-	size_t j = i;
-	for (; j < uri.length(); j++)
+		return (false);
+	return (true);
+}
+
+bool	Response::getRequestedResource(std::string uri)
+{
+	if (uri[0] == '/')
+		uri.erase(0, 1);
+	if (stat(uri.c_str(), &this->fileInf) == 0)
 	{
-		if (uri[j] == '&')
+		if (S_ISREG(this->fileInf.st_mode))
 		{
-		    j++;
-			std::string	tmp = uri.substr(i, j - i - 1);
-			size_t l = 0;
-			for (; l < tmp.length(); l++)
-			{
-				if (tmp[l] == '+')
-					tmp[l] = ' ';
-				else if (tmp[l] == '%')
-				{
-					std::string hexChar = tmp.substr(l + 1, 2);
-					std::stringstream ss(hexChar);
-					int c;
-					ss >> std::hex >> c;
-					tmp = tmp.substr(0, l) + static_cast<char>(c) + tmp.substr(l + 3);
-				}
-			}
-			queryString.push_back(tmp);
-			i = j;
+			this->request_case = OTHER_CASE;
+			return (true);
 		}
+		std::cout << CYAN << "HERE" << RESET << std::endl;
+		// return (false);
 	}
-	std::string	tmp = uri.substr(i, j - i);
-	size_t l = 0;
-	for (; l < tmp.length(); l++)
+	std::string	fileCase = this->location->getRoot() + this->location->getPath();
+	if (stat(fileCase.c_str(), &this->fileInf) == 0)
 	{
-		if (tmp[l] == '+')
-			tmp[l] = ' ';
-		else if (tmp[l] == '%')
+		if (S_ISREG(this->fileInf.st_mode))
 		{
-			std::string hexChar = tmp.substr(l + 1, 2);
-			std::stringstream ss(hexChar);
-			int c;
-			ss >> std::hex >> c;
-			tmp = tmp.substr(0, l) + static_cast<char>(c) + tmp.substr(l + 3);
+			this->request_case = FILE_CASE;
+			return (true);
 		}
+		// return (false);
 	}
-	queryString.push_back(tmp);
-	return (queryString);
+
+	if (stat(this->location->getRoot().c_str(), &this->fileInf) == 0)
+	{
+		if (S_ISDIR(this->fileInf.st_mode))
+		{
+			this->request_case = DIR_CASE;
+			return (true);
+		}
+		// return (false);
+	}
+	return (false);
+}
+
+std::pair<std::string, size_t>	Response::getMatchIndex()
+{
+	std::pair<std::string, size_t>	pair;
+	std::vector<std::string>	index = this->location->getIndex();
+	std::vector<std::string>::iterator	it = index.begin();
+
+	struct stat	dirCaseInf;
+	for (; it != index.end(); it++)
+	{
+		pair.first = this->location->getRoot() + "/" + *it;
+		if (stat(pair.first.c_str(), &dirCaseInf) == 0)
+			if (S_ISREG(dirCaseInf.st_mode))
+				break ;
+	}
+	if (it == index.end())
+	{
+		this->match_index = NO;
+		return (pair);
+	}
+	pair.second = dirCaseInf.st_size;
+	this->match_index = YES;
+	return (pair);
+}
+
+std::string	getContentType(std::string path)
+{
+	std::string	extension = path.substr(path.rfind('.'));
+	if (extension == ".html" || extension == ".htm")
+		return ("text/html");
+	if (extension == ".jpeg" || extension == ".jpg")
+		return ("image/jpeg");
+	if (extension == ".mp3")
+		return ("audio/mpeg");
+	if (extension == ".mp4")
+		return ("video/mp4");
+	if (extension == ".png")
+		return ("image/png");
+	return (0);
+}
+
+bool	Response::readAndSendFile(std::string path, size_t size)
+{
+	if (this->sending_level == SENDING_HEADERS)
+	{
+		std::stringstream sizestream;
+		sizestream << size;
+		this->headers["Content-Type: "] = getContentType(path);
+		this->headers["Content-Lenght: "] = sizestream.str();
+		this->send_status_line_and_headers();
+		this->sending_level = SENDING_BODY;
+	}
+	else if (this->sending_level == SENDING_BODY)
+	{
+		if (this->sendFile(path))
+			this->sending_level = SENDING_END;
+		return (false);
+	}
+	else if (this->sending_level == SENDING_END)
+		return true;
+	return (false);
 }
 
 bool	Response::getMethod(std::string uri)
 {
-	// getRequestedResource();
-	std::string	fileCase = this->location->getRoot() + this->location->getPath();
-
-
-	struct stat	fileInf;
-	if (stat(fileCase.c_str(), &fileInf) == 0 || stat(this->location->getRoot().c_str(), &fileInf) == 0)
+	if (this->method_level == FINDRESOURCE)
 	{
-		if (S_ISREG(fileInf.st_mode))
+		if (this->getRequestedResource(uri)) {
+			this->method_level = DATA_SENDING;
+			std::cout << GREEN << "FOUND" << RESET << std::endl;
+		}
+		else
+		{
+			this->status = 404;
+			this->response_type = ERROR;
+			return (false);
+		}
+	}
+	if (this->method_level == DATA_SENDING)
+	{
+		if (this->request_case == FILE_CASE)
 		{
 			if (this->location->getCgiExec().size() != 0)
 			{
-				int	fd[2];
-				if (pipe(fd) == -1)
-				{
-					std::cerr << "pipe() fail" << std::endl; // generate a error message
-					std::exit(EXIT_FAILURE);
-				}
-				pid_t	pid = fork();
-				if (pid == -1)
-				{
-					std::cerr << "fork() fail" << std::endl; // generate a error message
-					std::exit(EXIT_FAILURE);
-				}
-				if (pid == 0)
-				{
-					dup2(fd[1], 1);
-					close(fd[0]);
-					close(fd[1]);
-					char* arg[2] = {const_cast<char *>(uri.c_str()), NULL};
-					char* env[2] = {const_cast<char *>("REQUEST_METHOD=GET"), NULL};
-					execve("cgi/php-cgi", arg, env);
-					std::cerr << "execve() fail" << std::endl; // generate a error message
-					std::exit(EXIT_FAILURE);
-				}
-				dup2(fd[0], 0);
-				close(fd[0]);
-				close(fd[1]);
-				wait(0);
+				// int	fd[2];
+				// if (pipe(fd) == -1)
+				// {
+				// 	std::cerr << "pipe() fail" << std::endl; // generate a error message
+				// 	std::exit(EXIT_FAILURE);
+				// }
+				// pid_t	pid = fork();
+				// if (pid == -1)
+				// {
+				// 	std::cerr << "fork() fail" << std::endl; // generate a error message
+				// 	std::exit(EXIT_FAILURE);
+				// }
+				// if (pid == 0)
+				// {
+				// 	dup2(fd[1], 1);
+				// 	close(fd[0]);
+				// 	close(fd[1]);
+				// 	char* arg[2] = {const_cast<char *>(fileCase.c_str()), NULL};
+				// 	// char** env = getCgiEnv(uri);
+				// 	if (hasQueryString(uri))
+				// 	{
+				// 		std::string queryString = uri.substr(uri.find('?') + 1);
+				// 		char* env[3] = {const_cast<char *>("REQUEST_METHOD=GET"), const_cast<char *>(queryString.c_str()), NULL};
+				// 		execve("cgi/php-cgi", arg, env);
+				// 		std::cerr << "execve() fail" << std::endl; // generate a error message
+				// 		std::exit(EXIT_FAILURE);
+				// 	}
+				// 	// else
+				// 		char* env[2] = {const_cast<char *>("REQUEST_METHOD=GET"), NULL};
+				// 		execve("cgi/php-cgi", arg, env);
+				// 		std::cerr << "execve() fail" << std::endl; // generate a error message
+				// 		std::exit(EXIT_FAILURE);
+				// }
+				// wait(0);
 			}
 			else
 			{
-				if (this->sending_level == SENDING_HEADERS)
-				{
-					std::stringstream sizestream;
-					sizestream << fileInf.st_size;
-					this->headers["Content-Type: "] = "text/html";
-					this->headers["Content-Lenght: "] = sizestream.str();
-					this->send_status_line_and_headers();
-					this->sending_level = SENDING_BODY;
-				}
-				else if (this->sending_level == SENDING_BODY)
-				{
-					if (this->sendFile(fileCase))
-						this->sending_level = SENDING_END;
-					return (false);
-				}
-				else if (this->sending_level == SENDING_END)
-					return true;
+				std::string	fileCase = this->location->getRoot() + this->location->getPath();
+				return (this->readAndSendFile(fileCase, fileInf.st_size));
 			}
 		}
-		else if (S_ISDIR(fileInf.st_mode))
+		else if (this->request_case == OTHER_CASE) {
+			if (uri[0] == '/')
+				uri.erase(0, 1);
+			return (this->readAndSendFile(uri, fileInf.st_size));
+		}
+		else if (this->request_case == DIR_CASE)
 		{
 			if (uri[uri.length() - 1] != '/')
 			{
@@ -454,47 +553,19 @@ bool	Response::getMethod(std::string uri)
 			{
 				if (this->location->getIndex().size() != 0)
 				{
-					std::vector<std::string>	index = this->location->getIndex();
-					std::vector<std::string>::iterator	it = index.begin();
-					std::string	dirCase;
-					struct stat	dirCaseInf;
-					for (; it != index.end(); it++)
-					{
-						dirCase = this->location->getRoot() + "/" + *it;
-						if (stat(dirCase.c_str(), &dirCaseInf) == 0)
-							if (S_ISREG(dirCaseInf.st_mode))
-								break ;
-					}
+					std::pair<std::string, size_t>	pair = this->getMatchIndex();
 					if (this->location->getCgiExec().size() != 0)
 					{}
 					else
 					{
-						if (it != index.end())
-						{
-							if (this->sending_level == SENDING_HEADERS)
-							{
-								std::stringstream sizestream;
-								sizestream << fileInf.st_size;
-								this->headers["Content-Type: "] = "text/html";
-								this->headers["Content-Lenght: "] = sizestream.str();
-								this->send_status_line_and_headers();
-								this->sending_level = SENDING_BODY;
-							}
-							else if (this->sending_level == SENDING_BODY)
-							{
-								if (this->sendFile(dirCase))
-									this->sending_level = SENDING_END;
-								return (false);
-							}
-							else if (this->sending_level == SENDING_END)
-								return true;
-						}
-						else
-						{
-							this->status = 404;
-							this->response_type = ERROR;
-							return (false);
-						}
+						if (this->match_index == YES)
+							return (this->readAndSendFile(pair.first, pair.second));
+						// else
+						// {
+						// 	this->status = 404;
+						// 	this->response_type = ERROR;
+						// 	return (false);
+						// }
 					}
 				}
 				else
@@ -511,7 +582,7 @@ bool	Response::getMethod(std::string uri)
 							if (this->send_response_index_files(uri, content))
 								return (true);
 						}
-						return (false);
+						return (true);
 					}
 					else
 					{
@@ -529,12 +600,7 @@ bool	Response::getMethod(std::string uri)
 			return (false);
 		}
 	}
-	else
-	{
-		this->status = 404;
-		this->response_type = ERROR;
-		return (false);
-	}
+	// std::cout << "here\n";
 	return (false);
 }
 

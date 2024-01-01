@@ -24,6 +24,13 @@ struct sockaddr_in Client::getAddress() const {
 	return this->address;
 }
 
+void	Client::setServerInfo(std::string port, std::string host, std::string s_name)
+{
+	this->serverInfo["PORT"] = port;
+	this->serverInfo["HOST"] = host;
+	this->serverInfo["SERVER_NAME"] = s_name;
+}
+
 Request	Client::getRequest() const {
 	return this->request;
 }
@@ -77,6 +84,7 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 	if (this->request.parseRequest(buf, readed, this->fd)) {
 		// std::cout << RED << "salat" << RESET << std::endl;
 		this->reqHasRead();
+		std::cout << "uri: " + this->request.getUri() << std::endl;
 		// this->response.setStatus(this->request.getStatus());
 
 		// std::map<std::string, std::string>::iterator it;
@@ -101,8 +109,8 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	// -> find location that matches with uri
 	// std::string str = "/public/html/";
 	// this->request.setUri(str);
-	// std::cout << this->request.getUri() << std::endl;
 	Location *location = this->response.findLocation(locations, this->request.getUri());
+	// std::cout << this->request.getUri() << std::endl;
 	// std::cout << location->getPath() << std::endl;
 	/*
 		-> find location that matches with uri
@@ -189,6 +197,10 @@ void	Client::send_response()
 			if (GET)
 				-> perform action, getMethod()
 			else if (POST)
+				if (upload)
+					->upload
+				else
+					-> GET without cgi
 				-> perform action, postMethod()
 			else if (DELETE)
 				-> perform action, deleteMethod()
