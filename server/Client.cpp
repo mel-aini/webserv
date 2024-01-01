@@ -80,10 +80,11 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 	}
 
 
-	std::cout << RED << "before: " << this->request.getStatus() << RESET << std::endl;
+	// std::cout << RED << "before: " << this->request.getStatus() << RESET << std::endl;
 	if (this->request.parseRequest(buf, readed, this->fd)) {
-		std::cout << RED << "salat" << RESET << std::endl;
+		// std::cout << RED << "salat" << RESET << std::endl;
 		this->reqHasRead();
+		std::cout << "uri: " + this->request.getUri() << std::endl;
 		// this->response.setStatus(this->request.getStatus());
 
 		// std::map<std::string, std::string>::iterator it;
@@ -94,13 +95,12 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 		// }
 		return true;
 	}
-	return false;
 	/*
 		if (still reading request)
 			return false;
 		then: request has finished reading, return true
 	*/
-	std::cout << YELLOW << "mazal" << RESET << std::endl;
+	// std::cout << YELLOW << "mazal" << RESET << std::endl;
 	return false;
 }
 
@@ -111,6 +111,7 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	// this->request.setUri(str);
 	Location *location = this->response.findLocation(locations, this->request.getUri());
 	// std::cout << this->request.getUri() << std::endl;
+	// std::cout << location->getPath() << std::endl;
 	/*
 		-> find location that matches with uri
 
@@ -148,7 +149,7 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 			this->response.setResponseType(ERROR);
 		else {
 			if (!location->getRedirection().empty()) {
-				std::cout << RED << "Is Redirect" << RESET << std::endl;
+				// std::cout << RED << "Is Redirect" << RESET << std::endl;
 				this->response.setResponseType(REDIRECT);
 			}
 			else if (!this->methodIsAllowed(location->allowMethods, this->request.getMethod()))
@@ -233,7 +234,7 @@ void	Client::resHasSent()
 
 void	Client::reset()
 {
-	std::cout << "reset()" << std::endl;
+	// std::cout << "reset()" << std::endl;
 	this->pollfd->events = POLLIN | POLLHUP;
 	this->isAllowedMethod = false;
 	this->processing_level = INITIAL;

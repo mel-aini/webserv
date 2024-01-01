@@ -178,29 +178,6 @@ bool	Response::send_response_error()
 		this->reset();
 		return true;
 	}
-	/*
-		if (this error in error pages) {
-			get error page
-			if (found) {
-				read from it
-				return
-			}
-		}
-		if (status == 400)
-			then: a 400 Bad Request response
-			-> generate an html response template(400, "Bad Request")
-		else if (status == 403)
-			then: a 403 Forbidden response
-			-> generate an html response template(403, "Forbidden")
-		else if (status == 404)
-			then: a 404 Not Found response
-			-> generate an html response template(404, "Not Found")
-		else if (status == 405)
-			then: a 405 Method Not Allowed response
-			-> generate an html response template(405, "Method Not Allowed")
-		}
-	*/
-	// return true;
 	return false;
 }
 bool	Response::send_response_index_files(std::string path, std::vector<std::string> content)
@@ -405,25 +382,33 @@ bool	Response::getRequestedResource(std::string uri)
 		uri.erase(0, 1);
 	if (stat(uri.c_str(), &this->fileInf) == 0)
 	{
-		if (S_ISREG(this->fileInf.st_mode)){
+		if (S_ISREG(this->fileInf.st_mode))
+		{
 			this->request_case = OTHER_CASE;
+			return (true);
 		}
-		return (true);
+		std::cout << CYAN << "HERE" << RESET << std::endl;
+		// return (false);
 	}
-
 	std::string	fileCase = this->location->getRoot() + this->location->getPath();
 	if (stat(fileCase.c_str(), &this->fileInf) == 0)
 	{
 		if (S_ISREG(this->fileInf.st_mode))
+		{
 			this->request_case = FILE_CASE;
-		return (true);
+			return (true);
+		}
+		// return (false);
 	}
 
 	if (stat(this->location->getRoot().c_str(), &this->fileInf) == 0)
 	{
 		if (S_ISDIR(this->fileInf.st_mode))
+		{
 			this->request_case = DIR_CASE;
-		return (true);
+			return (true);
+		}
+		// return (false);
 	}
 	return (false);
 }
@@ -492,11 +477,11 @@ bool	Response::readAndSendFile(std::string path, size_t size)
 
 bool	Response::getMethod(std::string uri)
 {
-	std::cout << "uri: " + uri << std::endl;
 	if (this->method_level == FINDRESOURCE)
 	{
-		if (this->getRequestedResource(uri)){
+		if (this->getRequestedResource(uri)) {
 			this->method_level = DATA_SENDING;
+			std::cout << GREEN << "FOUND" << RESET << std::endl;
 		}
 		else
 		{
@@ -553,6 +538,8 @@ bool	Response::getMethod(std::string uri)
 			}
 		}
 		else if (this->request_case == OTHER_CASE) {
+			if (uri[0] == '/')
+				uri.erase(0, 1);
 			return (this->readAndSendFile(uri, fileInf.st_size));
 		}
 		else if (this->request_case == DIR_CASE)
@@ -607,7 +594,7 @@ bool	Response::getMethod(std::string uri)
 			}
 		}
 		else
-		{std::cout << "here\n";
+		{
 			this->status = 404;
 			this->response_type = ERROR;
 			return (false);
