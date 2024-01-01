@@ -410,13 +410,18 @@ bool	Response::getRequestedResource(std::string uri)
 		}
 		return (true);
 	}
-	std::string	fileCase = this->location->getRoot() + this->location->getPath();
 
-	if (stat(fileCase.c_str(), &this->fileInf) == 0 || stat(this->location->getRoot().c_str(), &this->fileInf) == 0)
+	std::string	fileCase = this->location->getRoot() + this->location->getPath();
+	if (stat(fileCase.c_str(), &this->fileInf) == 0)
 	{
 		if (S_ISREG(this->fileInf.st_mode))
 			this->request_case = FILE_CASE;
-		else if (S_ISDIR(this->fileInf.st_mode))
+		return (true);
+	}
+
+	if (stat(this->location->getRoot().c_str(), &this->fileInf) == 0)
+	{
+		if (S_ISDIR(this->fileInf.st_mode))
 			this->request_case = DIR_CASE;
 		return (true);
 	}
@@ -490,8 +495,9 @@ bool	Response::getMethod(std::string uri)
 	std::cout << "uri: " + uri << std::endl;
 	if (this->method_level == FINDRESOURCE)
 	{
-		if (this->getRequestedResource(uri))
+		if (this->getRequestedResource(uri)){
 			this->method_level = DATA_SENDING;
+		}
 		else
 		{
 			this->status = 404;
@@ -601,7 +607,7 @@ bool	Response::getMethod(std::string uri)
 			}
 		}
 		else
-		{
+		{std::cout << "here\n";
 			this->status = 404;
 			this->response_type = ERROR;
 			return (false);
