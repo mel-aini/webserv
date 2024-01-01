@@ -52,6 +52,7 @@ void	Server::addClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds) {
 			throw ClientFailed();
 		}
 		Client newClient(clientSocket, clientAddress);
+		newClient.setServerInfo(this->port, this->host, this->serverName);
 		this->clients.push_back(newClient);
 		std::cout << GREEN << "server active in port: " << this->port << " accepted new request" << RESET << std::endl;
 

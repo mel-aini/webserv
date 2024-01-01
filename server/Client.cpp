@@ -24,6 +24,13 @@ struct sockaddr_in Client::getAddress() const {
 	return this->address;
 }
 
+void	Client::setServerInfo(std::string port, std::string host, std::string s_name)
+{
+	this->serverInfo["PORT"] = port;
+	this->serverInfo["HOST"] = host;
+	this->serverInfo["SERVER_NAME"] = s_name;
+}
+
 Request	Client::getRequest() const {
 	return this->request;
 }
@@ -102,9 +109,8 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	// -> find location that matches with uri
 	// std::string str = "/public/html/";
 	// this->request.setUri(str);
-	// std::cout << this->request.getUri() << std::endl;
 	Location *location = this->response.findLocation(locations, this->request.getUri());
-	std::cout << location->getPath() << std::endl;
+	// std::cout << this->request.getUri() << std::endl;
 	/*
 		-> find location that matches with uri
 
@@ -134,10 +140,10 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	{
 		this->response.setLocation(location);
 		// -> this line below is to test error pages
-		this->response.setStatus(200);
+		// this->response.setStatus(200);
 		// std::cout << YELLOW << "path: " << location->path << RESET << std::endl;
 		// std::cout << YELLOW << "root: " << location->root << RESET << std::endl;
-		std::cout << YELLOW << "redirection: " << location->redirection << RESET << std::endl;
+		// std::cout << YELLOW << "redirection: " << location->redirection << RESET << std::endl;
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
@@ -190,6 +196,10 @@ void	Client::send_response()
 			if (GET)
 				-> perform action, getMethod()
 			else if (POST)
+				if (upload)
+					->upload
+				else
+					-> GET without cgi
 				-> perform action, postMethod()
 			else if (DELETE)
 				-> perform action, deleteMethod()
