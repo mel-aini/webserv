@@ -84,6 +84,7 @@ class Request
         std::string getHeader(std::string key);
         std::string getFilename();
         std::string getBoundary();
+        void    reset();
 };
 
 

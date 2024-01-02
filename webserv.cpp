@@ -16,12 +16,6 @@ using std::cerr;
 using std::cout;
 using std::endl;
 
-enum mothods {
-    GET, 
-    POST,
-    DELETE
-};
-
 int main(int ac, char* av[])
 {
     Global global;

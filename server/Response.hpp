@@ -21,7 +21,7 @@ enum sending_level{
 enum method_level{
     FINDRESOURCE,
     DATA_SENDING,
-    // DATA_SEND,
+    DATA_SEND,
 };
 
 enum request_case{
@@ -60,6 +60,7 @@ class Response {
         bool                                sendingFile;
         std::string                         errPage;
         struct stat                         fileInf;
+        std::map<std::string, std::string>  content_type;
 
     public:
         Response();
@@ -75,22 +76,24 @@ class Response {
 
         void                setSendingLevel(unsigned int level);
 
-		bool        send_response_error();
-        bool        send_response_index_files(std::string path, std::vector<std::string> content);
-        void        send_status_line_and_headers();
-        void        send_body();
-        void        setResponseType(unsigned int response_type);
-        Location    *findLocation(std::vector<Location> &locations, std::string uri);
-        void        setLocation(Location *location);
-        Location    *getLocation();
-        bool        isInErrorPages();
-        void        redirect(const std::string& location);
-        void        reset();
-        bool        sendFile(std::string fileName);
-        bool        getMethod(std::string uri);
-        bool        getRequestedResource(std::string uri);
-        std::pair<std::string, size_t>	getMatchIndex();
-        bool    readAndSendFile(std::string path, size_t size);
+		bool                            send_response_error();
+        bool                            send_response_index_files(std::string path, std::vector<std::string> content);
+        void                            send_status_line_and_headers();
+        void                            send_body();
+        void                            setResponseType(unsigned int response_type);
+        Location                        *findLocation(std::vector<Location> &locations, std::string uri);
+        void                            setLocation(Location *location);
+        Location                        *getLocation();
+        bool                            isInErrorPages();
+        void                            redirect(const std::string& location);
+        void                            reset();
+        bool                            sendFile(std::string fileName);
+        bool                            getMethod(std::string uri);
+        bool                            getRequestedResource(std::string uri);
+        std::pair<std::string, size_t>  getMatchIndex();
+        bool                            readAndSendFile(std::string path, size_t size);
+        std::string                     getContentType(std::string path);
+        void	log();
     
         class ResponseFailed : public std::exception {
 			public:
