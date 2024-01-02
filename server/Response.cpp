@@ -116,6 +116,8 @@ bool	Response::sendFile(std::string fileName)
 	if (file.eof()) {
 		this->sending_level = SENDING_END;
 		file.close();
+		std::cout << BLUE << "bytes sent: " << bytesRead << RESET << std::endl;
+		std::cout << CYAN << "send complete" << RESET << std::endl;
 		return true;
 	}
 	file.close();
@@ -249,6 +251,7 @@ void    Response::redirect(const std::string& location)
 	this->status = 301;
 	this->headers["Location: "] = location;
 	send_status_line_and_headers();
+	std::cout << "REDIRECT" << std::endl;
 }
 
 void	Response::reset() {
