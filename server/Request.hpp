@@ -44,6 +44,7 @@ class Request
 {
     private:
         int             status;
+        size_t          _bodySize;
         State           _state;
         Chunk_State     _chunkState;
         size_t          _lengthState;
@@ -84,7 +85,8 @@ class Request
         std::string getHeader(std::string key);
         std::string getFilename();
         std::string getBoundary();
-        void    reset();
+        std::string getContentType();
+        size_t      getBodysize();
 };
 
 

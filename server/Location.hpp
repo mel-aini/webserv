@@ -49,6 +49,7 @@ class Location
 		std::vector<std::string>	getIndex(void);
 		bool	getAutoIndex(void);
 		std::vector<std::string>	getCgiExec(void);
+		std::string	getUploadLocation(void);
 };
 
 std::ostream & operator<<(std::ostream  & out, const Location & obj);

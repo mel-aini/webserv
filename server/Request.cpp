@@ -13,10 +13,9 @@
 #include "Request.hpp"
 #include <unistd.h>
 
-Request::Request() : status(200), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("/tmp/" + std::to_string(time(0)) + ".tmp")
+Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("/tmp/" + std::to_string(time(0)))
 {
 }
-
 
 Request::Request(Request const &src)
 {
@@ -46,15 +45,6 @@ int         Request::getStatus()
     return this->status;
 }
 
-void    Request::reset()
-{
-    this->status = 200;
-    this->_state = START;
-    this->_chunkState = CHUNK_SIZE_START;
-    this->_lengthState = 0;
-    this->_filename = "/tmp/" + std::to_string(time(0)) + ".tmp";
-}
-
 std::string Request::getMethod()
 {
     return this->_method;
@@ -81,6 +71,11 @@ std::string Request::getHeader(std::string key)
 std::map<std::string, std::string> Request::getHeaders()
 {
     return this->_headers;
+}
+
+size_t Request::getBodysize()
+{
+    return this->_bodySize;
 }
 
 bool Request::ContentLengthExists()
@@ -120,6 +115,19 @@ std::string Request::getTransferEncoding()
     if (it == this->_headers.end())
         return "";
     return it->second;
+}
+
+std::string Request::getFilename()
+{
+    return this->_filename;
+}
+
+std::string Request::getContentType()
+{
+    std::map<std::string, std::string>::iterator it = this->_headers.find("content-type");
+    if (it == this->_headers.end())
+        return "none";
+    return it->second.substr(0, it->second.find(";"));
 }
 
 int Request::thereIsBoundary()
@@ -233,7 +241,8 @@ int Request::readHeaders()
     else if (this->ContentLengthExists())
     {
         this->_state = CONTENT_LENGTH;
-        this->_lengthState = this->getContentLenght();  
+        this->_lengthState = this->getContentLenght();
+        this->_bodySize = this->_lengthState; 
     }
     else
     {
@@ -272,6 +281,7 @@ int Request::readByChunk()
                     this->_state = END; 
                     return 0;
                 }
+                this->_bodySize += this->_lengthState;
                 this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
                 this->_chunkState = CHUNK_DATA;
             }
@@ -356,6 +366,7 @@ int Request::readBoundary()
     if (this->_request.find(this->_boundary + "--") == std::string::npos)
     {
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+        this->_bodySize += this->_request.length();
         file << this->_request;
         this->_request = "";
         file.close();
@@ -364,6 +375,7 @@ int Request::readBoundary()
     else 
     {
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+        this->_bodySize += this->_boundary.length() + 2;
         file << this->_boundary + "--";
         this->_request = "";
         file.close();
