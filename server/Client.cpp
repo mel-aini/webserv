@@ -31,6 +31,45 @@ void	Client::setServerInfo(std::string port, std::string host, std::string s_nam
 	this->serverInfo["SERVER_NAME"] = s_name;
 }
 
+bool	hasQueryString(std::string uri)
+{
+	size_t	i;
+	for (i = 0; i < uri.length(); i++)
+		if (uri[i] == '?')
+			break ;
+	if (i == uri.length())
+		return (false);
+	return (true);
+}
+
+// char**	Client::getCgiEnv(int method_type)
+// {
+// 	std::string uri = this->request.getUri();
+// 	std::string	variable;
+// 	char	**env;
+// 	variable = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
+// 	variable = "SERVER_PORT=" + this->serverInfo["PORT"];
+// 	if (uri[0] == '/')
+// 		uri.erase(0, 1);
+// 	variable = "SCRIPT_NAME=/" + uri.substr(0, uri.find(".php") + 4);
+// 	variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4);
+// 	variable = "HTTP_ACCEPT=";
+// 	variable = "HTTP_USER_AGENT=";
+// 	if (method_type == GET)
+// 	{
+// 		variable = "REQUEST_METHOD=GET";
+// 		if (hasQueryString(uri))
+// 		{
+// 			std::string queryString = uri.substr(uri.find('?') + 1);
+// 			variable = "QUERY_STRING=" + queryString;
+// 		}
+// 	}
+// 	else if (method_type == POST)
+// 	{
+// 		variable = "REQUEST_METHOD=POST";
+// 	}
+// }
+
 Request	Client::getRequest() const {
 	return this->request;
 }
@@ -223,6 +262,7 @@ void	Client::reqHasRead()
 	// std::cout << "request size: " << GREEN << this->request.getSize() << RESET << std::endl;
 	// std::cout << "request: " << YELLOW << this->request.getBuffer() << RESET << std::endl;
 	this->pollfd->events = POLLOUT | POLLHUP;
+	this->request.reset();
 }
 
 void	Client::resHasSent()

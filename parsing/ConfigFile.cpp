@@ -7,15 +7,14 @@ using std::endl;
 Location	defLocation()
 {
 	std::vector<std::string>	index;
-	// index.push_back("index.html");
-	// index.push_back("index.htm");
+	index.push_back("index.html");
 	std::vector<std::string>	allowMethods;
 	allowMethods.push_back("GET");
 	allowMethods.push_back("POST");
 	allowMethods.push_back("DELETE");
 	std::vector<std::string>	cgiExec;
 	std::vector<std::string>	cgiAllowMethods;
-	return (Location("/", "root", index, 50, allowMethods, "", true, cgiExec, cgiAllowMethods, true, "/upload"));
+	return (Location("/", "public/html", index, 50, allowMethods, "", true, cgiExec, cgiAllowMethods, true, "/upload"));
 }
 
 std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &it, bool & hasData, std::string name, int num)

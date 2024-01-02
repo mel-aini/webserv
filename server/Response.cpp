@@ -27,6 +27,15 @@ Response::Response()
 	status_codes[500] = "Internal Server Error";
 	status_codes[501] = "Not Implemented";
 	status_codes[505] = "HTTP Version Not Supported";
+
+	content_type[".html"] = "text/html";
+	content_type[".htm"] = "text/html";
+	content_type[".css"] = "text/css";
+	content_type[".jpeg"] = "image/jpeg";
+	content_type[".jpg"] = "image/jpeg";
+	content_type[".mp3"] = "audio/mpeg";
+	content_type[".mp4"] = "video/mp4";
+	content_type[".png"] = "image/png";
 }
 
 Response::~Response() {}
@@ -90,7 +99,7 @@ bool	Response::isInErrorPages()
 
 bool	Response::sendFile(std::string fileName)
 {
-	char buf[1024] = {0};
+	char buf[1000000] = {0};
 
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
@@ -109,7 +118,8 @@ bool	Response::sendFile(std::string fileName)
 	bodyOffset += bytesRead;
 
 	if (bytesRead != 0)
-		send(this->socket, buf, bytesRead, 0);
+		if (send(this->socket, buf, bytesRead, 0) == -1)
+			throw ResponseFailed();
 
 	// std::cout << RED << buf << RESET << std::endl;
 
@@ -266,6 +276,46 @@ void	Response::reset() {
 	this->bodyOffset = 0;
 }
 
+void	Response::log()
+{
+	if (this->sending_level == SENDING_HEADERS) {
+		std::cout << CYAN << "sending_level = SENDING_HEADERS" << RESET << std::endl;
+	}
+	else if (this->sending_level == SENDING_BODY) {
+		std::cout << CYAN << "sending_level = SENDING_BODY" << RESET << std::endl;
+	}
+	else if (this->sending_level == SENDING_END) {
+		std::cout << CYAN << "sending_level = SENDING_END" << RESET << std::endl;
+	}
+	if (this->method_level == FINDRESOURCE) {
+		std::cout << CYAN << "method_level = FINDRESOURCE" << RESET << std::endl;
+	}
+	else if (this->method_level == DATA_SENDING) {
+		std::cout << CYAN << "method_level = DATA_SENDING" << RESET << std::endl;
+	}
+	else if (this->method_level == DATA_SEND) {
+		std::cout << CYAN << "method_level = DATA_SEND" << RESET << std::endl;
+	}
+	if (this->request_case == OTHER_CASE) {
+		std::cout << CYAN << "request_case = OTHER_CASE" << RESET << std::endl;
+	}
+	else if (this->request_case == DIR_CASE) {
+		std::cout << CYAN << "request_case = DIR_CASE" << RESET << std::endl;
+	}
+	else if (this->request_case == FILE_CASE) {
+		std::cout << CYAN << "request_case = FILE_CASE" << RESET << std::endl;
+	}
+	else if (this->request_case == NO_CASE) {
+		std::cout << CYAN << "request_case = NO_CASE" << RESET << std::endl;
+	}
+	if (this->match_index == YES) {
+		std::cout << CYAN << "match_index = YES" << RESET << std::endl;
+	}
+	else if (this->match_index == NO) {
+		std::cout << CYAN << "match_index = NO"  << RESET << std::endl;
+	}
+}
+
 bool compareByLength(Location& a, Location& b)
 {
     return (a.getPath().length() > b.getPath().length());
@@ -312,72 +362,16 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	return &(*it);
 }
 
-// std::vector<std::string>	parseQueryString(std::string uri)
+// bool	hasQueryString(std::string uri)
 // {
-//     std::vector<std::string>	queryString;
-// 	size_t i;
+// 	size_t	i;
 // 	for (i = 0; i < uri.length(); i++)
 // 		if (uri[i] == '?')
-// 		{
-// 		    i++;
 // 			break ;
-// 		}
 // 	if (i == uri.length())
-// 		return (queryString);
-// 	size_t j = i;
-// 	for (; j < uri.length(); j++)
-// 	{
-// 		if (uri[j] == '&')
-// 		{
-// 		    j++;
-// 			std::string	tmp = uri.substr(i, j - i - 1);
-// 			size_t l = 0;
-// 			for (; l < tmp.length(); l++)
-// 			{
-// 				if (tmp[l] == '+')
-// 					tmp[l] = ' ';
-// 				else if (tmp[l] == '%')
-// 				{
-// 					std::string hexChar = tmp.substr(l + 1, 2);
-// 					std::stringstream ss(hexChar);
-// 					int c;
-// 					ss >> std::hex >> c;
-// 					tmp = tmp.substr(0, l) + static_cast<char>(c) + tmp.substr(l + 3);
-// 				}
-// 			}
-// 			queryString.push_back(tmp);
-// 			i = j;
-// 		}
-// 	}
-// 	std::string	tmp = uri.substr(i, j - i);
-// 	size_t l = 0;
-// 	for (; l < tmp.length(); l++)
-// 	{
-// 		if (tmp[l] == '+')
-// 			tmp[l] = ' ';
-// 		else if (tmp[l] == '%')
-// 		{
-// 			std::string hexChar = tmp.substr(l + 1, 2);
-// 			std::stringstream ss(hexChar);
-// 			int c;
-// 			ss >> std::hex >> c;
-// 			tmp = tmp.substr(0, l) + static_cast<char>(c) + tmp.substr(l + 3);
-// 		}
-// 	}
-// 	queryString.push_back(tmp);
-// 	return (queryString);
+// 		return (false);
+// 	return (true);
 // }
-
-bool	hasQueryString(std::string uri)
-{
-	size_t	i;
-	for (i = 0; i < uri.length(); i++)
-		if (uri[i] == '?')
-			break ;
-	if (i == uri.length())
-		return (false);
-	return (true);
-}
 
 bool	Response::getRequestedResource(std::string uri)
 {
@@ -390,7 +384,6 @@ bool	Response::getRequestedResource(std::string uri)
 			this->request_case = OTHER_CASE;
 			return (true);
 		}
-		std::cout << CYAN << "HERE" << RESET << std::endl;
 		// return (false);
 	}
 	std::string	fileCase = this->location->getRoot() + this->location->getPath();
@@ -440,20 +433,12 @@ std::pair<std::string, size_t>	Response::getMatchIndex()
 	return (pair);
 }
 
-std::string	getContentType(std::string path)
+std::string	Response::getContentType(std::string path)
 {
 	std::string	extension = path.substr(path.rfind('.'));
-	if (extension == ".html" || extension == ".htm")
-		return ("text/html");
-	if (extension == ".jpeg" || extension == ".jpg")
-		return ("image/jpeg");
-	if (extension == ".mp3")
-		return ("audio/mpeg");
-	if (extension == ".mp4")
-		return ("video/mp4");
-	if (extension == ".png")
-		return ("image/png");
-	return (0);
+	if (this->content_type[extension].empty())
+		return (0);
+	return (this->content_type[extension]);
 }
 
 bool	Response::readAndSendFile(std::string path, size_t size)
@@ -467,11 +452,9 @@ bool	Response::readAndSendFile(std::string path, size_t size)
 		this->send_status_line_and_headers();
 		this->sending_level = SENDING_BODY;
 	}
-	else if (this->sending_level == SENDING_BODY)
-	{
+	else if (this->sending_level == SENDING_BODY) {
 		if (this->sendFile(path))
 			this->sending_level = SENDING_END;
-		return (false);
 	}
 	else if (this->sending_level == SENDING_END)
 		return true;
@@ -480,6 +463,7 @@ bool	Response::readAndSendFile(std::string path, size_t size)
 
 bool	Response::getMethod(std::string uri)
 {
+	log();
 	if (this->method_level == FINDRESOURCE)
 	{
 		if (this->getRequestedResource(uri)) {
@@ -537,20 +521,22 @@ bool	Response::getMethod(std::string uri)
 			else
 			{
 				std::string	fileCase = this->location->getRoot() + this->location->getPath();
-				return (this->readAndSendFile(fileCase, fileInf.st_size));
+				if (this->readAndSendFile(fileCase, fileInf.st_size))
+					this->method_level = DATA_SEND;
 			}
 		}
 		else if (this->request_case == OTHER_CASE) {
 			if (uri[0] == '/')
 				uri.erase(0, 1);
-			return (this->readAndSendFile(uri, fileInf.st_size));
+			if (this->readAndSendFile(uri, fileInf.st_size))
+				this->method_level = DATA_SEND;
 		}
 		else if (this->request_case == DIR_CASE)
 		{
 			if (uri[uri.length() - 1] != '/')
 			{
 				redirect(uri + "/");
-				return (true);
+				this->method_level = DATA_SEND;
 			}
 			else
 			{
@@ -562,7 +548,8 @@ bool	Response::getMethod(std::string uri)
 					else
 					{
 						if (this->match_index == YES)
-							return (this->readAndSendFile(pair.first, pair.second));
+							if (this->readAndSendFile(pair.first, pair.second))
+								this->method_level = DATA_SEND;
 						// else
 						// {
 						// 	this->status = 404;
@@ -583,7 +570,7 @@ bool	Response::getMethod(std::string uri)
 							while ((dirContent = readdir(dir)) != NULL)
 								content.push_back(dirContent->d_name);
 							if (this->send_response_index_files(uri, content))
-								return (true);
+								this->method_level = DATA_SEND;
 						}
 						return (true);
 					}
@@ -603,7 +590,10 @@ bool	Response::getMethod(std::string uri)
 			return (false);
 		}
 	}
-	// std::cout << "here\n";
+	if (this->method_level == DATA_SEND) {
+		std::cout << "here\n";
+		return (true);
+	}
 	return (false);
 }
 

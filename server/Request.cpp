@@ -46,6 +46,15 @@ int         Request::getStatus()
     return this->status;
 }
 
+void    Request::reset()
+{
+    this->status = 200;
+    this->_state = START;
+    this->_chunkState = CHUNK_SIZE_START;
+    this->_lengthState = 0;
+    this->_filename = "/tmp/" + std::to_string(time(0)) + ".tmp";
+}
+
 std::string Request::getMethod()
 {
     return this->_method;
