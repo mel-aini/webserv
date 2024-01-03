@@ -76,12 +76,14 @@ class Request
         int         validateHeaderLine();
         int         thereIsBoundary();
 
+        std::string getHeader(std::string key);
         int         getStatus();
         std::map<std::string, std::string> getHeaders();
         std::string getMethod();
         std::string getUri();
+        void setUri(std::string str);
         std::string getVersion();
-        std::string getHeader(std::string key);
+        std::string getHeaderLine(std::string key);
         std::string getFilename();
         std::string getBoundary();
         void    reset();

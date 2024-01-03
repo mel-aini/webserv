@@ -41,6 +41,11 @@ Request &Request::operator=(Request const &rhs)
     return *this;
 }
 
+std::string Request::getHeaderLine(std::string key)
+{
+    return (this->_headers[key]);
+}
+
 int         Request::getStatus()
 {
     return this->status;
@@ -438,4 +443,9 @@ void Request::printRequest()
     {
         std::cout << it->first << ": " << it->second << std::endl;
     }
+}
+
+void Request::setUri(std::string str)
+{
+    this->_uri = str;
 }

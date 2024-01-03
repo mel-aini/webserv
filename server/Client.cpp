@@ -42,33 +42,55 @@ bool	hasQueryString(std::string uri)
 	return (true);
 }
 
-// char**	Client::getCgiEnv(int method_type)
-// {
-// 	std::string uri = this->request.getUri();
-// 	std::string	variable;
-// 	char	**env;
-// 	variable = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
-// 	variable = "SERVER_PORT=" + this->serverInfo["PORT"];
-// 	if (uri[0] == '/')
-// 		uri.erase(0, 1);
-// 	variable = "SCRIPT_NAME=/" + uri.substr(0, uri.find(".php") + 4);
-// 	variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4);
-// 	variable = "HTTP_ACCEPT=";
-// 	variable = "HTTP_USER_AGENT=";
-// 	if (method_type == GET)
-// 	{
-// 		variable = "REQUEST_METHOD=GET";
-// 		if (hasQueryString(uri))
-// 		{
-// 			std::string queryString = uri.substr(uri.find('?') + 1);
-// 			variable = "QUERY_STRING=" + queryString;
-// 		}
-// 	}
-// 	else if (method_type == POST)
-// 	{
-// 		variable = "REQUEST_METHOD=POST";
-// 	}
-// }
+char**	Client::getCgiEnv(int method_type)
+{
+	char	**env = new char*[12];
+	std::memset(env, 0, 12);
+	std::string uri = this->request.getUri();
+	std::string	variable;
+
+	variable = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
+	env[0] = strdup(variable.c_str());
+	variable = "SERVER_PORT=" + this->serverInfo["PORT"];
+	env[1] = strdup(variable.c_str());
+	variable = "SERVER_PROTOCOL=HTTP/1.1";
+	env[2] = strdup(variable.c_str());
+	if (uri[0] == '/')
+		uri.erase(0, 1);
+	variable = "SCRIPT_NAME=/" + uri.substr(0, uri.find(".php") + 4);
+	env[3] = strdup(variable.c_str());
+	variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4);
+	env[4] = strdup(variable.c_str());
+	variable = "HTTP_ACCEPT=" + this->request.getHeaderLine("Accept");
+	env[5] = strdup(variable.c_str());
+	variable = "HTTP_USER_AGENT=" + this->request.getHeaderLine("User-Agent");
+	env[6] = strdup(variable.c_str());
+	variable = "REQUEST_URI=" + uri;
+	env[7] = strdup(variable.c_str());
+	variable = "STATUS=200";
+	env[8] = strdup(variable.c_str());
+	if (method_type == GET)
+	{
+		variable = "REQUEST_METHOD=GET";
+		env[9] = strdup(variable.c_str());
+		if (hasQueryString(uri))
+		{
+			std::string queryString = uri.substr(uri.find('?') + 1);
+			variable = "QUERY_STRING=" + queryString;
+			env[10] = strdup(variable.c_str());
+		}
+	}
+	else if (method_type == POST)
+	{
+		variable = "REQUEST_METHOD=POST";
+		env[9] = strdup(variable.c_str());
+		variable = "CONTENT_TYPE=" + this->request.getHeaderLine("content-type");
+		env[10] = strdup(variable.c_str());
+		variable = "CONTENT_LENGTH=" + this->request.getHeaderLine("content-length");
+		env[11] = strdup(variable.c_str());
+	}
+	return (env);
+}
 
 Request	Client::getRequest() const {
 	return this->request;
@@ -148,8 +170,11 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	// -> find location that matches with uri
 	// std::string str = "/public/html/";
 	// this->request.setUri(str);
-	Location *location = this->response.findLocation(locations, this->request.getUri());
-	// std::cout << this->request.getUri() << std::endl;
+	std::string uri = this->request.getUri();
+	if (hasQueryString(uri))
+		uri = uri.substr(0, uri.find('?'));
+	Location *location = this->response.findLocation(locations, uri);
+	// std::cout << uri << std::endl;
 	// std::cout << location->getPath() << std::endl;
 	/*
 		-> find location that matches with uri
@@ -230,7 +255,15 @@ void	Client::send_response()
 		}
 	*/
 	if (this->response.getResponseType() == OK) {
-		bool isResponseEnd = this->response.getMethod(this->request.getUri());
+		std::string uri = this->request.getUri();
+		if (hasQueryString(uri))
+			uri = uri.substr(0, uri.find('?'));
+		bool isResponseEnd = false;
+		long long pos = uri.find(".php");
+		if (this->response.getLocation()->getCgiExec().size() != 0 && pos != -1)
+			isResponseEnd = this->response.getMethod(uri, this->getCgiEnv(GET));
+		else
+			isResponseEnd = this->response.getMethod(uri, NULL);
 		std::cout << GREEN << "GET METHOD" << RESET << std::endl;
 		/*
 			if (GET)

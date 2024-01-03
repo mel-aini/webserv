@@ -88,12 +88,12 @@ class Response {
         void                            redirect(const std::string& location);
         void                            reset();
         bool                            sendFile(std::string fileName);
-        bool                            getMethod(std::string uri);
+        bool                            getMethod(std::string uri, char **env);
         bool                            getRequestedResource(std::string uri);
-        std::pair<std::string, size_t>  getMatchIndex();
+        std::pair<std::string, size_t>  getMatchIndex(std::string uri);
         bool                            readAndSendFile(std::string path, size_t size);
         std::string                     getContentType(std::string path);
-        void	log();
+        void	                        log();
     
         class ResponseFailed : public std::exception {
 			public:

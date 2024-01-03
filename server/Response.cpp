@@ -36,6 +36,7 @@ Response::Response()
 	content_type[".mp3"] = "audio/mpeg";
 	content_type[".mp4"] = "video/mp4";
 	content_type[".png"] = "image/png";
+	content_type[".php"] = "application/x-httpd-php";
 }
 
 Response::~Response() {}
@@ -99,7 +100,7 @@ bool	Response::isInErrorPages()
 
 bool	Response::sendFile(std::string fileName)
 {
-	char buf[1000000] = {0};
+	char buf[1024] = {0};
 
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
@@ -271,6 +272,7 @@ void	Response::reset() {
 	this->body = "";
 	this->location = NULL;
 	this->bodyOffset = 0;
+	std::memset(&fileInf, 0, sizeof(fileInf));
 }
 
 void	Response::log()
@@ -374,48 +376,54 @@ bool	Response::getRequestedResource(std::string uri)
 {
 	if (uri[0] == '/')
 		uri.erase(0, 1);
-	if (stat(uri.c_str(), &this->fileInf) == 0)
+	if (access(uri.c_str(), F_OK | R_OK) == 0)
 	{
-		if (S_ISREG(this->fileInf.st_mode))
+		if (stat(uri.c_str(), &this->fileInf) == 0)
 		{
-			this->request_case = OTHER_CASE;
-			return (true);
+			if (S_ISREG(this->fileInf.st_mode))
+			{
+				this->request_case = OTHER_CASE;
+				return (true);
+			}
 		}
-		// return (false);
 	}
-	std::string	fileCase = this->location->getRoot() + this->location->getPath();
-	if (stat(fileCase.c_str(), &this->fileInf) == 0)
+	std::string	path = this->location->getRoot() + "/" + uri;
+	if (access(path.c_str(), F_OK | R_OK) == 0)
 	{
-		if (S_ISREG(this->fileInf.st_mode))
+		if (stat(path.c_str(), &this->fileInf) == 0)
 		{
-			this->request_case = FILE_CASE;
-			return (true);
+			if (S_ISDIR(this->fileInf.st_mode))
+			{
+				this->request_case = DIR_CASE;
+				return (true);
+			}
+			else if (S_ISREG(this->fileInf.st_mode))
+			{
+				this->request_case = FILE_CASE;
+				return (true);
+			}
 		}
-		// return (false);
-	}
-
-	if (stat(this->location->getRoot().c_str(), &this->fileInf) == 0)
-	{
-		if (S_ISDIR(this->fileInf.st_mode))
-		{
-			this->request_case = DIR_CASE;
-			return (true);
-		}
-		// return (false);
 	}
 	return (false);
 }
 
-std::pair<std::string, size_t>	Response::getMatchIndex()
+std::pair<std::string, size_t>	Response::getMatchIndex(std::string uri)
 {
 	std::pair<std::string, size_t>	pair;
 	std::vector<std::string>	index = this->location->getIndex();
 	std::vector<std::string>::iterator	it = index.begin();
 
+	std::string	path;
+	if (uri[0] != '/')
+		path = this->location->getRoot() + "/" + uri;
+	else
+		path = this->location->getRoot() + uri;
+	if (uri[uri.length() - 1] != '/')
+		path += "/";
 	struct stat	dirCaseInf;
 	for (; it != index.end(); it++)
 	{
-		pair.first = this->location->getRoot() + "/" + *it;
+		pair.first = path + *it;
 		if (stat(pair.first.c_str(), &dirCaseInf) == 0)
 			if (S_ISREG(dirCaseInf.st_mode))
 				break ;
@@ -458,7 +466,7 @@ bool	Response::readAndSendFile(std::string path, size_t size)
 	return (false);
 }
 
-bool	Response::getMethod(std::string uri)
+bool	Response::getMethod(std::string uri, char **env)
 {
 	log();
 	if (this->method_level == FINDRESOURCE)
@@ -478,46 +486,46 @@ bool	Response::getMethod(std::string uri)
 	{
 		if (this->request_case == FILE_CASE)
 		{
-			if (this->location->getCgiExec().size() != 0)
+			if (env)
 			{
-				// int	fd[2];
-				// if (pipe(fd) == -1)
-				// {
-				// 	std::cerr << "pipe() fail" << std::endl; // generate a error message
-				// 	std::exit(EXIT_FAILURE);
-				// }
-				// pid_t	pid = fork();
-				// if (pid == -1)
-				// {
-				// 	std::cerr << "fork() fail" << std::endl; // generate a error message
-				// 	std::exit(EXIT_FAILURE);
-				// }
-				// if (pid == 0)
-				// {
-				// 	dup2(fd[1], 1);
-				// 	close(fd[0]);
-				// 	close(fd[1]);
-				// 	char* arg[2] = {const_cast<char *>(fileCase.c_str()), NULL};
-				// 	// char** env = getCgiEnv(uri);
-				// 	if (hasQueryString(uri))
-				// 	{
-				// 		std::string queryString = uri.substr(uri.find('?') + 1);
-				// 		char* env[3] = {const_cast<char *>("REQUEST_METHOD=GET"), const_cast<char *>(queryString.c_str()), NULL};
-				// 		execve("cgi/php-cgi", arg, env);
-				// 		std::cerr << "execve() fail" << std::endl; // generate a error message
-				// 		std::exit(EXIT_FAILURE);
-				// 	}
-				// 	// else
-				// 		char* env[2] = {const_cast<char *>("REQUEST_METHOD=GET"), NULL};
-				// 		execve("cgi/php-cgi", arg, env);
-				// 		std::cerr << "execve() fail" << std::endl; // generate a error message
-				// 		std::exit(EXIT_FAILURE);
-				// }
-				// wait(0);
+				int	fd[2];
+				if (pipe(fd) == -1)
+				{
+					std::cerr << "pipe() fail" << std::endl; // generate a error message
+					std::exit(EXIT_FAILURE);
+				}
+				pid_t	pid = fork();
+				if (pid == -1)
+				{
+					std::cerr << "fork() fail" << std::endl; // generate a error message
+					std::exit(EXIT_FAILURE);
+				}
+				if (pid == 0)
+				{
+					dup2(fd[1], 1);
+					close(fd[0]);
+					close(fd[1]);
+					char* arg[2] = {const_cast<char *>(uri.c_str()), NULL};
+					execve("cgi/php-cgi", arg, env);
+				}
+				wait(0);
+				dup2(fd[0], 0);
+				close(fd[0]);
+				close(fd[1]);
+				std::ofstream file;
+				file.open("file");
+				std::string str;
+				while (getline(std::cin, str))
+					file << str << "\n";
+				exit(0);
 			}
 			else
 			{
-				std::string	fileCase = this->location->getRoot() + this->location->getPath();
+				std::string	fileCase;
+				if (uri[0] != '/')
+					fileCase = this->location->getRoot() + "/" + uri;
+				else
+					fileCase = this->location->getRoot() + uri;
 				if (this->readAndSendFile(fileCase, fileInf.st_size))
 					this->method_level = DATA_SEND;
 			}
@@ -539,20 +547,55 @@ bool	Response::getMethod(std::string uri)
 			{
 				if (this->location->getIndex().size() != 0)
 				{
-					std::pair<std::string, size_t>	pair = this->getMatchIndex();
-					if (this->location->getCgiExec().size() != 0)
-					{}
+					std::pair<std::string, size_t>	pair = this->getMatchIndex(uri);
+					if (env)
+					{
+						std::cout << "here\n";
+						int	fd[2];
+						if (pipe(fd) == -1)
+						{
+							std::cerr << "pipe() fail" << std::endl; // generate a error message
+							std::exit(EXIT_FAILURE);
+						}
+						pid_t	pid = fork();
+						if (pid == -1)
+						{
+							std::cerr << "fork() fail" << std::endl; // generate a error message
+							std::exit(EXIT_FAILURE);
+						}
+						if (pid == 0)
+						{
+							dup2(fd[1], 1);
+							close(fd[0]);
+							close(fd[1]);
+							char* arg[2] = {const_cast<char *>(uri.c_str()), NULL};
+							execve("cgi/php-cgi", arg, env);
+						}
+						wait(0);
+						dup2(fd[0], 0);
+						close(fd[0]);
+						close(fd[1]);
+						std::ofstream file;
+						file.open("file");
+						std::string str;
+						while (getline(std::cin, str))
+							file << str << "\n";
+						exit(0);
+					}
 					else
 					{
+						std::cout << pair.first << std::endl;
 						if (this->match_index == YES)
+						{
 							if (this->readAndSendFile(pair.first, pair.second))
 								this->method_level = DATA_SEND;
-						// else
-						// {
-						// 	this->status = 404;
-						// 	this->response_type = ERROR;
-						// 	return (false);
-						// }
+						}
+						else
+						{
+							this->status = 404;
+							this->response_type = ERROR;
+							return (false);
+						}
 					}
 				}
 				else
@@ -588,7 +631,6 @@ bool	Response::getMethod(std::string uri)
 		}
 	}
 	if (this->method_level == DATA_SEND) {
-		std::cout << "here\n";
 		return (true);
 	}
 	return (false);
