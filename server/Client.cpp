@@ -265,6 +265,7 @@ void	Client::send_response()
 		else
 			isResponseEnd = this->response.getMethod(uri, NULL);
 		std::cout << GREEN << "GET METHOD" << RESET << std::endl;
+		//bool isResponseEnd = this->response.uploadPostMethod(this->request);
 		/*
 			if (GET)
 				-> perform action, getMethod()
@@ -295,7 +296,7 @@ void	Client::reqHasRead()
 	// std::cout << "request size: " << GREEN << this->request.getSize() << RESET << std::endl;
 	// std::cout << "request: " << YELLOW << this->request.getBuffer() << RESET << std::endl;
 	this->pollfd->events = POLLOUT | POLLHUP;
-	this->request.reset();
+	//this->request.reset();
 }
 
 void	Client::resHasSent()

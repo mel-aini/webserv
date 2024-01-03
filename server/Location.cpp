@@ -135,6 +135,11 @@ std::string	Location::getRoot(void)
 	return (this->root);
 }
 
+std::string	Location::getUploadLocation(void)
+{
+	return (this->uploadLocation);
+}
+
 std::vector<std::string>	Location::getIndex(void)
 {
 	return (this->index);
