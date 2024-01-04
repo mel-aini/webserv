@@ -11,10 +11,18 @@
 #include <netdb.h>
 #include <fcntl.h>
 #include "parsing/ConfigFile.hpp"
+#include <csignal>
 
 using std::cerr;
 using std::cout;
 using std::endl;
+
+void handleSignal(int signal) {
+    if (signal == SIGPIPE) {
+        std::cerr << BOLDRED << "Caught SIGPIPE signal" << RESET << std::endl;
+        // Handle the broken pipe signal here
+    }
+}
 
 int main(int ac, char* av[])
 {
@@ -22,8 +30,11 @@ int main(int ac, char* av[])
     global.setServers(parser(ac, av));
     global.create_servers();
     struct pollfd *pollfds;
+
+
     while (true)
     {
+        signal(SIGPIPE, handleSignal);
         pollfds = &global.getPollfds()[0];
 
         int fds = poll(pollfds, global.getNfds(), 5000);
@@ -33,12 +44,13 @@ int main(int ac, char* av[])
         }
         else if (fds == 0) {
             // then: no event occurs in that specified time
+            std::cout << "no event occurs in that specified time" << std::endl;
             continue;
         }
         try  {
             global.checkAndProcessFd(pollfds, fds);
         } catch(const std::exception& e) {
-            std::cerr << RED << e.what() << RESET << std::endl;
+            std::cerr << RED << "in main: " << e.what() << RESET << std::endl;
         }
     }
 }

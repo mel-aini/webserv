@@ -23,7 +23,7 @@
 # include <fstream>
 # include "../public/Colors.hpp"
 
-enum State{
+enum State {
     START,
     METHOD,
     HEADER,
@@ -33,7 +33,7 @@ enum State{
     END
 };
 
-enum Chunk_State{
+enum Chunk_State {
     CHUNK_SIZE_START,
     CHUNK_SIZE,
     CHUNK_DATA,

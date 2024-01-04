@@ -11,8 +11,10 @@
 #include "HtmlTemplate.hpp"
 #include <sys/stat.h>
 #include <dirent.h>
+#include <fcntl.h>
 
 enum sending_level{
+    GET_REQUESTED_RES,
     SENDING_HEADERS,
     SENDING_BODY,
     SENDING_END,
@@ -61,6 +63,7 @@ class Response {
         std::string                         errPage;
         struct stat                         fileInf;
         std::map<std::string, std::string>  content_type;
+        std::string                         fileToSend;
 
     public:
         Response();
@@ -73,11 +76,11 @@ class Response {
         unsigned int        getResponseType() const;
         unsigned int        getSendingLevel() const;
         void                setSocket(int fd);
-
+        void                setError(int status_code);
         void                setSendingLevel(unsigned int level);
 
 		bool                            send_response_error();
-        bool                            send_response_index_files(std::string path, std::vector<std::string> content);
+        bool                            send_response_index_files(std::string uri);
         void                            send_status_line_and_headers();
         void                            send_body();
         void                            setResponseType(unsigned int response_type);
@@ -89,14 +92,22 @@ class Response {
         void                            reset();
         bool                            sendFile(std::string fileName);
         bool                            getMethod(std::string uri);
+        bool                            newGet(std::string uri);
         bool                            getRequestedResource(std::string uri);
         std::pair<std::string, size_t>  getMatchIndex();
         bool                            readAndSendFile(std::string path, size_t size);
         std::string                     getContentType(std::string path);
-        void	log();
+        bool                            getRequestedFile(std::string uri);
+        bool                            isFileExist(std::string& target);
+        bool                            isTarget(std::string& target, struct stat *fileInfo);
+        void	                        log();
+        void                            log_res_type();
+        void                            log_res_level();
+        void                            log_members();
     
         class ResponseFailed : public std::exception {
 			public:
 				const char * what() const throw();
 		};
 };
+//4096 page memery

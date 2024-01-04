@@ -77,11 +77,11 @@ void	Server::removeClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds, std
 	for (it2 = pollfds.begin(); it2 != pollfds.end(); it2++) {
 		if (it2->fd == it->getFd()) {
 			// close file descriptor related to this client
-			std::cout << RED << "Client with fd: " << it2->fd << " disconnected" << RESET << std::endl;
 			close(it->getFd());
 			// erase it from pollfds vector
 			pollfds.erase(it2);
 			nfds--;
+			std::cout << RED << "Client with fd: " << it2->fd << " disconnected" << RESET << std::endl;
 			break;
 		}
 	}
@@ -144,28 +144,33 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 		{
 			if (!eventOccured) {
 				// then: no event occured
-				if (it->checkLogTime()) {
-					this->removeClient(pollfds, nfds, it);
-					return true;
-				}
+				// std::cout << BLUE << "no event occured" << RESET << std::endl;
+				// if (it->checkLogTime()) {
+				// 	this->removeClient(pollfds, nfds, it);
+				// 	return true;
+				// }
 				return false;
 			}
 			if (pollfd->revents & POLLIN) {
+				// std::cout << CYAN << "POLLIN EVENT" << RESET << std::endl;
 				bool read_complete = it->readRequest(pollfd);
 				//	todo: transfer client to the right server or keep it
 				if (read_complete && !this->hostsMatch(it))
 					this->findRelatedHost(it);
 			}
 			else if ((pollfd->revents & POLLOUT)) {
+				// std::cout << YELLOW << "POLLOUT EVENT" << RESET << std::endl;
 				bool send_complete = it->createResponse(this->locations);
-				if (send_complete) {
-					if (it->getRequest().getHeader("connection") != "keep-alive") {
-						std::cout << "Connection: " << it->getRequest().getHeader("connection") << std::endl;
-						this->removeClient(pollfds, nfds, it);
-					}
-				}
+				(void)send_complete;
+				// if (send_complete) {
+				// 	if (it->getRequest().getHeader("connection") != "keep-alive") {
+				// 		std::cout << "Connection: " << it->getRequest().getHeader("connection") << std::endl;
+				// 		this->removeClient(pollfds, nfds, it);
+				// 	}
+				// }
 			}
 			else if (pollfd->revents & POLLHUP) {
+				// std::cout << RED << "POLLHUP EVENT" << RESET << std::endl;
 				this->removeClient(pollfds, nfds, it);
 			}
 		}

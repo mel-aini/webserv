@@ -120,7 +120,7 @@ void Global::create_servers()
 
         if (getaddrinfo(it->getHost().c_str(), it->getPort().c_str(), &hints, &res) != 0) {
             perror("getaddrinfo");
-			std::cout << RED << "here" << RESET << std::endl;
+			// std::cout << RED << "here" << RESET << std::endl;
             it = servers.erase(it);
 			if (it == servers.end())
 				break;

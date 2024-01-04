@@ -13,7 +13,7 @@
 #include <ctime>
 #include <map>
 
-#define CLIENT_TIMEOUT 5
+#define CLIENT_TIMEOUT 30
 
 enum proccess_response {
 	INITIAL,
@@ -46,7 +46,6 @@ class Client
 
 		int					getFd() const;
 		struct sockaddr_in	getAddress() const;
-		void				log();
 		bool				readRequest(struct pollfd *pollfd);
 		bool				createResponse(std::vector<Location> &locations);
 		void				reqHasRead();
@@ -62,5 +61,7 @@ class Client
 		Request				getRequest() const;
 		void				setServerInfo(std::string port, std::string host, std::string s_name);
 		char**				getCgiEnv(int method_type);
+		void				log();
+		void				log_level();
 };
 

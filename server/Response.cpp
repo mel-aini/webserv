@@ -1,11 +1,10 @@
 #include "Response.hpp"
-#include <fcntl.h>
 
 Response::Response() 
 	:
 	status(200), 
 	location(NULL),
-	sending_level(SENDING_HEADERS),
+	sending_level(GET_REQUESTED_RES),
 	method_level(FINDRESOURCE),
 	request_case(NO_CASE),
 	response_type(OK),
@@ -36,6 +35,7 @@ Response::Response()
 	content_type[".mp3"] = "audio/mpeg";
 	content_type[".mp4"] = "video/mp4";
 	content_type[".png"] = "image/png";
+	content_type[".js"] = "text/javascript";
 }
 
 Response::~Response() {}
@@ -97,9 +97,13 @@ bool	Response::isInErrorPages()
 	return false;
 }
 
+// ... working on
 bool	Response::sendFile(std::string fileName)
 {
-	char buf[1000000] = {0};
+	char buf[1024] = {0};
+
+	if (bodyOffset == 0)
+		std::cout << BOLDWHITE << "fileName: " + fileName << RESET << std::endl;
 
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
@@ -107,27 +111,19 @@ bool	Response::sendFile(std::string fileName)
 		throw ResponseFailed();
 	}
 	file.seekg(this->bodyOffset, std::ios::beg);
-	if (!file || file.eof())
-		this->sending_level = SENDING_END;
 
 	file.read(buf, sizeof(buf));
-	if (!file)
-		this->sending_level = SENDING_END;
-
 	int bytesRead = file.gcount();
 	bodyOffset += bytesRead;
-
-	if (bytesRead != 0)
-		if (send(this->socket, buf, bytesRead, 0) == -1)
-			throw ResponseFailed();
-
-	// std::cout << RED << buf << RESET << std::endl;
-
-	if (file.eof()) {
+	// std::cout << "bodyOffset: " << RED << bodyOffset << RESET << std::endl;
+	int s = send(this->socket, buf, bytesRead, 0);
+	if (s == -1)
+		throw ResponseFailed();
+	// std::cout << GREEN << "send: " << s << RESET << std::endl;
+	if (s == 0 || file.eof()) {
 		this->sending_level = SENDING_END;
 		file.close();
-		std::cout << BLUE << "bytes sent: " << bytesRead << RESET << std::endl;
-		std::cout << CYAN << "send complete" << RESET << std::endl;
+		std::cout << BOLDGREEN << "Reached end of file" << RESET << std::endl;
 		return true;
 	}
 	file.close();
@@ -137,6 +133,8 @@ bool	Response::sendFile(std::string fileName)
 bool	Response::send_response_error()
 {
 	// std::cout << MAGENTA << "Here!" << RESET << std::endl;
+	if (this->sending_level == GET_REQUESTED_RES)
+		this->sending_level = SENDING_HEADERS;
 	if (this->sending_level == SENDING_HEADERS)
 	{
 		std::stringstream sizestream;
@@ -175,8 +173,6 @@ bool	Response::send_response_error()
 			HtmlTemplate htmlErrorPage(this->status, message);
 
 			const std::string& response = htmlErrorPage.getHtml();
-			std::cout << RED << response << RESET << std::endl;
-			std::cout << RED << "size: "<< response.size() << RESET << std::endl;
 
 			const char *buf = response.c_str();
 			if (send(this->socket, buf, response.size(), 0) == -1)
@@ -186,56 +182,56 @@ bool	Response::send_response_error()
 		}
 	}
 	else if (this->sending_level == SENDING_END)
-	{
-		this->reset();
 		return true;
-	}
 	return false;
 }
-bool	Response::send_response_index_files(std::string path, std::vector<std::string> content)
+
+bool	Response::send_response_index_files(std::string uri)
 {
-	// std::cout << MAGENTA << "Here!" << RESET << std::endl;
-	if (this->sending_level == SENDING_HEADERS)
-	{
-		std::stringstream	sizestream;
-		HtmlTemplate htmlErrorPage(path, content);
-		sizestream << htmlErrorPage.getHtml().size();
-		this->headers["Content-Type: "] = "text/html";
-		this->headers["Content-Length: "] = sizestream.str();
+	std::cout << "uri: " << uri << std::endl;
+	if (uri[0] == '/')
+		uri.erase(0, 1);
+	if (uri[uri.length() - 1] == '/')
+		uri.erase(uri.length() - 1, 1);
 
-		send_status_line_and_headers();
-		this->sending_level = SENDING_BODY;
-	}
-	if (this->sending_level == SENDING_BODY)
-	{
-		HtmlTemplate htmlErrorPage(path, content);
+	std::string	target = this->location->getRoot() + (uri.empty() ? "" : "/") + uri;
+	std::cout << BOLDRED << "---- target: " << target << std::endl;
+	DIR *dir = opendir(target.c_str());
+	if (!dir)
+		throw 500;
 
-		const std::string& response = htmlErrorPage.getHtml();
-		std::cout << RED << response << RESET << std::endl;
-		std::cout << RED << "size: "<< response.size() << RESET << std::endl;
+	struct dirent *dirContent;
+	std::vector<std::string> content;
+	while ((dirContent = readdir(dir)) != NULL)
+		content.push_back(dirContent->d_name);
 
-		const char *buf = response.c_str();
-		if (send(this->socket, buf, response.size(), 0) == -1)
-			throw ResponseFailed();
+	std::stringstream	sizestream;
+	HtmlTemplate htmlErrorPage(target, content);
+	sizestream << htmlErrorPage.getHtml().size();
+	this->headers["Content-Type: "] = "text/html";
+	this->headers["Content-Length: "] = sizestream.str();
 
-		this->sending_level = SENDING_END;
-	}
-	else if (this->sending_level == SENDING_END)
-	{
-		this->reset();
-		return true;
-	}
-	return false;
+	send_status_line_and_headers();
+
+	const std::string& response = htmlErrorPage.getHtml();
+
+	const char *buf = response.c_str();
+	if (send(this->socket, buf, response.size(), 0) == -1)
+		throw ResponseFailed();
+
+	this->sending_level = SENDING_END;
+	return true;
 }
 
 void	Response::send_status_line_and_headers()
 {
+	// this->log_members();
 	// title: prepare status line
 	std::stringstream str;
 	str << this->status;
 	std::string status = str.str();
 	this->message = this->status_codes[this->status];
-	std::string status_line = "HTTP/1.1 " + status + " " + this->message + "\n";
+	std::string status_line = "HTTP/1.1 " + status + " " + this->message + "\r\n";
 
 	std::string headers;
 	std::map<std::string, std::string>::iterator it = this->headers.begin();
@@ -244,7 +240,7 @@ void	Response::send_status_line_and_headers()
 		headers += it->second;
 		it++;
 		if (it != this->headers.end())
-			headers += '\n';
+			headers += "\r\n";
 	}
 
 	std::string response = status_line + headers + "\r\n\r\n";
@@ -264,59 +260,7 @@ void    Response::redirect(const std::string& location)
 	std::cout << "REDIRECT" << std::endl;
 }
 
-void	Response::reset() {
-	this->status = 200;
-	this->sending_level = SENDING_HEADERS;
-	this->method_level = FINDRESOURCE;
-	this->request_case = NO_CASE;
-	this->match_index = NO;
-	this->headers.clear();
-	this->body = "";
-	this->location = NULL;
-	this->bodyOffset = 0;
-}
-
-void	Response::log()
-{
-	if (this->sending_level == SENDING_HEADERS) {
-		std::cout << CYAN << "sending_level = SENDING_HEADERS" << RESET << std::endl;
-	}
-	else if (this->sending_level == SENDING_BODY) {
-		std::cout << CYAN << "sending_level = SENDING_BODY" << RESET << std::endl;
-	}
-	else if (this->sending_level == SENDING_END) {
-		std::cout << CYAN << "sending_level = SENDING_END" << RESET << std::endl;
-	}
-	if (this->method_level == FINDRESOURCE) {
-		std::cout << CYAN << "method_level = FINDRESOURCE" << RESET << std::endl;
-	}
-	else if (this->method_level == DATA_SENDING) {
-		std::cout << CYAN << "method_level = DATA_SENDING" << RESET << std::endl;
-	}
-	else if (this->method_level == DATA_SEND) {
-		std::cout << CYAN << "method_level = DATA_SEND" << RESET << std::endl;
-	}
-	if (this->request_case == OTHER_CASE) {
-		std::cout << CYAN << "request_case = OTHER_CASE" << RESET << std::endl;
-	}
-	else if (this->request_case == DIR_CASE) {
-		std::cout << CYAN << "request_case = DIR_CASE" << RESET << std::endl;
-	}
-	else if (this->request_case == FILE_CASE) {
-		std::cout << CYAN << "request_case = FILE_CASE" << RESET << std::endl;
-	}
-	else if (this->request_case == NO_CASE) {
-		std::cout << CYAN << "request_case = NO_CASE" << RESET << std::endl;
-	}
-	if (this->match_index == YES) {
-		std::cout << CYAN << "match_index = YES" << RESET << std::endl;
-	}
-	else if (this->match_index == NO) {
-		std::cout << CYAN << "match_index = NO"  << RESET << std::endl;
-	}
-}
-
-bool compareByLength(Location& a, Location& b)
+bool	compareByLength(Location& a, Location& b)
 {
     return (a.getPath().length() > b.getPath().length());
 }
@@ -375,8 +319,11 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 
 bool	Response::getRequestedResource(std::string uri)
 {
+	memset(&this->fileInf, 0, sizeof(this->fileInf));
 	if (uri[0] == '/')
 		uri.erase(0, 1);
+	if (uri[uri.length() - 1] == '/')
+		uri.erase(uri.length() - 1, 1);
 	if (stat(uri.c_str(), &this->fileInf) == 0)
 	{
 		if (S_ISREG(this->fileInf.st_mode))
@@ -384,17 +331,17 @@ bool	Response::getRequestedResource(std::string uri)
 			this->request_case = OTHER_CASE;
 			return (true);
 		}
-		// return (false);
 	}
-	std::string	fileCase = this->location->getRoot() + this->location->getPath();
+	std::string	fileCase = this->location->getRoot() + "/" + uri;
+	std::cout << BOLDMAGENTA << "REQ_RES: " << RESET << fileCase << RESET << std::endl;
 	if (stat(fileCase.c_str(), &this->fileInf) == 0)
 	{
+		std::cout << GREEN << "FOUND" << RESET << std::endl;
 		if (S_ISREG(this->fileInf.st_mode))
 		{
 			this->request_case = FILE_CASE;
 			return (true);
 		}
-		// return (false);
 	}
 
 	if (stat(this->location->getRoot().c_str(), &this->fileInf) == 0)
@@ -404,9 +351,118 @@ bool	Response::getRequestedResource(std::string uri)
 			this->request_case = DIR_CASE;
 			return (true);
 		}
-		// return (false);
 	}
 	return (false);
+}
+
+void	Response::setError(int status_code) {
+	this->status = status_code;
+	this->response_type = ERROR;
+}
+
+// ... working on
+bool	Response::isFileExist(std::string& target) {
+	if (access(target.c_str(), F_OK) == 0) { // then: exist 
+		if (access(target.c_str(), R_OK) == 0) { // then: has permission
+			return true;
+		}
+		else {
+			throw 403;
+		}
+	}
+	return false;
+}
+
+// ... working on
+bool	Response::isTarget(std::string& target,  struct stat *fileInfo) {
+	if (stat(target.c_str(), fileInfo) == 0)
+	{
+		if (S_ISREG(fileInfo->st_mode)) {
+			this->fileToSend = target;
+			return true;
+		}
+		return false;
+	}
+	throw 404;
+}
+
+// ... working on
+bool	Response::getRequestedFile(std::string uri)
+{
+
+	std::string	target = this->location->getRoot() + (uri.empty() ? "" : "/") + uri;
+	std::cout << "1st target: " << target << std::endl;
+
+	if (!this->isFileExist(target)) {
+		std::cout << BOLDRED << "Not Exist!" << RESET << std::endl;
+		throw 404;
+	}
+
+	struct stat fileInfo;
+
+	if (this->isTarget(target, &fileInfo)) {
+		std::cout << BOLDRED << "isTarget" << RESET << std::endl;
+		return true;
+	}
+	else if (S_ISDIR(fileInfo.st_mode)) {
+		std::vector<std::string>::iterator it;
+		target += "/";
+		for (it = this->location->getIndex().begin(); it != this->location->getIndex().end(); it++) {
+			target += *it;
+			std::cout << "2nd target: " << target << std::endl;
+			if (this->isFileExist(target)) {
+				struct stat fileInfo2;
+				if (!this->isTarget(target, &fileInfo2))
+					throw 403;
+				return true;
+			}
+		}
+		std::cout << BOLDRED << "No Index" << RESET << std::endl;
+		return false;
+	}
+	std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
+	return false;
+}
+
+// ... working on
+bool	Response::newGet(std::string uri) {
+	// todo: new GET
+	if (this->sending_level == GET_REQUESTED_RES) {
+		if (getRequestedFile(uri))
+			this->sending_level = SENDING_HEADERS;
+		else {
+			// then: autoIndex
+			if (!this->location->getAutoIndex())
+				throw 403;
+			std::cout << BOLDRED << "AUTOINDEX" << RESET << std::endl;
+			this->send_response_index_files(uri);
+			this->sending_level = SENDING_END;
+		}
+	}
+	else if (this->sending_level == SENDING_HEADERS) {
+		std::cout << BOLDBLUE << "### file: " << this->fileToSend << RESET << std::endl;
+		std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
+		if (!file.is_open())
+			throw 505;
+
+		std::stringstream sizestream;
+		struct stat fileInfo;
+		if (stat(this->fileToSend.c_str(), &fileInfo) == 0) {
+			sizestream << fileInfo.st_size;
+			// std::cout << "Content-Length: " << RED << sizestream.str() << RESET << std::endl;
+		}
+		this->headers["Content-Type: "] = getContentType(this->fileToSend);
+		this->headers["Content-Length: "] = sizestream.str();
+		// this->headers["Keep-Alive: "] = "timeout=100, max=100";
+		send_status_line_and_headers();
+		this->sending_level = SENDING_BODY;
+	}
+	else if (this->sending_level == SENDING_BODY) {
+		return this->sendFile(this->fileToSend);
+	}
+	else if (this->sending_level == SENDING_END)
+		return true;
+	return false;
 }
 
 std::pair<std::string, size_t>	Response::getMatchIndex()
@@ -437,7 +493,7 @@ std::string	Response::getContentType(std::string path)
 {
 	std::string	extension = path.substr(path.rfind('.'));
 	if (this->content_type[extension].empty())
-		return (0);
+		return ("");
 	return (this->content_type[extension]);
 }
 
@@ -445,6 +501,7 @@ bool	Response::readAndSendFile(std::string path, size_t size)
 {
 	if (this->sending_level == SENDING_HEADERS)
 	{
+		// std::cout << "here" << std::endl;
 		std::stringstream sizestream;
 		sizestream << size;
 		this->headers["Content-Type: "] = getContentType(path);
@@ -463,12 +520,11 @@ bool	Response::readAndSendFile(std::string path, size_t size)
 
 bool	Response::getMethod(std::string uri)
 {
-	log();
+	// log();
 	if (this->method_level == FINDRESOURCE)
 	{
 		if (this->getRequestedResource(uri)) {
 			this->method_level = DATA_SENDING;
-			std::cout << GREEN << "FOUND" << RESET << std::endl;
 		}
 		else
 		{
@@ -520,12 +576,17 @@ bool	Response::getMethod(std::string uri)
 			}
 			else
 			{
-				std::string	fileCase = this->location->getRoot() + this->location->getPath();
+				if (uri[uri.length() - 1] == '/')
+					uri.erase(uri.length() - 1, 1);
+				std::cout << "FILE_CASE" << std::endl;
+				std::string	fileCase = this->location->getRoot() + "/" + uri;
+				std::cout << fileCase << std::endl;
 				if (this->readAndSendFile(fileCase, fileInf.st_size))
 					this->method_level = DATA_SEND;
 			}
 		}
 		else if (this->request_case == OTHER_CASE) {
+			std::cout << "OTHER_CASE" << std::endl;
 			if (uri[0] == '/')
 				uri.erase(0, 1);
 			if (this->readAndSendFile(uri, fileInf.st_size))
@@ -533,6 +594,7 @@ bool	Response::getMethod(std::string uri)
 		}
 		else if (this->request_case == DIR_CASE)
 		{
+			std::cout << "DIR_CASE" << std::endl;
 			if (uri[uri.length() - 1] != '/')
 			{
 				redirect(uri + "/");
@@ -569,8 +631,8 @@ bool	Response::getMethod(std::string uri)
 							std::vector<std::string> content;
 							while ((dirContent = readdir(dir)) != NULL)
 								content.push_back(dirContent->d_name);
-							if (this->send_response_index_files(uri, content))
-								this->method_level = DATA_SEND;
+							// if (this->send_response_index_files(uri, content))
+							// 	this->method_level = DATA_SEND;
 						}
 						return (true);
 					}
@@ -591,14 +653,113 @@ bool	Response::getMethod(std::string uri)
 		}
 	}
 	if (this->method_level == DATA_SEND) {
-		std::cout << "here\n";
+		this->reset();
 		return (true);
 	}
 	return (false);
+}
+
+void	Response::reset() {
+	this->status = 200;
+	this->message = this->status_codes[status];
+	this->sending_level = GET_REQUESTED_RES;
+	this->method_level = FINDRESOURCE;
+	this->request_case = NO_CASE;
+	this->response_type = OK;
+	this->match_index = NO;
+	this->headers.clear();
+	this->body = "";
+	this->location = NULL;
+	this->bodyOffset = 0;
+	this->sendingFile = false;
+	this->fileToSend = "";
+	memset(&this->fileInf, 0, sizeof(this->fileInf));
 }
 
 // title: exceptions
 
 const char	*Response::ResponseFailed::what() const throw() {
 	return "Error occured while sending response";
+}
+
+// title: log methods
+
+void    Response::log_members() {
+	std::cout << "bodyOffset: " << YELLOW << bodyOffset << RESET << std::endl;
+}
+
+void    Response::log_res_type()
+{
+	std::cout << "response type: " << YELLOW;
+	switch (this->response_type)
+	{
+		case OK:
+			std::cout << "OK" << std::endl;
+			break;
+		case REDIRECT:
+			std::cout << "REDIRECT" << std::endl;
+			break;
+		case ERROR:
+			std::cout << "ERROR" << std::endl;
+			break;
+	}
+	std::cout << RESET;
+}
+
+void    Response::log_res_level()
+{
+	std::cout << "response level: " << YELLOW;
+	switch (this->sending_level)
+	{
+		case SENDING_HEADERS:
+			std::cout << "SENDING_HEADERS" << std::endl;
+			break;
+		case SENDING_BODY:
+			std::cout << "SENDING_BODY" << std::endl;
+			break;
+		case SENDING_END:
+			std::cout << "SENDING_END" << std::endl;
+			break;
+	}
+	std::cout << RESET;
+}
+
+void	Response::log()
+{
+	if (this->sending_level == SENDING_HEADERS) {
+		std::cout << CYAN << "sending_level = SENDING_HEADERS" << RESET << std::endl;
+	}
+	else if (this->sending_level == SENDING_BODY) {
+		std::cout << CYAN << "sending_level = SENDING_BODY" << RESET << std::endl;
+	}
+	else if (this->sending_level == SENDING_END) {
+		std::cout << CYAN << "sending_level = SENDING_END" << RESET << std::endl;
+	}
+	if (this->method_level == FINDRESOURCE) {
+		std::cout << CYAN << "method_level = FINDRESOURCE" << RESET << std::endl;
+	}
+	else if (this->method_level == DATA_SENDING) {
+		std::cout << CYAN << "method_level = DATA_SENDING" << RESET << std::endl;
+	}
+	else if (this->method_level == DATA_SEND) {
+		std::cout << CYAN << "method_level = DATA_SEND" << RESET << std::endl;
+	}
+	if (this->request_case == OTHER_CASE) {
+		std::cout << CYAN << "request_case = OTHER_CASE" << RESET << std::endl;
+	}
+	else if (this->request_case == DIR_CASE) {
+		std::cout << CYAN << "request_case = DIR_CASE" << RESET << std::endl;
+	}
+	else if (this->request_case == FILE_CASE) {
+		std::cout << CYAN << "request_case = FILE_CASE" << RESET << std::endl;
+	}
+	else if (this->request_case == NO_CASE) {
+		std::cout << CYAN << "request_case = NO_CASE" << RESET << std::endl;
+	}
+	if (this->match_index == YES) {
+		std::cout << CYAN << "match_index = YES" << RESET << std::endl;
+	}
+	else if (this->match_index == NO) {
+		std::cout << CYAN << "match_index = NO"  << RESET << std::endl;
+	}
 }

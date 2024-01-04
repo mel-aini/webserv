@@ -52,7 +52,14 @@ void    Request::reset()
     this->_state = START;
     this->_chunkState = CHUNK_SIZE_START;
     this->_lengthState = 0;
-    this->_filename = "/tmp/" + std::to_string(time(0)) + ".tmp";
+    this->_filename = "/tmp/" + std::to_string(time(0));
+    this->_headers.clear();
+    this->_uri = "";
+    this->_method = "";
+    this->_request = "";
+    this->_version = "";
+    this->currentHeaderKey = "";
+    this->currentHeaderValue = "";
 }
 
 std::string Request::getMethod()
@@ -219,7 +226,7 @@ int Request::readHeaders()
     
     if (this->_method != "POST")
     {
-        std::cout << "#####" + this->_method << std::endl;
+        // std::cout << "#####" + this->_method << std::endl;
         this->_state = END;
         return 0;
     }

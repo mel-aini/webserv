@@ -10,8 +10,7 @@ Client::Client(int fd, struct sockaddr_in address)
 {
 	// set timout
 	this->logtime = 0;
-	this->logtime_start = time(0);
-	this->response.setSocket(this->fd);
+	this->logtime_start = time(0);	this->response.setSocket(this->fd);
 }
 
 Client::~Client() {}
@@ -74,14 +73,8 @@ Request	Client::getRequest() const {
 	return this->request;
 }
 
-// title : log methods
-
 void	Client::setPollfd(struct pollfd	*pollfd) {
 	this->pollfd = pollfd;
-}
-
-void Client::log() {
-	std::cout << "client with fd: " << this->fd << std::endl;
 }
 
 bool	Client::methodIsAllowed(std::vector<std::string> &allowMethods, std::string method)
@@ -122,29 +115,15 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 	// std::cout << RED << "before: " << this->request.getStatus() << RESET << std::endl;git p
 	if (this->request.parseRequest(buf, readed, this->fd)) {
 		// std::cout << RED << "salat" << RESET << std::endl;
-		this->reqHasRead();
 		std::cout << "uri: " + this->request.getUri() << std::endl;
-		// this->response.setStatus(this->request.getStatus());
-
-		// std::map<std::string, std::string>::iterator it;
-		// std::map<std::string, std::string> headers = this->request.getHeaders();
-	
-		// for (it = headers.begin(); it != headers.end(); it++) {
-		// 	std::cout << YELLOW << it->first << " = " << it->second << RESET << std::endl;
-		// }
+		this->reqHasRead();
 		return true;
 	}
-	/*
-		if (still reading request)
-			return false;
-		then: request has finished reading, return true
-	*/
-	// std::cout << YELLOW << "mazal" << RESET << std::endl;
 	return false;
 }
 
 bool	Client::createResponse(std::vector<Location> &locations) {
-
+	// log_level();
 	// -> find location that matches with uri
 	// std::string str = "/public/html/";
 	// this->request.setUri(str);
@@ -180,7 +159,7 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	{
 		this->response.setLocation(location);
 		// -> this line below is to test error pages
-		// this->response.setStatus(200);
+		// this->response.setStatus(400);
 		// std::cout << YELLOW << "path: " << location->path << RESET << std::endl;
 		// std::cout << YELLOW << "root: " << location->root << RESET << std::endl;
 		// std::cout << YELLOW << "redirection: " << location->redirection << RESET << std::endl;
@@ -196,9 +175,9 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 		}
 		processing_level = SENDING;
 	}
-	else if (processing_level == SENDING)
+	if (processing_level == SENDING)
 		this->send_response();
-	else if (processing_level == PROCESSED) {
+	if (processing_level == PROCESSED) {
 		this->resHasSent();
 		return true;
 	}
@@ -230,21 +209,34 @@ void	Client::send_response()
 		}
 	*/
 	if (this->response.getResponseType() == OK) {
-		bool isResponseEnd = this->response.getMethod(this->request.getUri());
-		std::cout << GREEN << "GET METHOD" << RESET << std::endl;
-		/*
-			if (GET)
-				-> perform action, getMethod()
-			else if (POST)
-				if (upload)
-					->upload
-				else
-					-> GET without cgi
-				-> perform action, postMethod()
-			else if (DELETE)
-				-> perform action, deleteMethod()
-		*/
-		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
+		// bool isResponseEnd = this->response.getMethod(this->request.getUri());
+		try
+		{
+			// this->response.log_res_level();
+			bool isResponseEnd = this->response.newGet(this->request.getUri());
+			// std::cout << GREEN << "GET METHOD" << RESET << std::endl;
+			// this->response.log_res_type();
+			/*
+				if (GET)
+					-> perform action, getMethod()
+				else if (POST)
+					if (upload)
+						->upload
+					else
+						-> GET without cgi
+					-> perform action, postMethod()
+				else if (DELETE)
+					-> perform action, deleteMethod()
+			*/
+			this->processing_level = isResponseEnd ? PROCESSED : SENDING;
+			// this->response.log_res_level();
+			// this->response.log_res_type();
+		}
+		catch (int error_code)
+		{
+			this->response.setStatus(error_code);
+			this->response.setResponseType(ERROR);
+		}
 	}
 	else if (this->response.getResponseType() == REDIRECT) {
 		this->response.redirect(this->response.getLocation()->getRedirection());
@@ -259,17 +251,17 @@ void	Client::send_response()
 void	Client::reqHasRead()
 {
 	std::cout << "request " << GREEN << "done" << RESET << std::endl;
-	// std::cout << "request size: " << GREEN << this->request.getSize() << RESET << std::endl;
-	// std::cout << "request: " << YELLOW << this->request.getBuffer() << RESET << std::endl;
 	this->pollfd->events = POLLOUT | POLLHUP;
-	this->request.reset();
 }
 
 void	Client::resHasSent()
 {
 	// std::cout << YELLOW << "resHasSent()" << RESET << std::endl;
 	std::cout << "response " << GREEN << "sent" << RESET << std::endl;
+	this->pollfd->events = POLLIN | POLLHUP;
 	this->reset();
+	this->response.reset();
+	this->request.reset();
 }
 
 void	Client::reset()
@@ -278,5 +270,29 @@ void	Client::reset()
 	this->pollfd->events = POLLIN | POLLHUP;
 	this->isAllowedMethod = false;
 	this->processing_level = INITIAL;
-	this->response.reset();
+	this->logtime = 0;
+	this->logtime_start = time(0);
+}
+
+// title : log methods
+
+void Client::log() {
+	std::cout << "client with fd: " << this->fd << std::endl;
+}
+
+void	Client::log_level() {
+	std::cout << "level: " << CYAN;
+	switch (this->processing_level)
+	{
+		case INITIAL:
+			std::cout << "INITIAL" << std::endl;
+			break;
+		case SENDING:
+			std::cout << "SENDING" << std::endl;
+			break;
+		case PROCESSED:
+			std::cout << "PROCESSED" << std::endl;
+			break;
+	}
+	std::cout << RESET;
 }
