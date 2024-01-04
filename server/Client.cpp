@@ -288,21 +288,21 @@ void	Client::send_response()
 		}
 	*/
 	if (this->response.getResponseType() == OK) {
-		std::string uri = this->request.getUri();
-		if (hasQueryString(uri))
-			uri = uri.substr(0, uri.find('?'));
-		bool isResponseEnd = false;
-		long long pos = uri.find(".php");
-		if (this->response.getLocation()->getCgiExec().size() != 0 && pos != -1) {
-			std::cout << "hana 1\n";
-			isResponseEnd = this->response.getMethod(uri, this->getCgiEnv(GET));
-		}
-		else {
-			std::cout << "hana 2\n";
-			isResponseEnd = this->response.getMethod(uri, NULL);
-		}
+		// std::string uri = this->request.getUri();
+		// if (hasQueryString(uri))
+		// 	uri = uri.substr(0, uri.find('?'));
+		// bool isResponseEnd = false;
+		// long long pos = uri.find(".php");
+		// if (this->response.getLocation()->getCgiExec().size() != 0 && pos != -1) {
+		// 	std::cout << "hana 1\n";
+		// 	isResponseEnd = this->response.getMethod(uri, this->getCgiEnv(GET));
+		// }
+		// else {
+		// 	std::cout << "hana 2\n";
+		// 	isResponseEnd = this->response.getMethod(uri, NULL);
+		// }
 		std::cout << GREEN << "GET METHOD" << RESET << std::endl;
-		//bool isResponseEnd = this->response.uploadPostMethod(this->request);
+		bool isResponseEnd = this->response.uploadPostMethod(this->request);
 		/*
 			if (GET)
 				-> perform action, getMethod()

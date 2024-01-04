@@ -83,6 +83,11 @@ size_t Request::getBodysize()
     return this->_bodySize;
 }
 
+std::string Request::getBoundary()
+{
+    return this->_boundary;
+}
+
 bool Request::ContentLengthExists()
 {
     std::map<std::string, std::string>::iterator it = this->_headers.find("content-length");
