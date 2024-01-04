@@ -505,18 +505,21 @@ bool	Response::getMethod(std::string uri, char **env)
 					dup2(fd[1], 1);
 					close(fd[0]);
 					close(fd[1]);
-					char* arg[2] = {const_cast<char *>(uri.c_str()), NULL};
+					std::string file = this->location->getRoot() + uri;
+					std::cout << file << std::endl;
+					char* arg[2] = {const_cast<char *>(file.c_str()), NULL};
 					execve("cgi/php-cgi", arg, env);
 				}
 				wait(0);
 				dup2(fd[0], 0);
 				close(fd[0]);
 				close(fd[1]);
-				std::ofstream file;
-				file.open("file");
+				std::ofstream file("file");
 				std::string str;
-				while (getline(std::cin, str))
-					file << str << "\n";
+				if (file.is_open())
+					while (getline(std::cin, str))
+						file << str << '\n';
+				file.close();
 				exit(0);
 			}
 			else
@@ -550,7 +553,6 @@ bool	Response::getMethod(std::string uri, char **env)
 					std::pair<std::string, size_t>	pair = this->getMatchIndex(uri);
 					if (env)
 					{
-						std::cout << "here\n";
 						int	fd[2];
 						if (pipe(fd) == -1)
 						{

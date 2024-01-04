@@ -45,48 +45,81 @@ bool	hasQueryString(std::string uri)
 char**	Client::getCgiEnv(int method_type)
 {
 	char	**env = new char*[12];
-	std::memset(env, 0, 12);
+	// std::memset(env, 0, 12);
 	std::string uri = this->request.getUri();
 	std::string	variable;
 
 	variable = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
+	std::cout << variable << std::endl;
 	env[0] = strdup(variable.c_str());
+
 	variable = "SERVER_PORT=" + this->serverInfo["PORT"];
+	std::cout << variable << std::endl;
 	env[1] = strdup(variable.c_str());
+
 	variable = "SERVER_PROTOCOL=HTTP/1.1";
+	std::cout << variable << std::endl;
 	env[2] = strdup(variable.c_str());
+
 	if (uri[0] == '/')
 		uri.erase(0, 1);
 	variable = "SCRIPT_NAME=/" + uri.substr(0, uri.find(".php") + 4);
+	std::cout << variable << std::endl;
 	env[3] = strdup(variable.c_str());
+	
 	variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4);
+	std::cout << variable << std::endl;
 	env[4] = strdup(variable.c_str());
-	variable = "HTTP_ACCEPT=" + this->request.getHeaderLine("Accept");
+
+	variable = "HTTP_ACCEPT=" + this->request.getHeaderLine("accept");
+	std::cout << variable << std::endl;
 	env[5] = strdup(variable.c_str());
-	variable = "HTTP_USER_AGENT=" + this->request.getHeaderLine("User-Agent");
+
+	variable = "HTTP_USER_AGENT=" + this->request.getHeaderLine("aser-agent");
+	std::cout << variable << std::endl;
 	env[6] = strdup(variable.c_str());
+
 	variable = "REQUEST_URI=" + uri;
+	std::cout << variable << std::endl;
 	env[7] = strdup(variable.c_str());
+
 	variable = "STATUS=200";
+	std::cout << variable << std::endl;
 	env[8] = strdup(variable.c_str());
+
 	if (method_type == GET)
 	{
 		variable = "REQUEST_METHOD=GET";
+		std::cout << variable << std::endl;
 		env[9] = strdup(variable.c_str());
+
 		if (hasQueryString(uri))
 		{
 			std::string queryString = uri.substr(uri.find('?') + 1);
 			variable = "QUERY_STRING=" + queryString;
+			std::cout << variable << std::endl;
 			env[10] = strdup(variable.c_str());
+
+			env[11] = NULL;
+		}
+		else
+		{
+			env[10] = NULL;
+			env[11] = NULL;
 		}
 	}
 	else if (method_type == POST)
 	{
 		variable = "REQUEST_METHOD=POST";
+		std::cout << variable << std::endl;
 		env[9] = strdup(variable.c_str());
+
 		variable = "CONTENT_TYPE=" + this->request.getHeaderLine("content-type");
+		std::cout << variable << std::endl;
 		env[10] = strdup(variable.c_str());
+
 		variable = "CONTENT_LENGTH=" + this->request.getHeaderLine("content-length");
+		std::cout << variable << std::endl;
 		env[11] = strdup(variable.c_str());
 	}
 	return (env);
@@ -260,10 +293,14 @@ void	Client::send_response()
 			uri = uri.substr(0, uri.find('?'));
 		bool isResponseEnd = false;
 		long long pos = uri.find(".php");
-		if (this->response.getLocation()->getCgiExec().size() != 0 && pos != -1)
+		if (this->response.getLocation()->getCgiExec().size() != 0 && pos != -1) {
+			std::cout << "hana 1\n";
 			isResponseEnd = this->response.getMethod(uri, this->getCgiEnv(GET));
-		else
+		}
+		else {
+			std::cout << "hana 2\n";
 			isResponseEnd = this->response.getMethod(uri, NULL);
+		}
 		std::cout << GREEN << "GET METHOD" << RESET << std::endl;
 		//bool isResponseEnd = this->response.uploadPostMethod(this->request);
 		/*

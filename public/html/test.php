@@ -1,18 +1,19 @@
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Current Time</title>
-</head>
-<body>
-
 <?php
-    // Get the current time
-    $currentTime = date("H:i:s");
-
-    // Display the current time in an HTML paragraph
-    echo "<p>The current time is: $currentTime</p>";
+   if( $_GET["name"] || $_GET["age"] ) {
+      echo "Welcome ". $_GET['name']. "<br />";
+      echo "You are ". $_GET['age']. " years old.";
+      
+      exit();
+   }
 ?>
-
-</body>
+<html>
+   <body>
+   
+      <form action = "<?php $_PHP_SELF ?>" method = "GET">
+         Name: <input type = "text" name = "name" />
+         Age: <input type = "text" name = "age" />
+         <input type = "submit" />
+      </form>
+      
+   </body>
 </html>

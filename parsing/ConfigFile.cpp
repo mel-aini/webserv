@@ -43,11 +43,20 @@ std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &
 	{
 		if (it->first == WORD && (it + 1)->first == END_OF_LINE)
 		{
-			if (isPath(it->second))
+			if (name == "root" && isPath(it->second))
 			{
 				data = it->second;
-				if (data[data.length() - 1] == '/')
-					data.erase(data.length() - 1);
+				skipSlash(data);
+				if (data[data.length() - 1] != '/')
+					data += "/";
+				it += 1;
+			}
+			else if (name == "upload_location" && isPath(it->second))
+			{
+				data = it->second;
+				skipSlash(data);
+				if (data[0] == '/')
+					data.erase(0, 1);
 				it += 1;
 			}
 			else
@@ -127,8 +136,11 @@ std::vector<std::string>	parseIndex(std::vector<std::pair<int, std::string> >::i
 		{
 			if (isFile(it->second))
 			{
+				skipSlash(it->second);
 				if (it->second[0] == '/')
 					it->second.erase(0, 1);
+				if (it->second[it->second.length() - 1] == '/')
+					printError("location " + toStr(num) + ":" + " index: file dont have a slash(/) at the end");
 				index.push_back(it->second);
 			}
 			else
@@ -155,10 +167,15 @@ std::pair<std::string, std::vector<int> >	parseErrorPage(std::vector<std::pair<i
 	if (isPath(it->second) && !hasFile)
 	{
 		hasFile = 1;
+		skipSlash(it->second);
+		if (it->second[0] == '/')
+			it->second.erase(0, 1);
+		if (it->second[it->second.length() - 1] == '/')
+			printError("location " + toStr(num) + ":" + " error_page: file dont have a slash(/) at the end");
 		tmpErrorPage.first = it->second;
 	}
 	else
-		printError("location " + toStr(num) + ":" + "error_page: arguments must be \'path\' then \'error codes\'");
+		printError("location " + toStr(num) + ":" + " error_page: arguments must be \'path\' then \'error codes\'");
 	it += 1;
 	for (; it != tokens.end(); it++)
 	{
@@ -484,6 +501,9 @@ std::vector<Server>	parser(int ac, char* av[])
 						it += 1;
 						if (isLocationPath(it->second))
 						{
+							skipSlash(it->second);
+							if (it->second != "/" && it->second[it->second.length() - 1] == '/')
+								it->second.erase(it->second.length() - 1);
 							if (it->second == "/")
 								hasRootLocation = true;
 							tmpLocation.setPath(it->second);
