@@ -579,10 +579,7 @@ bool	Response::getMethod(std::string uri)
 					dup2(fd[1], 1);
 					close(fd[0]);
 					close(fd[1]);
-					std::string file = this->location->getRoot() + uri;
-					std::cout << file << std::endl;
-					char* arg[2] = {const_cast<char *>(file.c_str()), NULL};
-					execve("cgi/php-cgi", arg, env);
+					execve("cgi/php-cgi", NULL, env);
 				}
 				wait(0);
 				dup2(fd[0], 0);
@@ -646,8 +643,7 @@ bool	Response::getMethod(std::string uri)
 							dup2(fd[1], 1);
 							close(fd[0]);
 							close(fd[1]);
-							char* arg[2] = {const_cast<char *>(uri.c_str()), NULL};
-							execve("cgi/php-cgi", arg, env);
+							execve("cgi/php-cgi", NULL, env);
 						}
 						wait(0);
 						dup2(fd[0], 0);
