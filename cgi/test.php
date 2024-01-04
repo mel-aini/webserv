@@ -7,10 +7,8 @@
 <body>
 
 <?php
-    // Get the current time
     $currentTime = date("H:i:s");
 
-    // Display the current time in an HTML paragraph
     echo "<p>The current time is: $currentTime</p>";
 ?>
 
