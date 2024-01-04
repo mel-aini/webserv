@@ -41,33 +41,88 @@ bool	hasQueryString(std::string uri)
 	return (true);
 }
 
-// char**	Client::getCgiEnv(int method_type)
-// {
-// 	std::string uri = this->request.getUri();
-// 	std::string	variable;
-// 	char	**env;
-// 	variable = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
-// 	variable = "SERVER_PORT=" + this->serverInfo["PORT"];
-// 	if (uri[0] == '/')
-// 		uri.erase(0, 1);
-// 	variable = "SCRIPT_NAME=/" + uri.substr(0, uri.find(".php") + 4);
-// 	variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4);
-// 	variable = "HTTP_ACCEPT=";
-// 	variable = "HTTP_USER_AGENT=";
-// 	if (method_type == GET)
-// 	{
-// 		variable = "REQUEST_METHOD=GET";
-// 		if (hasQueryString(uri))
-// 		{
-// 			std::string queryString = uri.substr(uri.find('?') + 1);
-// 			variable = "QUERY_STRING=" + queryString;
-// 		}
-// 	}
-// 	else if (method_type == POST)
-// 	{
-// 		variable = "REQUEST_METHOD=POST";
-// 	}
-// }
+char**	Client::getCgiEnv(int method_type)
+{
+	char	**env = new char*[12];
+	// std::memset(env, 0, 12);
+	std::string uri = this->request.getUri();
+	std::string	variable;
+
+	variable = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
+	std::cout << variable << std::endl;
+	env[0] = strdup(variable.c_str());
+
+	variable = "SERVER_PORT=" + this->serverInfo["PORT"];
+	std::cout << variable << std::endl;
+	env[1] = strdup(variable.c_str());
+
+	variable = "SERVER_PROTOCOL=HTTP/1.1";
+	std::cout << variable << std::endl;
+	env[2] = strdup(variable.c_str());
+
+	if (uri[0] == '/')
+		uri.erase(0, 1);
+	variable = "SCRIPT_NAME=/" + uri.substr(0, uri.find(".php") + 4);
+	std::cout << variable << std::endl;
+	env[3] = strdup(variable.c_str());
+	
+	variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4);
+	std::cout << variable << std::endl;
+	env[4] = strdup(variable.c_str());
+
+	variable = "HTTP_ACCEPT=" + this->request.getHeaderLine("accept");
+	std::cout << variable << std::endl;
+	env[5] = strdup(variable.c_str());
+
+	variable = "HTTP_USER_AGENT=" + this->request.getHeaderLine("aser-agent");
+	std::cout << variable << std::endl;
+	env[6] = strdup(variable.c_str());
+
+	variable = "REQUEST_URI=" + uri;
+	std::cout << variable << std::endl;
+	env[7] = strdup(variable.c_str());
+
+	variable = "STATUS=200";
+	std::cout << variable << std::endl;
+	env[8] = strdup(variable.c_str());
+
+	if (method_type == GET)
+	{
+		variable = "REQUEST_METHOD=GET";
+		std::cout << variable << std::endl;
+		env[9] = strdup(variable.c_str());
+
+		if (hasQueryString(uri))
+		{
+			std::string queryString = uri.substr(uri.find('?') + 1);
+			variable = "QUERY_STRING=" + queryString;
+			std::cout << variable << std::endl;
+			env[10] = strdup(variable.c_str());
+
+			env[11] = NULL;
+		}
+		else
+		{
+			env[10] = NULL;
+			env[11] = NULL;
+		}
+	}
+	else if (method_type == POST)
+	{
+		variable = "REQUEST_METHOD=POST";
+		std::cout << variable << std::endl;
+		env[9] = strdup(variable.c_str());
+
+		variable = "CONTENT_TYPE=" + this->request.getHeaderLine("content-type");
+		std::cout << variable << std::endl;
+		env[10] = strdup(variable.c_str());
+
+		variable = "CONTENT_LENGTH=" + this->request.getHeaderLine("content-length");
+		std::cout << variable << std::endl;
+		env[11] = strdup(variable.c_str());
+	}
+	return (env);
+}
 
 Request	Client::getRequest() const {
 	return this->request;
@@ -127,8 +182,11 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	// -> find location that matches with uri
 	// std::string str = "/public/html/";
 	// this->request.setUri(str);
-	Location *location = this->response.findLocation(locations, this->request.getUri());
-	// std::cout << this->request.getUri() << std::endl;
+	std::string uri = this->request.getUri();
+	if (hasQueryString(uri))
+		uri = uri.substr(0, uri.find('?'));
+	Location *location = this->response.findLocation(locations, uri);
+	// std::cout << uri << std::endl;
 	// std::cout << location->getPath() << std::endl;
 	/*
 		-> find location that matches with uri
@@ -209,25 +267,16 @@ void	Client::send_response()
 		}
 	*/
 	if (this->response.getResponseType() == OK) {
-		// bool isResponseEnd = this->response.getMethod(this->request.getUri());
 		try
 		{
 			// this->response.log_res_level();
-			bool isResponseEnd = this->response.newGet(this->request.getUri());
-			// std::cout << GREEN << "GET METHOD" << RESET << std::endl;
-			// this->response.log_res_type();
-			/*
-				if (GET)
-					-> perform action, getMethod()
-				else if (POST)
-					if (upload)
-						->upload
-					else
-						-> GET without cgi
-					-> perform action, postMethod()
-				else if (DELETE)
-					-> perform action, deleteMethod()
-			*/
+			bool isResponseEnd = false;
+			if (this->request.getMethod() == "GET")
+				isResponseEnd = this->response.newGet(this->request.getUri());
+			else if (this->request.getMethod() == "POST")
+				isResponseEnd = this->response.uploadPostMethod(this->request);
+			// todo: DELETE Method
+			// ...
 			this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 			// this->response.log_res_level();
 			// this->response.log_res_type();
@@ -238,11 +287,11 @@ void	Client::send_response()
 			this->response.setResponseType(ERROR);
 		}
 	}
-	else if (this->response.getResponseType() == REDIRECT) {
+	if (this->response.getResponseType() == REDIRECT) {
 		this->response.redirect(this->response.getLocation()->getRedirection());
 		this->processing_level = PROCESSED;
 	}
-	else if (this->response.getResponseType() == ERROR) {
+	if (this->response.getResponseType() == ERROR) {
 		bool isResponseEnd = this->response.send_response_error();
 		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 	}
@@ -252,6 +301,7 @@ void	Client::reqHasRead()
 {
 	std::cout << "request " << GREEN << "done" << RESET << std::endl;
 	this->pollfd->events = POLLOUT | POLLHUP;
+	// this->request.reset();
 }
 
 void	Client::resHasSent()

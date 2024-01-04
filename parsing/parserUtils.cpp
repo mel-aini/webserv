@@ -203,3 +203,21 @@ int	isWord(std::string str)
 	}
 	return (1);
 }
+
+void	skipSlash(std::string & str)
+{
+	size_t	i = 0;
+	for (; i < str.length(); i++)
+	{
+		if (str[i] == '/' && str[i + 1])
+		{
+			i++;
+			for (; i < str.length(); i++)
+			{
+				if (str[i] != '/')
+					break ;
+				str.erase(i, 1);
+			}
+		}
+	}
+}

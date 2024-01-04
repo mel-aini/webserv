@@ -62,5 +62,6 @@ int	isExtension(std::string str);
 int	isIp(std::string str);
 int	isWord(std::string str);
 int	isLocationPath(std::string str);
+void	skipSlash(std::string & str);
 
 #endif

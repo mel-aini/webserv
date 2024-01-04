@@ -36,6 +36,7 @@ Response::Response()
 	content_type[".mp4"] = "video/mp4";
 	content_type[".png"] = "image/png";
 	content_type[".js"] = "text/javascript";
+	content_type[".php"] = "application/x-httpd-php";
 }
 
 Response::~Response() {}
@@ -188,13 +189,11 @@ bool	Response::send_response_error()
 
 bool	Response::send_response_index_files(std::string uri)
 {
-	std::cout << "uri: " << uri << std::endl;
 	if (uri[0] == '/')
 		uri.erase(0, 1);
-	if (uri[uri.length() - 1] == '/')
-		uri.erase(uri.length() - 1, 1);
 
-	std::string	target = this->location->getRoot() + (uri.empty() ? "" : "/") + uri;
+	std::string	target = this->location->getRoot() + uri;
+
 	std::cout << BOLDRED << "---- target: " << target << std::endl;
 	DIR *dir = opendir(target.c_str());
 	if (!dir)
@@ -317,6 +316,7 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 // 	return (true);
 // }
 
+/*
 bool	Response::getRequestedResource(std::string uri)
 {
 	memset(&this->fileInf, 0, sizeof(this->fileInf));
@@ -325,8 +325,9 @@ bool	Response::getRequestedResource(std::string uri)
 	if (uri[uri.length() - 1] == '/')
 		uri.erase(uri.length() - 1, 1);
 	if (stat(uri.c_str(), &this->fileInf) == 0)
+	if (access(uri.c_str(), F_OK | R_OK) == 0)
 	{
-		if (S_ISREG(this->fileInf.st_mode))
+		if (stat(uri.c_str(), &this->fileInf) == 0)
 		{
 			this->request_case = OTHER_CASE;
 			return (true);
@@ -341,19 +342,33 @@ bool	Response::getRequestedResource(std::string uri)
 		{
 			this->request_case = FILE_CASE;
 			return (true);
+			if (S_ISREG(this->fileInf.st_mode))
+			{
+				this->request_case = OTHER_CASE;
+				return (true);
+			}
 		}
 	}
-
-	if (stat(this->location->getRoot().c_str(), &this->fileInf) == 0)
+	std::string	path = this->location->getRoot() + "/" + uri;
+	if (access(path.c_str(), F_OK | R_OK) == 0)
 	{
-		if (S_ISDIR(this->fileInf.st_mode))
+		if (stat(path.c_str(), &this->fileInf) == 0)
 		{
-			this->request_case = DIR_CASE;
-			return (true);
+			if (S_ISDIR(this->fileInf.st_mode))
+			{
+				this->request_case = DIR_CASE;
+				return (true);
+			}
+			else if (S_ISREG(this->fileInf.st_mode))
+			{
+				this->request_case = FILE_CASE;
+				return (true);
+			}
 		}
 	}
 	return (false);
 }
+*/
 
 void	Response::setError(int status_code) {
 	this->status = status_code;
@@ -389,9 +404,10 @@ bool	Response::isTarget(std::string& target,  struct stat *fileInfo) {
 // ... working on
 bool	Response::getRequestedFile(std::string uri)
 {
+	if (uri[0] == '/')
+		uri.erase(0, 1);
 
-	std::string	target = this->location->getRoot() + (uri.empty() ? "" : "/") + uri;
-	std::cout << "1st target: " << target << std::endl;
+	std::string	target = this->location->getRoot() + uri;
 
 	if (!this->isFileExist(target)) {
 		std::cout << BOLDRED << "Not Exist!" << RESET << std::endl;
@@ -434,13 +450,11 @@ bool	Response::newGet(std::string uri) {
 			// then: autoIndex
 			if (!this->location->getAutoIndex())
 				throw 403;
-			std::cout << BOLDRED << "AUTOINDEX" << RESET << std::endl;
 			this->send_response_index_files(uri);
 			this->sending_level = SENDING_END;
 		}
 	}
 	else if (this->sending_level == SENDING_HEADERS) {
-		std::cout << BOLDBLUE << "### file: " << this->fileToSend << RESET << std::endl;
 		std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
 		if (!file.is_open())
 			throw 505;
@@ -465,16 +479,24 @@ bool	Response::newGet(std::string uri) {
 	return false;
 }
 
+/*
 std::pair<std::string, size_t>	Response::getMatchIndex()
 {
 	std::pair<std::string, size_t>	pair;
 	std::vector<std::string>	index = this->location->getIndex();
 	std::vector<std::string>::iterator	it = index.begin();
 
+	std::string	path;
+	if (uri[0] != '/')
+		path = this->location->getRoot() + "/" + uri;
+	else
+		path = this->location->getRoot() + uri;
+	if (uri[uri.length() - 1] != '/')
+		path += "/";
 	struct stat	dirCaseInf;
 	for (; it != index.end(); it++)
 	{
-		pair.first = this->location->getRoot() + "/" + *it;
+		pair.first = path + *it;
 		if (stat(pair.first.c_str(), &dirCaseInf) == 0)
 			if (S_ISREG(dirCaseInf.st_mode))
 				break ;
@@ -488,6 +510,7 @@ std::pair<std::string, size_t>	Response::getMatchIndex()
 	this->match_index = YES;
 	return (pair);
 }
+*/
 
 std::string	Response::getContentType(std::string path)
 {
@@ -517,7 +540,7 @@ bool	Response::readAndSendFile(std::string path, size_t size)
 		return true;
 	return (false);
 }
-
+/*
 bool	Response::getMethod(std::string uri)
 {
 	// log();
@@ -537,50 +560,49 @@ bool	Response::getMethod(std::string uri)
 	{
 		if (this->request_case == FILE_CASE)
 		{
-			if (this->location->getCgiExec().size() != 0)
+			if (env)
 			{
-				// int	fd[2];
-				// if (pipe(fd) == -1)
-				// {
-				// 	std::cerr << "pipe() fail" << std::endl; // generate a error message
-				// 	std::exit(EXIT_FAILURE);
-				// }
-				// pid_t	pid = fork();
-				// if (pid == -1)
-				// {
-				// 	std::cerr << "fork() fail" << std::endl; // generate a error message
-				// 	std::exit(EXIT_FAILURE);
-				// }
-				// if (pid == 0)
-				// {
-				// 	dup2(fd[1], 1);
-				// 	close(fd[0]);
-				// 	close(fd[1]);
-				// 	char* arg[2] = {const_cast<char *>(fileCase.c_str()), NULL};
-				// 	// char** env = getCgiEnv(uri);
-				// 	if (hasQueryString(uri))
-				// 	{
-				// 		std::string queryString = uri.substr(uri.find('?') + 1);
-				// 		char* env[3] = {const_cast<char *>("REQUEST_METHOD=GET"), const_cast<char *>(queryString.c_str()), NULL};
-				// 		execve("cgi/php-cgi", arg, env);
-				// 		std::cerr << "execve() fail" << std::endl; // generate a error message
-				// 		std::exit(EXIT_FAILURE);
-				// 	}
-				// 	// else
-				// 		char* env[2] = {const_cast<char *>("REQUEST_METHOD=GET"), NULL};
-				// 		execve("cgi/php-cgi", arg, env);
-				// 		std::cerr << "execve() fail" << std::endl; // generate a error message
-				// 		std::exit(EXIT_FAILURE);
-				// }
-				// wait(0);
+				int	fd[2];
+				if (pipe(fd) == -1)
+				{
+					std::cerr << "pipe() fail" << std::endl; // generate a error message
+					std::exit(EXIT_FAILURE);
+				}
+				pid_t	pid = fork();
+				if (pid == -1)
+				{
+					std::cerr << "fork() fail" << std::endl; // generate a error message
+					std::exit(EXIT_FAILURE);
+				}
+				if (pid == 0)
+				{
+					dup2(fd[1], 1);
+					close(fd[0]);
+					close(fd[1]);
+					std::string file = this->location->getRoot() + uri;
+					std::cout << file << std::endl;
+					char* arg[2] = {const_cast<char *>(file.c_str()), NULL};
+					execve("cgi/php-cgi", arg, env);
+				}
+				wait(0);
+				dup2(fd[0], 0);
+				close(fd[0]);
+				close(fd[1]);
+				std::ofstream file("file");
+				std::string str;
+				if (file.is_open())
+					while (getline(std::cin, str))
+						file << str << '\n';
+				file.close();
+				exit(0);
 			}
 			else
 			{
-				if (uri[uri.length() - 1] == '/')
-					uri.erase(uri.length() - 1, 1);
-				std::cout << "FILE_CASE" << std::endl;
-				std::string	fileCase = this->location->getRoot() + "/" + uri;
-				std::cout << fileCase << std::endl;
+				std::string	fileCase;
+				if (uri[0] != '/')
+					fileCase = this->location->getRoot() + "/" + uri;
+				else
+					fileCase = this->location->getRoot() + uri;
 				if (this->readAndSendFile(fileCase, fileInf.st_size))
 					this->method_level = DATA_SEND;
 			}
@@ -604,20 +626,54 @@ bool	Response::getMethod(std::string uri)
 			{
 				if (this->location->getIndex().size() != 0)
 				{
-					std::pair<std::string, size_t>	pair = this->getMatchIndex();
-					if (this->location->getCgiExec().size() != 0)
-					{}
+					std::pair<std::string, size_t>	pair = this->getMatchIndex(uri);
+					if (env)
+					{
+						int	fd[2];
+						if (pipe(fd) == -1)
+						{
+							std::cerr << "pipe() fail" << std::endl; // generate a error message
+							std::exit(EXIT_FAILURE);
+						}
+						pid_t	pid = fork();
+						if (pid == -1)
+						{
+							std::cerr << "fork() fail" << std::endl; // generate a error message
+							std::exit(EXIT_FAILURE);
+						}
+						if (pid == 0)
+						{
+							dup2(fd[1], 1);
+							close(fd[0]);
+							close(fd[1]);
+							char* arg[2] = {const_cast<char *>(uri.c_str()), NULL};
+							execve("cgi/php-cgi", arg, env);
+						}
+						wait(0);
+						dup2(fd[0], 0);
+						close(fd[0]);
+						close(fd[1]);
+						std::ofstream file;
+						file.open("file");
+						std::string str;
+						while (getline(std::cin, str))
+							file << str << "\n";
+						exit(0);
+					}
 					else
 					{
+						std::cout << pair.first << std::endl;
 						if (this->match_index == YES)
+						{
 							if (this->readAndSendFile(pair.first, pair.second))
 								this->method_level = DATA_SEND;
-						// else
-						// {
-						// 	this->status = 404;
-						// 	this->response_type = ERROR;
-						// 	return (false);
-						// }
+						}
+						else
+						{
+							this->status = 404;
+							this->response_type = ERROR;
+							return (false);
+						}
 					}
 				}
 				else
@@ -653,12 +709,11 @@ bool	Response::getMethod(std::string uri)
 		}
 	}
 	if (this->method_level == DATA_SEND) {
-		this->reset();
 		return (true);
 	}
 	return (false);
 }
-
+*/
 void	Response::reset() {
 	this->status = 200;
 	this->message = this->status_codes[status];

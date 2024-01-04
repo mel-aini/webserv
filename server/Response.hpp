@@ -2,6 +2,7 @@
 #include <iostream>
 #include <map>
 #include "Location.hpp"
+#include "Request.hpp"
 #include <sstream>
 #include <fstream>
 #include <iostream>
@@ -94,7 +95,7 @@ class Response {
         bool                            getMethod(std::string uri);
         bool                            newGet(std::string uri);
         bool                            getRequestedResource(std::string uri);
-        std::pair<std::string, size_t>  getMatchIndex();
+        std::pair<std::string, size_t>  getMatchIndex(std::string uri);
         bool                            readAndSendFile(std::string path, size_t size);
         std::string                     getContentType(std::string path);
         bool                            getRequestedFile(std::string uri);
@@ -104,6 +105,7 @@ class Response {
         void                            log_res_type();
         void                            log_res_level();
         void                            log_members();
+        bool                            uploadPostMethod(Request &request);
     
         class ResponseFailed : public std::exception {
 			public:
