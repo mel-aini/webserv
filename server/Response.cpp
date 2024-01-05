@@ -39,7 +39,9 @@ Response::Response()
 	content_type[".php"] = "application/x-httpd-php";
 }
 
-Response::~Response() {}
+Response::~Response() {
+	// std::cout << BOLDRED << "Response Destructor Called" << RESET << std::endl;
+}
 
 int	Response::getStatus() const {
 	return this->status;
@@ -101,7 +103,7 @@ bool	Response::isInErrorPages()
 // ... working on
 bool	Response::sendFile(std::string fileName)
 {
-	char buf[1024] = {0};
+	char buf[4000] = {0};
 
 	if (bodyOffset == 0)
 		std::cout << BOLDWHITE << "fileName: " + fileName << RESET << std::endl;
@@ -417,7 +419,7 @@ bool	Response::getRequestedFile(std::string uri)
 	struct stat fileInfo;
 
 	if (this->isTarget(target, &fileInfo)) {
-		std::cout << BOLDRED << "isTarget" << RESET << std::endl;
+		// std::cout << BOLDRED << "isTarget" << RESET << std::endl;
 		return true;
 	}
 	else if (S_ISDIR(fileInfo.st_mode)) {
@@ -425,7 +427,7 @@ bool	Response::getRequestedFile(std::string uri)
 		target += "/";
 		for (it = this->location->getIndex().begin(); it != this->location->getIndex().end(); it++) {
 			target += *it;
-			std::cout << "2nd target: " << target << std::endl;
+			// std::cout << "2nd target: " << target << std::endl;
 			if (this->isFileExist(target)) {
 				struct stat fileInfo2;
 				if (!this->isTarget(target, &fileInfo2))
@@ -433,7 +435,7 @@ bool	Response::getRequestedFile(std::string uri)
 				return true;
 			}
 		}
-		std::cout << BOLDRED << "No Index" << RESET << std::endl;
+		// std::cout << BOLDRED << "No Index" << RESET << std::endl;
 		return false;
 	}
 	std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
@@ -472,6 +474,13 @@ bool	Response::newGet(std::string uri) {
 		this->sending_level = SENDING_BODY;
 	}
 	else if (this->sending_level == SENDING_BODY) {
+		/*
+			todo: cgi design
+			if (location has cgi)
+				run cgi
+			else
+				return file
+		*/
 		return this->sendFile(this->fileToSend);
 	}
 	else if (this->sending_level == SENDING_END)

@@ -13,7 +13,9 @@ Client::Client(int fd, struct sockaddr_in address)
 	this->logtime_start = time(0);	this->response.setSocket(this->fd);
 }
 
-Client::~Client() {}
+Client::~Client() {
+	// std::cout << BOLDRED << "Client Destructor Called" << RESET << std::endl;
+}
 
 int Client::getFd() const {
 	return this->fd;
@@ -41,7 +43,7 @@ bool	hasQueryString(std::string uri)
 	return (true);
 }
 
-char**	Client::getCgiEnv(int method_type)
+char**	Client::getCgiEnv(int method_type)	
 {
 	// std::memset(env, 0, 12);
 	std::string uri = this->request.getUri();
@@ -240,7 +242,6 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	if (processing_level == SENDING)
 		this->send_response();
 	if (processing_level == PROCESSED) {
-		this->resHasSent();
 		return true;
 	}
 	return false;

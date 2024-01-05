@@ -60,6 +60,7 @@ class Request
 
     public:
         Request();
+        ~Request();
         Request(Request const &src);
         Request     &operator=(Request const &rhs);
         int         parseRequest(char *buffer, int size, int fd);

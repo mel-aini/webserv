@@ -17,6 +17,10 @@ Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK
 {
 }
 
+Request::~Request() {
+    // std::cout << BOLDRED << "Request Destructor Called" << RESET << std::endl;
+}
+
 Request::Request(Request const &src)
 {
     *this = src;

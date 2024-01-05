@@ -6,6 +6,7 @@ Server::Server(std::string port, std::string host) : port(port), host(host) {}
 
 Server::~Server()
 {
+	// std::cout << BOLDRED << "Server Destructor Called" << RESET << std::endl;
 }
 
 std::string Server::getPort() const {
@@ -145,10 +146,10 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 			if (!eventOccured) {
 				// then: no event occured
 				// std::cout << BLUE << "no event occured" << RESET << std::endl;
-				// if (it->checkLogTime()) {
-				// 	this->removeClient(pollfds, nfds, it);
-				// 	return true;
-				// }
+				if (it->checkLogTime()) {
+					this->removeClient(pollfds, nfds, it);
+					return true;
+				}
 				return false;
 			}
 			if (pollfd->revents & POLLIN) {
@@ -161,13 +162,14 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 			else if ((pollfd->revents & POLLOUT)) {
 				// std::cout << YELLOW << "POLLOUT EVENT" << RESET << std::endl;
 				bool send_complete = it->createResponse(this->locations);
-				(void)send_complete;
-				// if (send_complete) {
-				// 	if (it->getRequest().getHeader("connection") != "keep-alive") {
-				// 		std::cout << "Connection: " << it->getRequest().getHeader("connection") << std::endl;
-				// 		this->removeClient(pollfds, nfds, it);
-				// 	}
-				// }
+				if (send_complete) {
+					if (it->getRequest().getHeader("connection") != "keep-alive") {
+						this->removeClient(pollfds, nfds, it);
+					}
+					else {
+						it->resHasSent();
+					}
+				}
 			}
 			else if (pollfd->revents & POLLHUP) {
 				// std::cout << RED << "POLLHUP EVENT" << RESET << std::endl;
