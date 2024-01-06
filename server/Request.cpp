@@ -17,6 +17,10 @@ Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK
 {
 }
 
+Request::~Request() {
+    // std::cout << BOLDRED << "Request Destructor Called" << RESET << std::endl;
+}
+
 Request::Request(Request const &src)
 {
     *this = src;
@@ -469,7 +473,8 @@ void    Request::reset()
     this->_state = START;
     this->_chunkState = CHUNK_SIZE_START;
     this->_lengthState = 0;
-    this->_filename = "/tmp/" + std::to_string(time(0));
+    this->_bodySize = 0;
+    this->_filename.clear();
     this->_headers.clear();
     this->_uri = "";
     this->_method = "";

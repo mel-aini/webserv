@@ -13,7 +13,9 @@ Client::Client(int fd, struct sockaddr_in address)
 	this->logtime_start = time(0);	this->response.setSocket(this->fd);
 }
 
-Client::~Client() {}
+Client::~Client() {
+	// std::cout << BOLDRED << "Client Destructor Called" << RESET << std::endl;
+}
 
 int Client::getFd() const {
 	return this->fd;
@@ -141,7 +143,6 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 	if (processing_level == SENDING)
 		this->send_response();
 	if (processing_level == PROCESSED) {
-		this->resHasSent();
 		return true;
 	}
 	return false;
@@ -174,11 +175,11 @@ void	Client::send_response()
 	if (this->response.getResponseType() == OK) {
 		try
 		{
+			// isResponseEnd = this->response.getMethod(this->request.getUri(), this->request.getHeaders());
 			// this->response.log_res_level();
 			bool isResponseEnd = false;
-				// isResponseEnd = this->response.newGet(this->request.getUri());
 			if (this->request.getMethod() == "GET")
-				isResponseEnd = this->response.getMethod(this->request.getUri(), this->request.getHeaders());
+				isResponseEnd = this->response.newGet(this->request.getUri(), this->request.getHeaders(), GET);
 			else if (this->request.getMethod() == "POST")
 				isResponseEnd = this->response.uploadPostMethod(this->request);
 			// todo: DELETE Method

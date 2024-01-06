@@ -63,7 +63,8 @@ class Response {
         unsigned int                        request_case;
         unsigned int                        response_type;
         unsigned int                        match_index;
-        size_t                            bodyOffset;
+        size_t                              bodyOffset;
+        size_t                              fileOffset;
         std::map<int, std::string>          status_codes;
         int                              socket;
         bool                                sendingFile;
@@ -98,7 +99,7 @@ class Response {
         void                            redirect(const std::string& location);
         void                            reset();
         bool                            sendFile(std::string fileName);
-        bool                            newGet(std::string uri);
+        bool                            newGet(std::string uri, std::map <std::string, std::string> _headers, int method_type);
         bool                            getRequestedResource(std::string uri);
         std::pair<std::string, size_t>  getMatchIndex(std::string uri);
         bool                            readAndSendFile(std::string path, size_t size);
@@ -115,7 +116,7 @@ class Response {
         void                            setServerInfo(std::map<std::string, std::string> serverInfo);
         bool                            getMethod(std::string uri, std::map <std::string, std::string> _headers);
         char**				            getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> _headers);
-        void                            executeCgi(std::string uri, std::map <std::string, std::string> _headers);
+        void                            executeCgi(std::string uri, std::map <std::string, std::string> _headers, int method_type);
         class ResponseFailed : public std::exception {
 			public:
 				const char * what() const throw();
