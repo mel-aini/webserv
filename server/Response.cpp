@@ -569,10 +569,9 @@ void	Response::executeCgi(std::string uri, std::map <std::string, std::string> _
 		throw 502;
 	if (pid == 0)
 	{
-		std::string cgiPath = this->location->getRoot() + this->location->getCgiExec()[0];
 		dup2(fdes, 1);
 		close(fdes);
-		execve(cgiPath.c_str(), NULL, env);
+		execve(this->location->getCgiExec()[0].c_str(), NULL, env);
 		throw 502;
 	}
 	wait(0);
