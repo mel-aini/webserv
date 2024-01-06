@@ -10,6 +10,7 @@ Response::Response()
 	response_type(OK),
 	match_index(NO),
 	bodyOffset(0),
+	fileOffset(0),
 	sendingFile(false)
 {
 	status_codes[200] = "OK";

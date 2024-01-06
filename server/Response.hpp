@@ -58,6 +58,7 @@ class Response {
         unsigned int                        response_type;
         unsigned int                        match_index;
         size_t                              bodyOffset;
+        size_t                              fileOffset;
         std::map<int, std::string>          status_codes;
         int                                 socket;
         bool                                sendingFile;
