@@ -40,10 +40,6 @@ Request &Request::operator=(Request const &rhs)
     return *this;
 }
 
-std::string Request::getHeaderLine(std::string key)
-{
-    return (this->_headers[key]);
-}
 
 int         Request::getStatus()
 {

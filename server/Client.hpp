@@ -21,11 +21,6 @@ enum proccess_response {
 	PROCESSED,
 };
 
-enum METHOD {
-	GET,
-	POST,
-};
-
 class Client
 {
 	private:
@@ -60,7 +55,6 @@ class Client
 		bool				checkLogTime();
 		Request				getRequest() const;
 		void				setServerInfo(std::string port, std::string host, std::string s_name);
-		char**				getCgiEnv(int method_type);
 		void				log();
 		void				log_level();
 };

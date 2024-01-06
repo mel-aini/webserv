@@ -84,7 +84,6 @@ class Request
         std::string getUri();
         void        setUri(std::string str);
         std::string getVersion();
-        std::string getHeaderLine(std::string key);
         std::string getFilename();
         std::string getBoundary();
         std::string getContentType();
