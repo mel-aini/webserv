@@ -117,14 +117,15 @@ bool	Response::sendFile(std::string fileName)
 
 	file.read(buf, sizeof(buf));
 	int bytesRead = file.gcount();
-	bodyOffset += bytesRead;
 	// std::cout << "bodyOffset: " << RED << bodyOffset << RESET << std::endl;
 	int s = send(this->socket, buf, bytesRead, 0);
 	if (s == -1)
 		throw ResponseFailed();
-	// std::cout << GREEN << "send: " << s << RESET << std::endl;
-	if (s == 0 || file.eof()) {
+	bodyOffset += s;
+	std::cout << "send: " << BOLDCYAN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
+	if (file.eof()) {
 		this->sending_level = SENDING_END;
+		std::cout << "bytes sent: " << BOLDGREEN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
 		file.close();
 		std::cout << BOLDGREEN << "Reached end of file" << RESET << std::endl;
 		return true;
@@ -412,7 +413,6 @@ bool	Response::getRequestedFile(std::string uri)
 	std::string	target = this->location->getRoot() + uri;
 
 	if (!this->isFileExist(target)) {
-		std::cout << BOLDRED << "Not Exist!" << RESET << std::endl;
 		throw 404;
 	}
 
@@ -459,7 +459,7 @@ bool	Response::newGet(std::string uri) {
 	else if (this->sending_level == SENDING_HEADERS) {
 		std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
 		if (!file.is_open())
-			throw 505;
+			throw 500;
 
 		std::stringstream sizestream;
 		struct stat fileInfo;
@@ -469,6 +469,9 @@ bool	Response::newGet(std::string uri) {
 		}
 		this->headers["Content-Type: "] = getContentType(this->fileToSend);
 		this->headers["Content-Length: "] = sizestream.str();
+		this->headers["Accept-Ranges: "] = "none";
+		// this->headers["Connection: "] = "keep-alive";
+		// this->headers["Keep-Alive: "] = "timeout=100000, max=10000";
 		// this->headers["Keep-Alive: "] = "timeout=100, max=100";
 		send_status_line_and_headers();
 		this->sending_level = SENDING_BODY;

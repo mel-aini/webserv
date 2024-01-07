@@ -4,5 +4,16 @@
 */.DS_Store
 */*.o
 webserv
-public/carvilla
 a.out
+
+# web pages
+public/carvilla
+public/digitf
+public/fonicy
+public/hightech
+public/omar
+
+# scripts for testing
+con.java
+con.class
+break.sh
