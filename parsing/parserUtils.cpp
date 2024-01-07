@@ -87,7 +87,7 @@ int	isPath(std::string str)
 		return (0);
 	while (str[i])
 	{
-		if (!isalpha(str[i]) && str[i] != '/' && str[i] != '_' && str[i] != '.')
+		if (!isalpha(str[i]) && str[i] != '/' && str[i] != '_' && str[i] != '.' && str[i] != '-')
 			return (0);
 		i++;
 	}

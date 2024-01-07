@@ -10,6 +10,7 @@ Response::Response()
 	response_type(OK),
 	match_index(NO),
 	bodyOffset(0),
+	fileOffset(0),
 	sendingFile(false)
 {
 	status_codes[200] = "OK";
@@ -25,6 +26,7 @@ Response::Response()
 	status_codes[414] = "URI Too Long";
 	status_codes[500] = "Internal Server Error";
 	status_codes[501] = "Not Implemented";
+	status_codes[502] = "Bad Gateway";
 	status_codes[505] = "HTTP Version Not Supported";
 
 	content_type[".html"] = "text/html";
@@ -41,6 +43,11 @@ Response::Response()
 
 Response::~Response() {
 	// std::cout << BOLDRED << "Response Destructor Called" << RESET << std::endl;
+}
+
+void	Response::setServerInfo(std::map<std::string, std::string> serverInfo)
+{
+	this->serverInfo = serverInfo;
 }
 
 int	Response::getStatus() const {
@@ -267,10 +274,21 @@ bool	compareByLength(Location& a, Location& b)
     return (a.getPath().length() > b.getPath().length());
 }
 
+bool	hasQueryString(std::string uri)
+{
+	size_t	i;
+	for (i = 0; i < uri.length(); i++)
+		if (uri[i] == '?')
+			break ;
+	if (i == uri.length())
+		return (false);
+	return (true);
+}
+
 Location *Response::findLocation(std::vector<Location> &locations, std::string uri)
 {
 	std::vector<Location>::iterator	it;
-	std::string tmp = uri;
+	std::string tmp = hasQueryString(uri) ? uri.substr(0, uri.find('?')) : uri;
 
 	if (tmp.empty() || tmp[0] != '/') {
 		this->setStatus(400);
@@ -308,21 +326,11 @@ Location *Response::findLocation(std::vector<Location> &locations, std::string u
 	return &(*it);
 }
 
-// bool	hasQueryString(std::string uri)
-// {
-// 	size_t	i;
-// 	for (i = 0; i < uri.length(); i++)
-// 		if (uri[i] == '?')
-// 			break ;
-// 	if (i == uri.length())
-// 		return (false);
-// 	return (true);
-// }
 
-/*
 bool	Response::getRequestedResource(std::string uri)
 {
 	memset(&this->fileInf, 0, sizeof(this->fileInf));
+	uri = uri.substr(0, uri.find(".php") + 4);
 	if (uri[0] == '/')
 		uri.erase(0, 1);
 	if (uri[uri.length() - 1] == '/')
@@ -336,7 +344,7 @@ bool	Response::getRequestedResource(std::string uri)
 			return (true);
 		}
 	}
-	std::string	fileCase = this->location->getRoot() + "/" + uri;
+	std::string	fileCase = this->location->getRoot() + uri;
 	std::cout << BOLDMAGENTA << "REQ_RES: " << RESET << fileCase << RESET << std::endl;
 	if (stat(fileCase.c_str(), &this->fileInf) == 0)
 	{
@@ -371,7 +379,7 @@ bool	Response::getRequestedResource(std::string uri)
 	}
 	return (false);
 }
-*/
+
 
 void	Response::setError(int status_code) {
 	this->status = status_code;
@@ -442,12 +450,203 @@ bool	Response::getRequestedFile(std::string uri)
 	return false;
 }
 
+///////////////////////
+
+char**	Response::getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> _headers)
+{
+	size_t size = (hasQueryString(uri) && method_type == GET) ? 13 : 12;
+	size = (method_type == POST) ? size : 14;
+	char	**env = new char*[size];
+
+	std::string	variable;
+	variable = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
+	std::cout << variable << std::endl;
+	env[0] = strdup(variable.c_str());
+
+	variable = "SERVER_PORT=" + this->serverInfo["PORT"];
+	std::cout << variable << std::endl;
+	env[1] = strdup(variable.c_str());
+
+	variable = "SERVER_PROTOCOL=HTTP/1.1";
+	std::cout << variable << std::endl;
+	env[2] = strdup(variable.c_str());
+
+	if (hasQueryString(uri))
+	{
+		variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4, uri.find('?') - (uri.find(".php") + 4));
+		std::cout << variable << std::endl;
+		env[3] = strdup(variable.c_str());
+	}
+	else
+	{
+		variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4);
+		std::cout << variable << std::endl;
+		env[3] = strdup(variable.c_str());
+	}
+
+	variable = "HTTP_ACCEPT=" + _headers["accept"];
+	std::cout << variable << std::endl;
+	env[4] = strdup(variable.c_str());
+
+	variable = "HTTP_USER_AGENT=" + _headers["user-agent"];
+	std::cout << variable << std::endl;
+	env[5] = strdup(variable.c_str());
+
+	variable = "HTTP_COOKIE=" + _headers["cookie"];
+	std::cout << variable << std::endl;
+	env[6] = strdup(variable.c_str());
+
+	variable = "REDIRECT_STATUS=0";
+	std::cout << variable << std::endl;
+	env[7] = strdup(variable.c_str());
+
+	variable = "REQUEST_URI=" + uri;
+	std::cout << variable << std::endl;
+	env[8] = strdup(variable.c_str());
+
+	if (uri[0] == '/')
+		uri.erase(0, 1);
+	variable = "SCRIPT_FILENAME=" + this->location->getRoot() + uri.substr(0, uri.find(".php") + 4);
+	std::cout << variable << std::endl;
+	env[9] = strdup(variable.c_str());
+
+	if (method_type == GET)
+	{
+		variable = "REQUEST_METHOD=GET";
+		std::cout << variable << std::endl;
+		env[10] = strdup(variable.c_str());
+
+		if (hasQueryString(uri))
+		{
+			std::string queryString = uri.substr(uri.find('?') + 1);
+			variable = "QUERY_STRING=" + queryString;
+			std::cout << variable << std::endl;
+			env[11] = strdup(variable.c_str());
+
+			env[12] = NULL;
+		}
+		else
+		{
+			env[11] = NULL;
+		}
+	}
+	else if (method_type == POST)
+	{
+		variable = "REQUEST_METHOD=POST";
+		std::cout << variable << std::endl;
+		env[10] = strdup(variable.c_str());
+
+		variable = "CONTENT_TYPE=" + headers["content-type"];
+		std::cout << variable << std::endl;
+		env[11] = strdup(variable.c_str());
+
+		variable = "CONTENT_LENGTH=" + headers["content-length"];
+		std::cout << variable << std::endl;
+		env[12] = strdup(variable.c_str());
+		env[13] = NULL;
+	}
+	return (env);
+}
+
+void	freeEnv(char **env)
+{
+	size_t i = 0;
+
+	while (env[i++])
+		free(env[i]);
+	free(env);
+}
+
+void	Response::executeCgi(std::string uri, std::map <std::string, std::string> _headers, int method_type)
+{
+	char **env = this->getCgiEnv(method_type, uri, _headers);
+	pid_t	pid = fork();
+	if (pid == -1)
+		throw 502;
+	int fdes = open("/tmp/result", O_CREAT | O_RDWR | O_TRUNC, 0666);
+	// std::cout << fdes << std::endl;
+	if (fdes == -1)
+		throw 502;
+	if (pid == 0)
+	{
+		dup2(fdes, 1);
+		close(fdes);
+		execve(this->location->getCgiExec()[0].c_str(), NULL, env);
+		throw 502;
+	}
+	wait(0);
+	freeEnv(env);
+	close(fdes);
+	std::ifstream result("/tmp/result");
+	if (!result.is_open())
+		throw 502;
+	std::string header;
+	std::string body;
+	std::string tmp;
+	std::string status;
+	bool	hasContentLength = 0;
+	size_t	contentLength = 0;
+	bool	hasContentType = 0;
+	while (getline(result, tmp, '\n'))
+	{
+		if (tmp == "\r")
+			break ;
+		if (tmp.substr(0, 14) == "Content-type: ")
+			hasContentType = 1;
+		if (tmp.substr(0, 16) == "Content-length: ")
+			hasContentLength = 1;
+		if (tmp.substr(0, 8) == "Status: ")
+			status = tmp.substr(8);
+		else
+			header += tmp + "\n";
+	}
+	if (status.empty())
+		status = "HTTP/1.1 200 OK \r\n";
+	else
+		status = "HTTP/1.1 " + status + "\r\n";
+	if (!hasContentType)
+		header += "Content-type: text/html\r\n";
+	header = status + header;
+	while (getline(result, tmp, '\n'))
+		body += tmp + "\n";
+	result.close();
+	contentLength = body.size();
+	if (!hasContentLength)
+	{
+		std::stringstream ss;
+		ss << contentLength;
+		std::string size;
+		ss >> size;
+		header += "Content-length: " + size + "\r\n";
+	}
+	header += "\r\n";
+	std::string	response = header + body;
+	// std::ofstream file("file");
+	// if (file.is_open())
+	// {
+	// 	file << response;
+	// 	file.close();
+	// }
+	// int fds = open("file", O_RDONLY);
+	// char *buf = new char [response.length() + 1];
+	// read(fds, buf, response.length());
+	// buf[response.length()] = '\0';
+	const char *buf = response.c_str();
+	if (send(this->socket, buf, response.length(), 0) == -1)
+		throw ResponseFailed();
+}
+
 // ... working on
-bool	Response::newGet(std::string uri) {
+bool	Response::newGet(std::string uri, std::map <std::string, std::string> _headers, int method_type) {
 	// todo: new GET
 	if (this->sending_level == GET_REQUESTED_RES) {
 		if (getRequestedFile(uri))
 			this->sending_level = SENDING_HEADERS;
+		if (this->location->getCgiExec().size() != 0 && this->fileToSend.substr(this->fileToSend.rfind('.')) == this->location->getCgiExec()[1])
+		{
+			this->executeCgi(uri, _headers, method_type);
+			this->sending_level = SENDING_END;
+		}
 		else {
 			// then: autoIndex
 			if (!this->location->getAutoIndex())
@@ -491,39 +690,6 @@ bool	Response::newGet(std::string uri) {
 	return false;
 }
 
-/*
-std::pair<std::string, size_t>	Response::getMatchIndex()
-{
-	std::pair<std::string, size_t>	pair;
-	std::vector<std::string>	index = this->location->getIndex();
-	std::vector<std::string>::iterator	it = index.begin();
-
-	std::string	path;
-	if (uri[0] != '/')
-		path = this->location->getRoot() + "/" + uri;
-	else
-		path = this->location->getRoot() + uri;
-	if (uri[uri.length() - 1] != '/')
-		path += "/";
-	struct stat	dirCaseInf;
-	for (; it != index.end(); it++)
-	{
-		pair.first = path + *it;
-		if (stat(pair.first.c_str(), &dirCaseInf) == 0)
-			if (S_ISREG(dirCaseInf.st_mode))
-				break ;
-	}
-	if (it == index.end())
-	{
-		this->match_index = NO;
-		return (pair);
-	}
-	pair.second = dirCaseInf.st_size;
-	this->match_index = YES;
-	return (pair);
-}
-*/
-
 std::string	Response::getContentType(std::string path)
 {
 	std::string	extension = path.substr(path.rfind('.'));
@@ -532,196 +698,6 @@ std::string	Response::getContentType(std::string path)
 	return (this->content_type[extension]);
 }
 
-bool	Response::readAndSendFile(std::string path, size_t size)
-{
-	if (this->sending_level == SENDING_HEADERS)
-	{
-		// std::cout << "here" << std::endl;
-		std::stringstream sizestream;
-		sizestream << size;
-		this->headers["Content-Type: "] = getContentType(path);
-		this->headers["Content-Lenght: "] = sizestream.str();
-		this->send_status_line_and_headers();
-		this->sending_level = SENDING_BODY;
-	}
-	else if (this->sending_level == SENDING_BODY) {
-		if (this->sendFile(path))
-			this->sending_level = SENDING_END;
-	}
-	else if (this->sending_level == SENDING_END)
-		return true;
-	return (false);
-}
-/*
-bool	Response::getMethod(std::string uri)
-{
-	// log();
-	if (this->method_level == FINDRESOURCE)
-	{
-		if (this->getRequestedResource(uri)) {
-			this->method_level = DATA_SENDING;
-		}
-		else
-		{
-			this->status = 404;
-			this->response_type = ERROR;
-			return (false);
-		}
-	}
-	if (this->method_level == DATA_SENDING)
-	{
-		if (this->request_case == FILE_CASE)
-		{
-			if (env)
-			{
-				int	fd[2];
-				if (pipe(fd) == -1)
-				{
-					std::cerr << "pipe() fail" << std::endl; // generate a error message
-					std::exit(EXIT_FAILURE);
-				}
-				pid_t	pid = fork();
-				if (pid == -1)
-				{
-					std::cerr << "fork() fail" << std::endl; // generate a error message
-					std::exit(EXIT_FAILURE);
-				}
-				if (pid == 0)
-				{
-					dup2(fd[1], 1);
-					close(fd[0]);
-					close(fd[1]);
-					execve("cgi/php-cgi", NULL, env);
-				}
-				wait(0);
-				dup2(fd[0], 0);
-				close(fd[0]);
-				close(fd[1]);
-				std::ofstream file("file");
-				std::string str;
-				if (file.is_open())
-					while (getline(std::cin, str))
-						file << str << '\n';
-				file.close();
-				exit(0);
-			}
-			else
-			{
-				std::string	fileCase;
-				if (uri[0] != '/')
-					fileCase = this->location->getRoot() + "/" + uri;
-				else
-					fileCase = this->location->getRoot() + uri;
-				if (this->readAndSendFile(fileCase, fileInf.st_size))
-					this->method_level = DATA_SEND;
-			}
-		}
-		else if (this->request_case == OTHER_CASE) {
-			std::cout << "OTHER_CASE" << std::endl;
-			if (uri[0] == '/')
-				uri.erase(0, 1);
-			if (this->readAndSendFile(uri, fileInf.st_size))
-				this->method_level = DATA_SEND;
-		}
-		else if (this->request_case == DIR_CASE)
-		{
-			std::cout << "DIR_CASE" << std::endl;
-			if (uri[uri.length() - 1] != '/')
-			{
-				redirect(uri + "/");
-				this->method_level = DATA_SEND;
-			}
-			else
-			{
-				if (this->location->getIndex().size() != 0)
-				{
-					std::pair<std::string, size_t>	pair = this->getMatchIndex(uri);
-					if (env)
-					{
-						int	fd[2];
-						if (pipe(fd) == -1)
-						{
-							std::cerr << "pipe() fail" << std::endl; // generate a error message
-							std::exit(EXIT_FAILURE);
-						}
-						pid_t	pid = fork();
-						if (pid == -1)
-						{
-							std::cerr << "fork() fail" << std::endl; // generate a error message
-							std::exit(EXIT_FAILURE);
-						}
-						if (pid == 0)
-						{
-							dup2(fd[1], 1);
-							close(fd[0]);
-							close(fd[1]);
-							execve("cgi/php-cgi", NULL, env);
-						}
-						wait(0);
-						dup2(fd[0], 0);
-						close(fd[0]);
-						close(fd[1]);
-						std::ofstream file;
-						file.open("file");
-						std::string str;
-						while (getline(std::cin, str))
-							file << str << "\n";
-						exit(0);
-					}
-					else
-					{
-						std::cout << pair.first << std::endl;
-						if (this->match_index == YES)
-						{
-							if (this->readAndSendFile(pair.first, pair.second))
-								this->method_level = DATA_SEND;
-						}
-						else
-						{
-							this->status = 404;
-							this->response_type = ERROR;
-							return (false);
-						}
-					}
-				}
-				else
-				{
-					if (this->location->getAutoIndex())
-					{
-						DIR *dir = opendir(uri.erase(0, 1).c_str());
-						if (dir)
-						{
-							struct dirent *dirContent;
-							std::vector<std::string> content;
-							while ((dirContent = readdir(dir)) != NULL)
-								content.push_back(dirContent->d_name);
-							// if (this->send_response_index_files(uri, content))
-							// 	this->method_level = DATA_SEND;
-						}
-						return (true);
-					}
-					else
-					{
-						this->status = 403;
-						this->response_type = ERROR;
-						return (false);
-					}
-				}
-			}
-		}
-		else
-		{
-			this->status = 404;
-			this->response_type = ERROR;
-			return (false);
-		}
-	}
-	if (this->method_level == DATA_SEND) {
-		return (true);
-	}
-	return (false);
-}
-*/
 void	Response::reset() {
 	this->status = 200;
 	this->message = this->status_codes[status];
@@ -736,7 +712,6 @@ void	Response::reset() {
 	this->bodyOffset = 0;
 	this->sendingFile = false;
 	this->fileToSend = "";
-	memset(&this->fileInf, 0, sizeof(this->fileInf));
 }
 
 // title: exceptions
