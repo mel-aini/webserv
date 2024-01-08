@@ -50,6 +50,7 @@ class Location
 		bool	getAutoIndex(void);
 		std::vector<std::string>	getCgiExec(void);
 		std::string	getUploadLocation(void);
+		std::vector<std::string>&	getAllowMethods(void);
 };
 
 std::ostream & operator<<(std::ostream  & out, const Location & obj);

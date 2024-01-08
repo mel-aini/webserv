@@ -34,6 +34,7 @@ class Client
 		time_t								logtime;
 		time_t								logtime_start;
 		std::map<std::string, std::string>	serverInfo;
+		std::map<std::string, std::string>	firstCgiEnv;
 		Location							*location;
 
 	public:
@@ -58,6 +59,7 @@ class Client
 		Request				getRequest() const;
 		bool        		isBeyondMaxBodySize();
 		void				setServerInfo(std::string port, std::string host, std::string s_name);
+		void				setFirstCgiEnv(void);
 		void				log();
 		void				log_level();
 };
