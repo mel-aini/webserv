@@ -70,6 +70,7 @@ class Request
         bool        ContentLengthExists();
         bool        TransferEncodingExists();
         bool        isChunked();
+        bool        isHostExists();
         int         readByChunk();
         int         readByContentLength();
         int         readHeaders();
@@ -89,8 +90,16 @@ class Request
         std::string getBoundary();
         std::string getContentType();
         size_t      getBodysize();
+        State       getState() const;
+        std::string getHeaderLine(std::string key);
         void        reset();
+
+        class RequestFailed : public std::exception {
+			public:
+				const char * what() const throw();
+		};
 };
 
+void    skipSlash(std::string & str);
 
 #endif

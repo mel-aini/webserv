@@ -97,14 +97,15 @@ class Response {
         void                            send_status_line_and_headers();
         void                            send_body();
         void                            setResponseType(unsigned int response_type);
-        Location                        *findLocation(std::vector<Location> &locations, std::string uri);
         void                            setLocation(Location *location);
         Location                        *getLocation();
         bool                            isInErrorPages();
         void                            redirect(const std::string& location);
         void                            reset();
         bool                            sendFile(std::string fileName);
-        bool                            newGet(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
+        bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
+        bool                            post_method(Request &request, std::map <std::string, std::string> _headers, int method_type);
+        bool                            delete_method(std::string uri);
         bool                            getRequestedResource(std::string uri);
         std::pair<std::string, size_t>  getMatchIndex(std::string uri);
         bool                            readAndSendFile(std::string path, size_t size);
@@ -118,6 +119,7 @@ class Response {
         void                            log_members();
         bool                            uploadPostMethod(Request &request);
         std::string                     getExtension(std::string filename);
+        bool                            hasCgi(void);
         char**				            getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> firstCgiEnv);
         void                            executeCgi(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
         class ResponseFailed : public std::exception {

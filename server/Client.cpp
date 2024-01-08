@@ -6,7 +6,8 @@ Client::Client(int fd, struct sockaddr_in address)
 	address(address),
 	pollfd(NULL),
 	processing_level(INITIAL),
-	isAllowedMethod(false)
+	isAllowedMethod(false),
+	location(NULL)
 {
 	// set timout
 	this->logtime = 0;
@@ -35,9 +36,8 @@ void	Client::setServerInfo(std::string port, std::string host, std::string s_nam
 
 void	Client::setFirstCgiEnv(void)
 {
+	long long	pos;
 	std::string uri = this->request.getUri();
-	if (uri[0] == '/')
-		uri.erase(0, 1);
 	bool	hasQS = hasQueryString(uri);
 	this->firstCgiEnv["SERVER_NAME"] = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
 	this->firstCgiEnv["SERVER_PORT"] = "SERVER_PORT=" + this->serverInfo["PORT"];
@@ -52,7 +52,11 @@ void	Client::setFirstCgiEnv(void)
 	this->firstCgiEnv["REQUEST_URI"] = "REQUEST_URI=" + uri;
 	this->firstCgiEnv["DOCUMENT_ROOT"] = "DOCUMENT_ROOT=" + this->location->getRoot();
 
-	long long pos = uri.find(this->location.getCgiExec()[1] + this->location.getCgiExec()[1].length());
+	if (this->location->getCgiExec().size() == 0)
+		pos = -1;
+	else
+		pos = uri.find(this->location->getCgiExec()[1]) + this->location->getCgiExec()[1].length();
+
 	if (pos != -1)
 	{
 		this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, pos);
@@ -67,9 +71,11 @@ void	Client::setFirstCgiEnv(void)
 			this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + uri.substr(pos);
 		}
 	}
+	// if (uri[0] == '/')
+	// 	uri.erase(0, 1);
 	if (this->request.getMethod() == "GET")
 	{
-		this->firstCgiEnv["REQUEST_METHOD=GET"];
+		this->firstCgiEnv["REQUEST_METHOD"] = "REQUEST_METHOD=GET";
 
 		if (hasQS)
 			this->firstCgiEnv["QUERY_STRING"] = "QUERY_STRING=" + uri.substr(uri.find('?') + 1);
@@ -112,89 +118,115 @@ bool	Client::checkLogTime()
 	return false;
 }
 
-bool		Client::readRequest(struct pollfd *pollfd) {
+bool	compareByLength(Location& a, Location& b)
+{
+    return (a.getPath().length() > b.getPath().length());
+}
+
+bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
+{
+	std::vector<Location>::iterator	it;
+	std::string tmp = hasQueryString(uri) ? uri.substr(0, uri.find('?')) : uri;
+
+	if (tmp.empty() || tmp[0] != '/') {
+		this->response.setStatus(400);
+		this->location = NULL;
+		return false;
+	}
+
+	if (locations.size() > 1)
+		std::sort(locations.begin(), locations.end(), compareByLength);
+	if (tmp[tmp.length() - 1] == '/')
+	{
+		if (tmp[tmp.length() - 2] == '/') {
+			this->response.setStatus(400);
+			this->location = NULL;
+			return false;
+		}
+		tmp.erase(tmp.length() - 1);
+	}
+
+	long long pos;
+
+	while (true)
+	{
+		it = locations.begin();
+		for (; it != locations.end(); it++)
+			if (tmp == it->getPath())
+				break ;
+		if (it != locations.end())
+			break ;
+		pos = tmp.rfind('/');
+		if (pos == -1 || pos == 0)
+			break ;
+		tmp = tmp.substr(0, pos);
+	}
+	if (it == locations.end())
+		it = locations.end() - 1;
+	this->location = &(*it);
+	return true;
+}
+
+bool		Client::readRequest(std::vector<Location> &locations, struct pollfd *pollfd) {
+	if (true /* INTIAL*/)
 	setPollfd(pollfd);
 	this->logtime = 0;
 
 	char buf[1024] = {0};
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed == -1 || readed == 0) {
-		// this->request.resetBuffer();
 		this->reqHasRead();
 		// then: close connection
+		// throw RequestFailed();
+	}
+	if (!this->location && this->request.getState() > METHOD) {
+		if(!findLocation(locations, this->request.getUri()))
+			return true;
 	}
 
+	// std::cout << RED << buf << RESET << std::endl;
+	bool isReadEnd = this->request.parseRequest(buf, readed, this->fd);
+	// todo: check_body_size();
 
-	// std::cout << RED << "before: " << this->request.getStatus() << RESET << std::endl;git p
-	if (this->request.parseRequest(buf, readed, this->fd)) {
-		// std::cout << RED << "salat" << RESET << std::endl;
-		std::cout << "uri: " + this->request.getUri() << std::endl;
+	if (isReadEnd) {
+		// std::cout << "uri: " + this->request.getUri() << std::endl;
 		this->reqHasRead();
+		if (!this->location)
+			findLocation(locations, this->request.getUri());
+		
 		return true;
 	}
 	return false;
 }
 
-bool	Client::createResponse(std::vector<Location> &locations) {
+bool	Client::createResponse() {
 	// log_level();
 	// -> find location that matches with uri
-	// std::string str = "/public/html/";
-	// this->request.setUri(str);
-	std::string uri = this->request.getUri();
-	Location *location = this->response.findLocation(locations, uri);
-	// std::cout << uri << std::endl;
-	// std::cout << location->getPath() << std::endl;
-	/*
-		-> find location that matches with uri
 
-		-> get methods allowed
 
-		if (status != 200) {
-			then: a client error found in the request
-			-> send 4xx response(status)
-		}
-		else if (location has a redirect) {
-			-> perfrom redirect
-		}
-		else if (method is allowed) {
-			if (GET)
-				-> perform action, getMethod()
-			else if (POST)
-				-> perform action, postMethod()
-			else if (DELETE)
-				-> perform action, deleteMethod()
-		}
-		else {
-			then: Method Not Allowed
-			-> send_4xxResponse(405)
-		}
-	*/
 	if (processing_level == INITIAL)
 	{
 		this->response.setLocation(location);
-		// -> this line below is to test error pages
-		// this->response.setStatus(400);
-		// std::cout << YELLOW << "path: " << location->path << RESET << std::endl;
-		// std::cout << YELLOW << "root: " << location->root << RESET << std::endl;
-		// std::cout << YELLOW << "redirection: " << location->redirection << RESET << std::endl;
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
 			if (!location->getRedirection().empty()) {
-				// std::cout << RED << "Is Redirect" << RESET << std::endl;
 				this->response.setResponseType(REDIRECT);
 			}
 			else if (!this->methodIsAllowed(location->getAllowMethods(), this->request.getMethod()))
 				this->response.setResponseType(ERROR);
+			else if (this->request.getBodysize() > location->clientMaxBodySize) {
+				this->response.setStatus(413);
+				this->response.setResponseType(ERROR);
+			}
+
 		}
 		processing_level = SENDING;
 	}
 	if (processing_level == SENDING)
 		this->send_response();
-	if (processing_level == PROCESSED) {
-		return true;
-	}
-	return false;
+
+	return processing_level == PROCESSED;
 }
 
 // std::string	getRequestedResource()
@@ -203,43 +235,21 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 
 void	Client::send_response()
 {
-	/*
-		if (OK) {
-			if (GET)
-				-> perform action, getMethod()
-			else if (POST)
-				-> perform action, postMethod()
-			else if (DELETE)
-				-> perform action, deleteMethod()
-		}
-		else if (REDIRECT) {
-			this->response.redirect(redirection);
-			this->processing_level = PROCESSED;
-		}
-		else if (ERROR) {
-			bool isResponseEnd = this->response.send_response_error();
-			this->processing_level = isResponseEnd ? PROCESSED : SENDING;
-		}
-	*/
 	if (this->response.getResponseType() == OK) {
 		try
 		{
-			// isResponseEnd = this->response.getMethod(this->request.getUri(), this->request.getHeaders());
-			// this->response.log_res_level();
+			// todo: DELETE Method
+			// todo complete: POST Method
+
 			this->setFirstCgiEnv();
 			bool isResponseEnd = false;
-			if (this->request.getMethod() == "GET") {
-
-				isResponseEnd = this->response.newGet(this->request.getUri(), this->firstCgiEnv, GET);
-			}
-			else if (this->request.getMethod() == "POST") {
-				isResponseEnd = this->response.uploadPostMethod(this->request);
-			}
-			// todo: DELETE Method
-			// ...
+			if (this->request.getMethod() == "GET")
+				isResponseEnd = this->response.get_method(this->request.getUri(), this->firstCgiEnv, GET);
+			else if (this->request.getMethod() == "POST")
+				isResponseEnd = this->response.post_method(this->request, this->request.getHeaders(), POST);
+			else if (this->request.getMethod() == "DELETE")
+				isResponseEnd = this->response.delete_method(this->request.getUri());
 			this->processing_level = isResponseEnd ? PROCESSED : SENDING;
-			// this->response.log_res_level();
-			// this->response.log_res_type();
 		}
 		catch (int error_code)
 		{
@@ -280,6 +290,7 @@ void	Client::reset()
 	this->pollfd->events = POLLIN | POLLHUP;
 	this->isAllowedMethod = false;
 	this->processing_level = INITIAL;
+	this->location = NULL;
 	this->logtime = 0;
 	this->logtime_start = time(0);
 }

@@ -44,7 +44,7 @@ int main(int ac, char* av[])
         }
         else if (fds == 0) {
             // then: no event occurs in that specified time
-            std::cout << "no event occurs in that specified time" << std::endl;
+            // std::cout << "no event occurs in that specified time" << std::endl;
             continue;
         }
         try  {

@@ -44,6 +44,10 @@ Request &Request::operator=(Request const &rhs)
     return *this;
 }
 
+std::string Request::getHeaderLine(std::string key)
+{
+    return (this->_headers[key]);
+}
 
 int         Request::getStatus()
 {
@@ -86,6 +90,18 @@ size_t Request::getBodysize()
 std::string Request::getBoundary()
 {
     return this->_boundary;
+}
+
+State   Request::getState() const {
+    return this->_state;
+}
+
+bool Request::isHostExists()
+{
+    std::map<std::string, std::string>::iterator it = this->_headers.find("host");
+    if (it == this->_headers.end())
+        return false;
+    return true;
 }
 
 bool Request::ContentLengthExists()
@@ -228,16 +244,19 @@ int Request::readHeaders()
         this->currentHeaderValue = value;
         this->_headers[key] = value;
     }
+    if (!this->isHostExists())
+    {
+        this->status = 400;
+        return 0;
+    }
     if (this->TransferEncodingExists() && this->getTransferEncoding() != "chunked")
     {
         this->status = 501;
         return 0;
     }
     this->_request = this->_request.substr(this->_request.find("\r\n\r\n") + 4);
-    
     if (this->_method != "POST")
     {
-        // std::cout << "#####" + this->_method << std::endl;
         this->_state = END;
         return 0;
     }
@@ -292,6 +311,11 @@ int Request::readByChunk()
                     return 0;
                 }
                 this->_bodySize += this->_lengthState;
+                // if (_bodySize > location->clientMaxBodySize) {
+                //     this->status = 413;
+                //     return 0;
+                // }
+
                 this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
                 this->_chunkState = CHUNK_DATA;
             }
@@ -415,6 +439,7 @@ int Request::parseRequest(char *buffer, int size, int fd)
             std::getline(ss, this->_version, ' ');
             if (!validateRequestLine())
                 goto end;
+            skipSlash(this->_uri);
             this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
             this->_state = HEADER;
         }
@@ -482,4 +507,10 @@ void    Request::reset()
     this->_version = "";
     this->currentHeaderKey = "";
     this->currentHeaderValue = "";
+}
+
+// title: exceptions
+
+const char	*Request::RequestFailed::what() const throw() {
+	return "Error occured while receiving the request";
 }
