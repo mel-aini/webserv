@@ -44,6 +44,10 @@ Request &Request::operator=(Request const &rhs)
     return *this;
 }
 
+std::string Request::getHeaderLine(std::string key)
+{
+    return (this->_headers[key]);
+}
 
 int         Request::getStatus()
 {
@@ -90,6 +94,14 @@ std::string Request::getBoundary()
 
 State   Request::getState() const {
     return this->_state;
+}
+
+bool Request::isHostExists()
+{
+    std::map<std::string, std::string>::iterator it = this->_headers.find("host");
+    if (it == this->_headers.end())
+        return false;
+    return true;
 }
 
 bool Request::ContentLengthExists()
@@ -232,16 +244,19 @@ int Request::readHeaders()
         this->currentHeaderValue = value;
         this->_headers[key] = value;
     }
+    if (!this->isHostExists())
+    {
+        this->status = 400;
+        return 0;
+    }
     if (this->TransferEncodingExists() && this->getTransferEncoding() != "chunked")
     {
         this->status = 501;
         return 0;
     }
     this->_request = this->_request.substr(this->_request.find("\r\n\r\n") + 4);
-    
     if (this->_method != "POST")
     {
-        // std::cout << "#####" + this->_method << std::endl;
         this->_state = END;
         return 0;
     }
@@ -424,6 +439,7 @@ int Request::parseRequest(char *buffer, int size, int fd)
             std::getline(ss, this->_version, ' ');
             if (!validateRequestLine())
                 goto end;
+            skipSlash(this->_uri);
             this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
             this->_state = HEADER;
         }

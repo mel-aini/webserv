@@ -53,7 +53,6 @@ bool    Response::uploadPostMethod(Request &request)
     }
     else
     {
-        // read line by line
         std::string boundary = "--" + request.getBoundary();
         std::string line;
         std::fstream inputfile(request.getFilename().c_str(), std::ios::in);
@@ -75,9 +74,14 @@ bool    Response::uploadPostMethod(Request &request)
             }
             this->fileOffset += headers.size() + 2;
             std::string name;
-            name = headers.substr(headers.find("filename=\"") + 10);
+            size_t      pos = headers.find("filename=\"");
+            if (pos != std::string::npos)
+                name = headers.substr(pos + 10);
+            else
+                name = headers.substr(headers.find("name=\"") + 6); 
             name = name.substr(0, name.find("\""));
-            this->fileToUpload = "./" + this->location->getUploadLocation() + "/" + name; 
+          
+            this->fileToUpload = "./" + this->location->getUploadLocation() + "/" + name;
         }
         std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
         if (!outputfile.is_open())
@@ -101,9 +105,11 @@ bool    Response::uploadPostMethod(Request &request)
         }
         if (line.find(boundary + "--") != std::string::npos)
         {
-            std::cout << "201 : " << line << std::endl;
             this->index = 0;
             this->status = 201;
+            this->fileOffset += line.length() + 1;
+            std::cout << "-->" << request.getBodysize() << std::endl;
+            std::cout << "-->" <<  this->fileOffset << std::endl;
             inputfile.close();
             outputfile.close();
             return true;

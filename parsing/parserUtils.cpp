@@ -217,6 +217,7 @@ void	skipSlash(std::string & str)
 				if (str[i] != '/')
 					break ;
 				str.erase(i, 1);
+				i--;
 			}
 		}
 	}
