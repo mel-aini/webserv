@@ -287,48 +287,6 @@ bool	hasQueryString(std::string uri)
 	return (true);
 }
 
-Location *Response::findLocation(std::vector<Location> &locations, std::string uri)
-{
-	std::vector<Location>::iterator	it;
-	std::string tmp = hasQueryString(uri) ? uri.substr(0, uri.find('?')) : uri;
-
-	if (tmp.empty() || tmp[0] != '/') {
-		this->setStatus(400);
-		return NULL;
-	}
-
-	if (locations.size() > 1)
-		std::sort(locations.begin(), locations.end(), compareByLength);
-	if (tmp[tmp.length() - 1] == '/')
-	{
-		if (tmp[tmp.length() - 2] == '/') {
-			this->setStatus(400);
-			return NULL;
-		}
-		tmp.erase(tmp.length() - 1);
-	}
-
-	long long pos;
-
-	while (true)
-	{
-		it = locations.begin();
-		for (; it != locations.end(); it++)
-			if (tmp == it->getPath())
-				break ;
-		if (it != locations.end())
-			break ;
-		pos = tmp.rfind('/');
-		if (pos == -1 || pos == 0)
-			break ;
-		tmp = tmp.substr(0, pos);
-	}
-	if (it == locations.end())
-		it = locations.end() - 1;
-	return &(*it);
-}
-
-
 bool	Response::getRequestedResource(std::string uri)
 {
 	memset(&this->fileInf, 0, sizeof(this->fileInf));
@@ -453,10 +411,8 @@ bool	Response::getRequestedFile(std::string uri)
 			if (this->isFileExist(target2)) {
 				struct stat fileInfo2;
 				if (!this->isTarget(target2, &fileInfo2)) {
-					// std::cout << BOLDRED << "Here!!! 2" << RESET << std::endl;
 					throw 403;
 				}
-				std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
 				return true;
 			}
 		}
@@ -464,7 +420,6 @@ bool	Response::getRequestedFile(std::string uri)
 		// std::cout << BOLDRED << "No Index" << RESET << std::endl;
 		return false;
 	}
-	std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
 	return false;
 }
 
@@ -479,7 +434,7 @@ char**	Response::getCgiEnv(int method_type, std::string uri, std::map <std::stri
 	std::string	variable;
 	variable = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
 	std::cout << variable << std::endl;
-	env[0] = strdup(variable.c_str());
+	env[0] = const_cast<char *>(variable.c_str());
 
 	variable = "SERVER_PORT=" + this->serverInfo["PORT"];
 	std::cout << variable << std::endl;
@@ -663,6 +618,14 @@ bool	Response::post_method(Request &request, std::map <std::string, std::string>
 }
 
 bool	Response::delete_method(std::string uri) {
+	if (uri[0] == '/')
+		uri.erase(0, 1);
+
+	std::string	target = this->location->getRoot() + uri;
+	if (isFileExist(target))
+		throw 404;
+	
+	
 	(void)uri;
 	return false;
 }
@@ -690,6 +653,7 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> _
 		}
 	}
 	else if (this->sending_level == SENDING_HEADERS) {
+		std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
 		std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
 		if (!file.is_open())
 			throw 500;

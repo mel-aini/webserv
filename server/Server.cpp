@@ -154,14 +154,14 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 			}
 			if (pollfd->revents & POLLIN) {
 				// std::cout << CYAN << "#### POLLIN EVENT ####" << RESET << std::endl;
-				bool read_complete = it->readRequest(pollfd);
+				bool read_complete = it->readRequest(this->locations, pollfd);
 				//	todo: transfer client to the right server or keep it
 				if (read_complete && !this->hostsMatch(it))
 					this->findRelatedHost(it);
 			}
 			else if ((pollfd->revents & POLLOUT)) {
 				// std::cout << YELLOW << "#### POLLOUT EVENT ####" << RESET << std::endl;
-				bool send_complete = it->createResponse(this->locations);
+				bool send_complete = it->createResponse();
 				if (send_complete) {
 					if (it->getRequest().getHeader("connection") != "keep-alive") {
 						this->removeClient(pollfds, nfds, it);

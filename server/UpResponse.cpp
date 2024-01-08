@@ -29,17 +29,12 @@ bool    Response::uploadPostMethod(Request &request)
         }
         std::ifstream inputfile(request.getFilename().c_str(), std::ios::in);
         if (!inputfile.is_open())
-        {
-            this->status = 404;
-            return false;
-        }
+            throw 404;
+        
         std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
         if (!outputfile.is_open())
-        {
-            this->status = 404;
-            perror("open");
-            return false;
-        }
+            throw 404;
+
         inputfile.seekg(this->fileOffset);
         inputfile.read(buffer, 10000);
         outputfile.write(buffer, inputfile.gcount());
@@ -63,10 +58,8 @@ bool    Response::uploadPostMethod(Request &request)
         std::string line;
         std::fstream inputfile(request.getFilename().c_str(), std::ios::in);
         if (!inputfile.is_open())
-        {
-            this->status = 404;
-            return false;
-        }
+            throw 404;
+
         inputfile.seekg(this->fileOffset);
         if (this->index == 0)
         {
@@ -88,11 +81,8 @@ bool    Response::uploadPostMethod(Request &request)
         }
         std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
         if (!outputfile.is_open())
-        {
-            this->status = 404;
-            perror("open");
-            return false;
-        }
+            throw 404;
+        
         int i = 0;
         while (std::getline(inputfile, line))
         {
@@ -104,7 +94,6 @@ bool    Response::uploadPostMethod(Request &request)
         }
         if (i > 1000)
         {
-            std::cout << "413" << std::endl;
             inputfile.close();
             outputfile.close();
             this->index = 1;

@@ -34,15 +34,17 @@ class Client
 		time_t								logtime;
 		time_t								logtime_start;
 		std::map<std::string, std::string>	serverInfo;
+		Location							*location;
 
 	public:
 		Client(int fd, struct sockaddr_in address);
 		~Client();
 
+        bool				findLocation(std::vector<Location> &locations, std::string uri);
 		int					getFd() const;
 		struct sockaddr_in	getAddress() const;
-		bool				readRequest(struct pollfd *pollfd);
-		bool				createResponse(std::vector<Location> &locations);
+		bool				readRequest(std::vector<Location> &locations, struct pollfd *pollfd);
+		bool				createResponse();
 		void				reqHasRead();
 		void				resHasSent();
 		void				reset();

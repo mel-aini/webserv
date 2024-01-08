@@ -94,7 +94,6 @@ class Response {
         void                            send_status_line_and_headers();
         void                            send_body();
         void                            setResponseType(unsigned int response_type);
-        Location                        *findLocation(std::vector<Location> &locations, std::string uri);
         void                            setLocation(Location *location);
         Location                        *getLocation();
         bool                            isInErrorPages();
@@ -121,6 +120,7 @@ class Response {
         bool                            getMethod(std::string uri, std::map <std::string, std::string> _headers);
         char**				            getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> _headers);
         void                            executeCgi(std::string uri, std::map <std::string, std::string> _headers, int method_type);
+        
         class ResponseFailed : public std::exception {
 			public:
 				const char * what() const throw();

@@ -6,7 +6,8 @@ Client::Client(int fd, struct sockaddr_in address)
 	address(address),
 	pollfd(NULL),
 	processing_level(INITIAL),
-	isAllowedMethod(false)
+	isAllowedMethod(false),
+	location(NULL)
 {
 	// set timout
 	this->logtime = 0;
@@ -63,40 +64,95 @@ bool	Client::checkLogTime()
 	return false;
 }
 
-bool		Client::readRequest(struct pollfd *pollfd) {
+bool	hasQueryString(std::string uri);
+
+bool	compareByLength(Location& a, Location& b);
+
+bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
+{
+	std::vector<Location>::iterator	it;
+	std::string tmp = hasQueryString(uri) ? uri.substr(0, uri.find('?')) : uri;
+
+	if (tmp.empty() || tmp[0] != '/') {
+		this->response.setStatus(400);
+		this->location = NULL;
+		return false;
+	}
+
+	if (locations.size() > 1)
+		std::sort(locations.begin(), locations.end(), compareByLength);
+	if (tmp[tmp.length() - 1] == '/')
+	{
+		if (tmp[tmp.length() - 2] == '/') {
+			this->response.setStatus(400);
+			this->location = NULL;
+			return false;
+		}
+		tmp.erase(tmp.length() - 1);
+	}
+
+	long long pos;
+
+	while (true)
+	{
+		it = locations.begin();
+		for (; it != locations.end(); it++)
+			if (tmp == it->getPath())
+				break ;
+		if (it != locations.end())
+			break ;
+		pos = tmp.rfind('/');
+		if (pos == -1 || pos == 0)
+			break ;
+		tmp = tmp.substr(0, pos);
+	}
+	if (it == locations.end())
+		it = locations.end() - 1;
+	this->location = &(*it);
+	return true;
+}
+
+bool		Client::readRequest(std::vector<Location> &locations, struct pollfd *pollfd) {
+	if (true /* INTIAL*/)
 	setPollfd(pollfd);
 	this->logtime = 0;
 
 	char buf[1024] = {0};
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed == -1 || readed == 0) {
-		// this->request.resetBuffer();
 		this->reqHasRead();
 		// then: close connection
+		// throw RequestFailed();
+	}
+	if (!this->location && this->request.getState() > METHOD) {
+		if(!findLocation(locations, this->request.getUri()))
+			return true;
 	}
 
+	// std::cout << RED << buf << RESET << std::endl;
+	bool isReadEnd = this->request.parseRequest(buf, readed, this->fd);
+	// todo: check_body_size();
 
-	// std::cout << RED << "before: " << this->request.getStatus() << RESET << std::endl;git p
-	if (this->request.parseRequest(buf, readed, this->fd)) {
-		// std::cout << RED << "salat" << RESET << std::endl;
-		std::cout << "uri: " + this->request.getUri() << std::endl;
+	if (isReadEnd) {
+		// std::cout << "uri: " + this->request.getUri() << std::endl;
 		this->reqHasRead();
+		if (!this->location)
+			findLocation(locations, this->request.getUri());
+		
 		return true;
 	}
 	return false;
 }
 
-bool	Client::createResponse(std::vector<Location> &locations) {
+bool	Client::createResponse() {
 	// log_level();
 	// -> find location that matches with uri
 
-	std::string uri = this->request.getUri();
-	Location *location = this->response.findLocation(locations, uri);
 
 	if (processing_level == INITIAL)
 	{
 		this->response.setLocation(location);
-		if (!location || this->response.getStatus() != 200)
+		if (this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
 			if (!location->getRedirection().empty()) {
@@ -104,15 +160,18 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 			}
 			else if (!this->methodIsAllowed(location->allowMethods, this->request.getMethod()))
 				this->response.setResponseType(ERROR);
+			else if (this->request.getBodysize() > location->clientMaxBodySize) {
+				this->response.setStatus(413);
+				this->response.setResponseType(ERROR);
+			}
+
 		}
 		processing_level = SENDING;
 	}
 	if (processing_level == SENDING)
 		this->send_response();
-	if (processing_level == PROCESSED) {
-		return true;
-	}
-	return false;
+
+	return processing_level == PROCESSED;
 }
 
 // std::string	getRequestedResource()
@@ -176,6 +235,7 @@ void	Client::reset()
 	this->pollfd->events = POLLIN | POLLHUP;
 	this->isAllowedMethod = false;
 	this->processing_level = INITIAL;
+	this->location = NULL;
 	this->logtime = 0;
 	this->logtime_start = time(0);
 }

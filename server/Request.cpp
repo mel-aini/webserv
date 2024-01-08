@@ -88,6 +88,10 @@ std::string Request::getBoundary()
     return this->_boundary;
 }
 
+State   Request::getState() const {
+    return this->_state;
+}
+
 bool Request::ContentLengthExists()
 {
     std::map<std::string, std::string>::iterator it = this->_headers.find("content-length");
@@ -292,6 +296,11 @@ int Request::readByChunk()
                     return 0;
                 }
                 this->_bodySize += this->_lengthState;
+                // if (_bodySize > location->clientMaxBodySize) {
+                //     this->status = 413;
+                //     return 0;
+                // }
+
                 this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
                 this->_chunkState = CHUNK_DATA;
             }
@@ -482,4 +491,10 @@ void    Request::reset()
     this->_version = "";
     this->currentHeaderKey = "";
     this->currentHeaderValue = "";
+}
+
+// title: exceptions
+
+const char	*Request::RequestFailed::what() const throw() {
+	return "Error occured while receiving the request";
 }

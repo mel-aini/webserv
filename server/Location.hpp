@@ -11,7 +11,7 @@ class Location
 		std::string												path;
 		std::string												root;
 		std::vector<std::string>								index;
-		int														clientMaxBodySize;
+		size_t													clientMaxBodySize;
 		std::vector<std::string>								allowMethods;
 		std::string												redirection;
 		bool													autoIndex;

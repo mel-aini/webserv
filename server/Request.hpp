@@ -89,7 +89,13 @@ class Request
         std::string getBoundary();
         std::string getContentType();
         size_t      getBodysize();
+        State       getState() const;
         void        reset();
+
+        class RequestFailed : public std::exception {
+			public:
+				const char * what() const throw();
+		};
 };
 
 
