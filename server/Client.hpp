@@ -43,7 +43,7 @@ class Client
         bool				findLocation(std::vector<Location> &locations, std::string uri);
 		int					getFd() const;
 		struct sockaddr_in	getAddress() const;
-		bool				readRequest(std::vector<Location> &locations, struct pollfd *pollfd);
+		bool				readRequest(std::vector<Location> &locations);
 		bool				createResponse();
 		void				reqHasRead();
 		void				resHasSent();
@@ -56,6 +56,7 @@ class Client
 		void				send_response();
 		bool				checkLogTime();
 		Request				getRequest() const;
+		bool        		isBeyondMaxBodySize();
 		void				setServerInfo(std::string port, std::string host, std::string s_name);
 		void				log();
 		void				log_level();

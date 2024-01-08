@@ -27,15 +27,13 @@ class Global
 
 		std::vector<struct pollfd>& getPollfds();
 
-		nfds_t	getNfds();
-
 		void addServer(Server& server);
 
 		void	create_servers();
 		void	monitorFd(struct pollfd fd);
 		void	forgetFd(int fd);
 		void	setServers(std::vector<Server> servers);
-		void	checkAndProcessFd(struct pollfd *pollfd, int fds);
+		void	checkAndProcessFd(int fds);
 		int		isAlreadyUsed(std::string host, std::string port, int index);
 };
 

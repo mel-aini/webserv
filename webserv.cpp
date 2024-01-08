@@ -35,9 +35,9 @@ int main(int ac, char* av[])
     while (true)
     {
         signal(SIGPIPE, handleSignal);
-        pollfds = &global.getPollfds()[0];
+        pollfds = global.getPollfds().data();
 
-        int fds = poll(pollfds, global.getNfds(), 5000);
+        int fds = poll(pollfds, global.getPollfds().size(), 5000);
         if (fds == -1) {
             perror("poll");
             continue;
@@ -48,7 +48,7 @@ int main(int ac, char* av[])
             continue;
         }
         try  {
-            global.checkAndProcessFd(pollfds, fds);
+            global.checkAndProcessFd(fds);
         } catch(const std::exception& e) {
             std::cerr << RED << "in main: " << e.what() << RESET << std::endl;
         }

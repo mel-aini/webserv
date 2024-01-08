@@ -112,29 +112,43 @@ bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
 	return true;
 }
 
-bool		Client::readRequest(std::vector<Location> &locations, struct pollfd *pollfd) {
-	if (true /* INTIAL*/)
-	setPollfd(pollfd);
+bool        Client::isBeyondMaxBodySize() {
+	if (location && this->request.getBodysize() > (location->clientMaxBodySize / 1000000)) {
+		this->response.setStatus(413);
+		this->response.setResponseType(ERROR);
+		return true;
+	}
+	return false;
+}
+
+bool		Client::readRequest(std::vector<Location> &locations) {
 	this->logtime = 0;
 
 	char buf[1024] = {0};
+
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed == -1 || readed == 0) {
 		this->reqHasRead();
+		return true;
 		// then: close connection
 		// throw RequestFailed();
 	}
 	if (!this->location && this->request.getState() > METHOD) {
-		if(!findLocation(locations, this->request.getUri()))
+		if(!findLocation(locations, this->request.getUri())) {
+			this->reqHasRead();
 			return true;
+		}
 	}
 
-	// std::cout << RED << buf << RESET << std::endl;
 	bool isReadEnd = this->request.parseRequest(buf, readed, this->fd);
-	// todo: check_body_size();
+
+	if (isBeyondMaxBodySize()) {
+		this->reqHasRead();
+		return true;
+	}
 
 	if (isReadEnd) {
-		// std::cout << "uri: " + this->request.getUri() << std::endl;
+
 		this->reqHasRead();
 		if (!this->location)
 			findLocation(locations, this->request.getUri());
@@ -152,7 +166,7 @@ bool	Client::createResponse() {
 	if (processing_level == INITIAL)
 	{
 		this->response.setLocation(location);
-		if (this->response.getStatus() != 200)
+		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
 			if (!location->getRedirection().empty()) {
@@ -160,11 +174,6 @@ bool	Client::createResponse() {
 			}
 			else if (!this->methodIsAllowed(location->allowMethods, this->request.getMethod()))
 				this->response.setResponseType(ERROR);
-			else if (this->request.getBodysize() > location->clientMaxBodySize) {
-				this->response.setStatus(413);
-				this->response.setResponseType(ERROR);
-			}
-
 		}
 		processing_level = SENDING;
 	}
@@ -215,14 +224,14 @@ void	Client::send_response()
 void	Client::reqHasRead()
 {
 	std::cout << "request " << GREEN << "done" << RESET << std::endl;
+
 	this->pollfd->events = POLLOUT | POLLHUP;
-	// this->request.reset();
 }
 
 void	Client::resHasSent()
 {
-	// std::cout << YELLOW << "resHasSent()" << RESET << std::endl;
 	std::cout << "response " << GREEN << "sent" << RESET << std::endl;
+
 	this->pollfd->events = POLLIN | POLLHUP;
 	this->reset();
 	this->response.reset();
@@ -231,7 +240,6 @@ void	Client::resHasSent()
 
 void	Client::reset()
 {
-	// std::cout << "reset()" << std::endl;
 	this->pollfd->events = POLLIN | POLLHUP;
 	this->isAllowedMethod = false;
 	this->processing_level = INITIAL;

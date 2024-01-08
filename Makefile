@@ -8,7 +8,7 @@ SRC = webserv.cpp server/Location.cpp server/Server.cpp server/UpResponse.cpp pa
 
 OBJ = $(SRC:.cpp=.o)
 
-FLAGS = -Wall -Wextra -Werror -g -std=c++98
+FLAGS = -Wall -Wextra -Werror -g -std=c++98 -fsanitize=address
 
 all : $(NAME)
 

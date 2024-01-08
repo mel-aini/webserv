@@ -50,11 +50,11 @@ class Server
 		std::vector<Server>::iterator	&getServersBegin();
 		std::vector<Server>::iterator	&getServersEnd();
 
-		void	addClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds);
-		bool	processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd, nfds_t& nfds);
+		void	addClient(std::vector<struct pollfd> &pollfds);
+		bool	processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd);
 		bool	isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it);
 		void	logClients();
-		void	removeClient(std::vector<struct pollfd> &pollfds, nfds_t& nfds, std::vector<Client>::iterator &it);
+		void	removeClient(std::vector<struct pollfd> &pollfds, std::vector<Client>::iterator &it);
 		bool	hostsMatch(std::vector<Client>::iterator& it);
 		void	findRelatedHost(std::vector<Client>::iterator& it);
 		void	transferClient(std::vector<Client>::iterator& it);

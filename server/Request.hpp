@@ -94,6 +94,7 @@ class Request
         std::string getHeaderLine(std::string key);
         void        reset();
 
+
         class RequestFailed : public std::exception {
 			public:
 				const char * what() const throw();

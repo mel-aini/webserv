@@ -1,6 +1,6 @@
 port="8000"
 host="localhost"
-path="omar_1.mp4"
+path=""
 curl $host:$port/$path > /dev/null  &
 curl $host:$port/$path > /dev/null  &
 curl $host:$port/$path > /dev/null  &

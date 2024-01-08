@@ -21,10 +21,6 @@ std::vector<struct pollfd>& Global::getPollfds() {
 	return this->pollfds;
 }
 
-nfds_t	Global::getNfds() {
-	return this->nfds;
-}
-
 void	Global::setServers(std::vector<Server> servers) {
 	this->servers = servers;
 }
@@ -65,17 +61,16 @@ int	Global::isAlreadyUsed(std::string host, std::string port, int index)
 	return -1;
 }
 
-void Global::checkAndProcessFd(struct pollfd *pollfds, int fds) {
-	int	processed_fds = 0;
+void Global::checkAndProcessFd(int fds) {
 
-	for (unsigned int i = 0; i < this->getNfds(); i++) {
-		if ((pollfds + i)->fd >= 0) {
+	for (unsigned int i = 0; i < getPollfds().size(); i++) {
+		if (getPollfds().data()[i].fd >= 0) {
 			std::vector<Server>::iterator it;
 			for (it = this->servers.begin(); it != this->servers.end(); it++) {
-				if (it->processFd(this->pollfds, (pollfds + i), this->nfds))
+				if (it->processFd(this->pollfds, &getPollfds().data()[i]))
 				{
-					processed_fds++;
-					if (i >= this->getNfds() || processed_fds >= fds)
+					fds--;
+					if (i >= getPollfds().size() || fds == 0)
 						return ;
 					break;
 				}
