@@ -66,12 +66,14 @@ class Response {
         size_t                              bodyOffset;
         size_t                              fileOffset;
         std::map<int, std::string>          status_codes;
-        int                              socket;
+        int                                 socket;
+        int                                 index;
         bool                                sendingFile;
         std::string                         errPage;
         struct stat                         fileInf;
         std::map<std::string, std::string>  content_type;
         std::string                         fileToSend;
+        std::string                         fileToUpload;
 
     public:
         Response();
@@ -112,7 +114,7 @@ class Response {
         void                            log_res_level();
         void                            log_members();
         bool                            uploadPostMethod(Request &request);
-    
+        std::string                     getExtension(std::string filename);
         void                            setServerInfo(std::map<std::string, std::string> serverInfo);
         bool                            getMethod(std::string uri, std::map <std::string, std::string> _headers);
         char**				            getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> _headers);

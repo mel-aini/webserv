@@ -11,7 +11,9 @@ Response::Response()
 	match_index(NO),
 	bodyOffset(0),
 	fileOffset(0),
-	sendingFile(false)
+	index(0),
+	sendingFile(false),
+	fileToUpload("")
 {
 	status_codes[200] = "OK";
 	status_codes[201] = "Created";
