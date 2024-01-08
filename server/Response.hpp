@@ -99,7 +99,9 @@ class Response {
         void                            redirect(const std::string& location);
         void                            reset();
         bool                            sendFile(std::string fileName);
-        bool                            newGet(std::string uri, std::map <std::string, std::string> _headers, int method_type);
+        bool                            get_method(std::string uri, std::map <std::string, std::string> _headers, int method_type);
+        bool                            post_method(Request &request, std::map <std::string, std::string> _headers, int method_type);
+        bool                            delete_method(std::string uri);
         bool                            getRequestedResource(std::string uri);
         std::pair<std::string, size_t>  getMatchIndex(std::string uri);
         bool                            readAndSendFile(std::string path, size_t size);

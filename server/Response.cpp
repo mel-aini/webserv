@@ -129,10 +129,10 @@ bool	Response::sendFile(std::string fileName)
 	if (s == -1)
 		throw ResponseFailed();
 	bodyOffset += s;
-	std::cout << "send: " << BOLDCYAN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
+	// std::cout << "send: " << BOLDCYAN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
 	if (file.eof()) {
 		this->sending_level = SENDING_END;
-		std::cout << "bytes sent: " << BOLDGREEN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
+		// std::cout << "bytes sent: " << BOLDGREEN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
 		file.close();
 		std::cout << BOLDGREEN << "Reached end of file" << RESET << std::endl;
 		return true;
@@ -266,7 +266,7 @@ void    Response::redirect(const std::string& location)
 	this->status = 301;
 	this->headers["Location: "] = location;
 	send_status_line_and_headers();
-	std::cout << "REDIRECT" << std::endl;
+	// std::cout << "REDIRECT" << std::endl;
 }
 
 bool	compareByLength(Location& a, Location& b)
@@ -420,7 +420,9 @@ bool	Response::getRequestedFile(std::string uri)
 
 	std::string	target = this->location->getRoot() + uri;
 
+	std::cout << BOLDRED << "target: " << target << RESET << std::endl;
 	if (!this->isFileExist(target)) {
+		// std::cout << BOLDRED << "Here!!! 1" << RESET << std::endl;
 		throw 404;
 	}
 
@@ -431,18 +433,32 @@ bool	Response::getRequestedFile(std::string uri)
 		return true;
 	}
 	else if (S_ISDIR(fileInfo.st_mode)) {
+		if (uri.back() != '/' && uri.length() != 0) {
+			redirect("/" + uri + "/");
+			this->sending_level = SENDING_END;
+			return true;
+		}
 		std::vector<std::string>::iterator it;
-		target += "/";
-		for (it = this->location->getIndex().begin(); it != this->location->getIndex().end(); it++) {
-			target += *it;
-			// std::cout << "2nd target: " << target << std::endl;
-			if (this->isFileExist(target)) {
+		std::vector<std::string> index = this->location->getIndex();
+
+		std::cout << "before: " << target << std::endl;
+	
+		for (it = index.begin(); it != index.end(); it++) {
+			std::string target2 = target + *it;
+
+			std::cout << "new target: " << target2 << std::endl;
+		
+			if (this->isFileExist(target2)) {
 				struct stat fileInfo2;
-				if (!this->isTarget(target, &fileInfo2))
+				if (!this->isTarget(target2, &fileInfo2)) {
+					// std::cout << BOLDRED << "Here!!! 2" << RESET << std::endl;
 					throw 403;
+				}
+				std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
 				return true;
 			}
 		}
+		// std::cout << BOLDRED << "Here!!! 3" << RESET << std::endl;
 		// std::cout << BOLDRED << "No Index" << RESET << std::endl;
 		return false;
 	}
@@ -636,18 +652,34 @@ void	Response::executeCgi(std::string uri, std::map <std::string, std::string> _
 		throw ResponseFailed();
 }
 
+bool	Response::post_method(Request &request, std::map <std::string, std::string> _headers, int method_type) {
+	if (!location->acceptUpload)
+		throw 403;
+	(void)method_type;
+	(void)_headers;
+	return this->uploadPostMethod(request);
+}
+
+bool	Response::delete_method(std::string uri) {
+	(void)uri;
+	return false;
+}
+
 // ... working on
-bool	Response::newGet(std::string uri, std::map <std::string, std::string> _headers, int method_type) {
-	// todo: new GET
+bool	Response::get_method(std::string uri, std::map <std::string, std::string> _headers, int method_type) {
 	if (this->sending_level == GET_REQUESTED_RES) {
-		if (getRequestedFile(uri))
+		bool isNoIndex = getRequestedFile(uri);
+		if (sending_level == SENDING_END)
+			return true;
+
+		if (isNoIndex)
 			this->sending_level = SENDING_HEADERS;
 		if (this->location->getCgiExec().size() != 0 && this->fileToSend.substr(this->fileToSend.rfind('.')) == this->location->getCgiExec()[1])
 		{
 			this->executeCgi(uri, _headers, method_type);
 			this->sending_level = SENDING_END;
 		}
-		else {
+		if (!isNoIndex) {
 			// then: autoIndex
 			if (!this->location->getAutoIndex())
 				throw 403;

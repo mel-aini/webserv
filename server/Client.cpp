@@ -89,50 +89,17 @@ bool		Client::readRequest(struct pollfd *pollfd) {
 bool	Client::createResponse(std::vector<Location> &locations) {
 	// log_level();
 	// -> find location that matches with uri
-	// std::string str = "/public/html/";
-	// this->request.setUri(str);
+
 	std::string uri = this->request.getUri();
 	Location *location = this->response.findLocation(locations, uri);
-	// std::cout << uri << std::endl;
-	// std::cout << location->getPath() << std::endl;
-	/*
-		-> find location that matches with uri
 
-		-> get methods allowed
-
-		if (status != 200) {
-			then: a client error found in the request
-			-> send 4xx response(status)
-		}
-		else if (location has a redirect) {
-			-> perfrom redirect
-		}
-		else if (method is allowed) {
-			if (GET)
-				-> perform action, getMethod()
-			else if (POST)
-				-> perform action, postMethod()
-			else if (DELETE)
-				-> perform action, deleteMethod()
-		}
-		else {
-			then: Method Not Allowed
-			-> send_4xxResponse(405)
-		}
-	*/
 	if (processing_level == INITIAL)
 	{
 		this->response.setLocation(location);
-		// -> this line below is to test error pages
-		// this->response.setStatus(400);
-		// std::cout << YELLOW << "path: " << location->path << RESET << std::endl;
-		// std::cout << YELLOW << "root: " << location->root << RESET << std::endl;
-		// std::cout << YELLOW << "redirection: " << location->redirection << RESET << std::endl;
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
 		else {
 			if (!location->getRedirection().empty()) {
-				// std::cout << RED << "Is Redirect" << RESET << std::endl;
 				this->response.setResponseType(REDIRECT);
 			}
 			else if (!this->methodIsAllowed(location->allowMethods, this->request.getMethod()))
@@ -154,39 +121,21 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 
 void	Client::send_response()
 {
-	/*
-		if (OK) {
-			if (GET)
-				-> perform action, getMethod()
-			else if (POST)
-				-> perform action, postMethod()
-			else if (DELETE)
-				-> perform action, deleteMethod()
-		}
-		else if (REDIRECT) {
-			this->response.redirect(redirection);
-			this->processing_level = PROCESSED;
-		}
-		else if (ERROR) {
-			bool isResponseEnd = this->response.send_response_error();
-			this->processing_level = isResponseEnd ? PROCESSED : SENDING;
-		}
-	*/
 	if (this->response.getResponseType() == OK) {
 		try
 		{
-			// isResponseEnd = this->response.getMethod(this->request.getUri(), this->request.getHeaders());
-			// this->response.log_res_level();
-			bool isResponseEnd = false;
-			if (this->request.getMethod() == "GET")
-				isResponseEnd = this->response.newGet(this->request.getUri(), this->request.getHeaders(), GET);
-			else if (this->request.getMethod() == "POST")
-				isResponseEnd = this->response.uploadPostMethod(this->request);
 			// todo: DELETE Method
-			// ...
+			// todo complete: POST Method
+
+			bool isResponseEnd = false;
+
+			if (this->request.getMethod() == "GET")
+				isResponseEnd = this->response.get_method(this->request.getUri(), this->request.getHeaders(), GET);
+			else if (this->request.getMethod() == "POST")
+				isResponseEnd = this->response.post_method(this->request, this->request.getHeaders(), POST);
+			else if (this->request.getMethod() == "DELETE")
+				isResponseEnd = this->response.delete_method(this->request.getUri());
 			this->processing_level = isResponseEnd ? PROCESSED : SENDING;
-			// this->response.log_res_level();
-			// this->response.log_res_type();
 		}
 		catch (int error_code)
 		{
