@@ -87,7 +87,7 @@ int	isPath(std::string str)
 		return (0);
 	while (str[i])
 	{
-		if (!isalpha(str[i]) && str[i] != '/' && str[i] != '_' && str[i] != '.' && str[i] != '-')
+		if (!isalnum(str[i]) && str[i] != '/' && str[i] != '_' && str[i] != '.' && str[i] != '-')
 			return (0);
 		i++;
 	}
@@ -106,7 +106,7 @@ int	isLocationPath(std::string str)
 	i++;
 	while (str[i])
 	{
-		if (!isalpha(str[i]) && str[i] != '/' && str[i] != '_' && str[i] != '.')
+		if (!isalnum(str[i]) && str[i] != '/' && str[i] != '_' && str[i] != '.')
 			return (0);
 		i++;
 	}
@@ -217,6 +217,7 @@ void	skipSlash(std::string & str)
 				if (str[i] != '/')
 					break ;
 				str.erase(i, 1);
+				i--;
 			}
 		}
 	}

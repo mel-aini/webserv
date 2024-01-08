@@ -30,6 +30,8 @@ Response::Response()
 	status_codes[501] = "Not Implemented";
 	status_codes[502] = "Bad Gateway";
 	status_codes[505] = "HTTP Version Not Supported";
+	status_codes[415] = "Unsupported Media Type";
+
 
 	content_type[".html"] = "text/html";
 	content_type[".htm"] = "text/html";
@@ -47,9 +49,9 @@ Response::~Response() {
 	// std::cout << BOLDRED << "Response Destructor Called" << RESET << std::endl;
 }
 
-void	Response::setServerInfo(std::map<std::string, std::string> serverInfo)
+void	Response::setBodyFileName(std::string bodyFileName)
 {
-	this->serverInfo = serverInfo;
+	this->bodyFileName = bodyFileName;
 }
 
 int	Response::getStatus() const {
@@ -276,17 +278,6 @@ bool	compareByLength(Location& a, Location& b)
     return (a.getPath().length() > b.getPath().length());
 }
 
-bool	hasQueryString(std::string uri)
-{
-	size_t	i;
-	for (i = 0; i < uri.length(); i++)
-		if (uri[i] == '?')
-			break ;
-	if (i == uri.length())
-		return (false);
-	return (true);
-}
-
 Location *Response::findLocation(std::vector<Location> &locations, std::string uri)
 {
 	std::vector<Location>::iterator	it;
@@ -454,99 +445,41 @@ bool	Response::getRequestedFile(std::string uri)
 
 ///////////////////////
 
-char**	Response::getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> _headers)
+bool	hasQueryString(std::string uri)
 {
-	size_t size = (hasQueryString(uri) && method_type == GET) ? 13 : 12;
-	size = (method_type == POST) ? size : 14;
+	size_t	i;
+	for (i = 0; i < uri.length(); i++)
+		if (uri[i] == '?')
+			break ;
+	if (i == uri.length())
+		return (false);
+	return (true);
+}
+
+char**	Response::getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> firstCgiEnv)
+{
+	std::map<std::string, std::string>::iterator it = firstCgiEnv.begin();
+	size_t size = (hasQueryString(uri) && method_type == GET) ? 18 : 17;
+	size = (method_type == POST) ? size : 19;
 	char	**env = new char*[size];
 
+	size_t i = 0;
+	for (; it != firstCgiEnv.end(); it++)
+	{
+		std::cout << it->second << "         " << i << std::endl;
+		env[i] = strdup(it->second.c_str());
+		i++;
+	}
+
 	std::string	variable;
-	variable = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
-	std::cout << variable << std::endl;
-	env[0] = strdup(variable.c_str());
 
-	variable = "SERVER_PORT=" + this->serverInfo["PORT"];
-	std::cout << variable << std::endl;
-	env[1] = strdup(variable.c_str());
-
-	variable = "SERVER_PROTOCOL=HTTP/1.1";
-	std::cout << variable << std::endl;
-	env[2] = strdup(variable.c_str());
-
-	if (hasQueryString(uri))
-	{
-		variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4, uri.find('?') - (uri.find(".php") + 4));
-		std::cout << variable << std::endl;
-		env[3] = strdup(variable.c_str());
-	}
-	else
-	{
-		variable = "PATH_INFO=" + uri.substr(uri.find(".php") + 4);
-		std::cout << variable << std::endl;
-		env[3] = strdup(variable.c_str());
-	}
-
-	variable = "HTTP_ACCEPT=" + _headers["accept"];
-	std::cout << variable << std::endl;
-	env[4] = strdup(variable.c_str());
-
-	variable = "HTTP_USER_AGENT=" + _headers["user-agent"];
-	std::cout << variable << std::endl;
-	env[5] = strdup(variable.c_str());
-
-	variable = "HTTP_COOKIE=" + _headers["cookie"];
-	std::cout << variable << std::endl;
-	env[6] = strdup(variable.c_str());
-
-	variable = "REDIRECT_STATUS=0";
-	std::cout << variable << std::endl;
-	env[7] = strdup(variable.c_str());
-
-	variable = "REQUEST_URI=" + uri;
-	std::cout << variable << std::endl;
-	env[8] = strdup(variable.c_str());
 
 	if (uri[0] == '/')
 		uri.erase(0, 1);
-	variable = "SCRIPT_FILENAME=" + this->location->getRoot() + uri.substr(0, uri.find(".php") + 4);
-	std::cout << variable << std::endl;
-	env[9] = strdup(variable.c_str());
-
-	if (method_type == GET)
-	{
-		variable = "REQUEST_METHOD=GET";
-		std::cout << variable << std::endl;
-		env[10] = strdup(variable.c_str());
-
-		if (hasQueryString(uri))
-		{
-			std::string queryString = uri.substr(uri.find('?') + 1);
-			variable = "QUERY_STRING=" + queryString;
-			std::cout << variable << std::endl;
-			env[11] = strdup(variable.c_str());
-
-			env[12] = NULL;
-		}
-		else
-		{
-			env[11] = NULL;
-		}
-	}
-	else if (method_type == POST)
-	{
-		variable = "REQUEST_METHOD=POST";
-		std::cout << variable << std::endl;
-		env[10] = strdup(variable.c_str());
-
-		variable = "CONTENT_TYPE=" + headers["content-type"];
-		std::cout << variable << std::endl;
-		env[11] = strdup(variable.c_str());
-
-		variable = "CONTENT_LENGTH=" + headers["content-length"];
-		std::cout << variable << std::endl;
-		env[12] = strdup(variable.c_str());
-		env[13] = NULL;
-	}
+	variable = "SCRIPT_FILENAME=" + this->fileToSend;
+	std::cout << variable << "         " << i << std::endl;
+	env[i++] = strdup(variable.c_str());
+	env[i] = NULL;
 	return (env);
 }
 
@@ -573,6 +506,14 @@ void	Response::executeCgi(std::string uri, std::map <std::string, std::string> _
 	{
 		dup2(fdes, 1);
 		close(fdes);
+		if (method_type == POST)
+		{
+			int fd = open(this->bodyFileName.c_str(), O_RDONLY);
+			if (fd == -1)
+				throw (502);
+			dup2(fd, 0);
+			close(fd);
+		}
 		execve(this->location->getCgiExec()[0].c_str(), NULL, env);
 		throw 502;
 	}
@@ -639,14 +580,14 @@ void	Response::executeCgi(std::string uri, std::map <std::string, std::string> _
 }
 
 // ... working on
-bool	Response::newGet(std::string uri, std::map <std::string, std::string> _headers, int method_type) {
+bool	Response::newGet(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type) {
 	// todo: new GET
 	if (this->sending_level == GET_REQUESTED_RES) {
 		if (getRequestedFile(uri))
 			this->sending_level = SENDING_HEADERS;
 		if (this->location->getCgiExec().size() != 0 && this->fileToSend.substr(this->fileToSend.rfind('.')) == this->location->getCgiExec()[1])
 		{
-			this->executeCgi(uri, _headers, method_type);
+			this->executeCgi(uri, firstCgiEnv, method_type);
 			this->sending_level = SENDING_END;
 		}
 		else {

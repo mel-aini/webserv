@@ -150,6 +150,11 @@ bool	Location::getAutoIndex(void)
 	return (this->autoIndex);
 }
 
+std::vector<std::string>&	Location::getAllowMethods(void)
+{
+	return (this->allowMethods);
+}
+
 std::ostream & operator<<(std::ostream & out, const Location & obj)
 {
 	out << " path: " << obj.path

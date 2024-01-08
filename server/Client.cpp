@@ -30,7 +30,56 @@ void	Client::setServerInfo(std::string port, std::string host, std::string s_nam
 	this->serverInfo["PORT"] = port;
 	this->serverInfo["HOST"] = host;
 	this->serverInfo["SERVER_NAME"] = s_name;
-	this->response.setServerInfo(this->serverInfo);
+	this->response.setBodyFileName(this->request.getFilename());
+}
+
+void	Client::setFirstCgiEnv(void)
+{
+	std::string uri = this->request.getUri();
+	if (uri[0] == '/')
+		uri.erase(0, 1);
+	bool	hasQS = hasQueryString(uri);
+	this->firstCgiEnv["SERVER_NAME"] = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
+	this->firstCgiEnv["SERVER_PORT"] = "SERVER_PORT=" + this->serverInfo["PORT"];
+	this->firstCgiEnv["SERVER_PROTOCOL"] = "SERVER_PROTOCOL=HTTP/1.1";
+	this->firstCgiEnv["HTTP_HOST"] = "HTTP_HOST=" + this->serverInfo["HOST"];
+	this->firstCgiEnv["REMOTE_ADDR"] = "REMOTE_ADDR=" + this->serverInfo["HOST"];
+	this->firstCgiEnv["HTTP_CONNECTION"] = "HTTP_CONNECTION=" + this->request.getHeader("connection");
+	this->firstCgiEnv["HTTP_ACCEPT"] = "HTTP_ACCEPT=" + this->request.getHeader("accept");
+	this->firstCgiEnv["HTTP_USER_AGENT"] = "HTTP_USER_AGENT=" + this->request.getHeader("user-agent");
+	this->firstCgiEnv["HTTP_COOKIE"] = "HTTP_COOKIE=" + this->request.getHeader("cookie");
+	this->firstCgiEnv["REDIRECT_STATUS"] = "REDIRECT_STATUS=0";
+	this->firstCgiEnv["REQUEST_URI"] = "REQUEST_URI=" + uri;
+	this->firstCgiEnv["DOCUMENT_ROOT"] = "DOCUMENT_ROOT=" + this->location->getRoot();
+
+	long long pos = uri.find(this->location.getCgiExec()[1] + this->location.getCgiExec()[1].length());
+	if (pos != -1)
+	{
+		this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, pos);
+		if (hasQS)
+		{
+			this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri.substr(pos, uri.find('?') - pos); // pos + 1 I think
+			this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + uri.substr(pos, uri.find('?') - pos);
+		}
+		else
+		{
+			this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri.substr(pos); // pos + 1 I think
+			this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + uri.substr(pos);
+		}
+	}
+	if (this->request.getMethod() == "GET")
+	{
+		this->firstCgiEnv["REQUEST_METHOD=GET"];
+
+		if (hasQS)
+			this->firstCgiEnv["QUERY_STRING"] = "QUERY_STRING=" + uri.substr(uri.find('?') + 1);
+	}
+	else if (this->request.getMethod() == "POST")
+	{
+		this->firstCgiEnv["REQUEST_METHOD"] = "REQUEST_METHOD=POST";
+		this->firstCgiEnv["CONTENT_TYPE"] = "CONTENT_TYPE=" + this->request.getHeader("content-type");
+		this->firstCgiEnv["CONTENT_LENGTH"] = "CONTENT_LENGTH=" + this->request.getHeader("content-length");
+	}
 }
 
 Request	Client::getRequest() const {
@@ -135,7 +184,7 @@ bool	Client::createResponse(std::vector<Location> &locations) {
 				// std::cout << RED << "Is Redirect" << RESET << std::endl;
 				this->response.setResponseType(REDIRECT);
 			}
-			else if (!this->methodIsAllowed(location->allowMethods, this->request.getMethod()))
+			else if (!this->methodIsAllowed(location->getAllowMethods(), this->request.getMethod()))
 				this->response.setResponseType(ERROR);
 		}
 		processing_level = SENDING;
@@ -177,11 +226,15 @@ void	Client::send_response()
 		{
 			// isResponseEnd = this->response.getMethod(this->request.getUri(), this->request.getHeaders());
 			// this->response.log_res_level();
+			this->setFirstCgiEnv();
 			bool isResponseEnd = false;
-			if (this->request.getMethod() == "GET")
-				isResponseEnd = this->response.newGet(this->request.getUri(), this->request.getHeaders(), GET);
-			else if (this->request.getMethod() == "POST")
+			if (this->request.getMethod() == "GET") {
+
+				isResponseEnd = this->response.newGet(this->request.getUri(), this->firstCgiEnv, GET);
+			}
+			else if (this->request.getMethod() == "POST") {
 				isResponseEnd = this->response.uploadPostMethod(this->request);
+			}
 			// todo: DELETE Method
 			// ...
 			this->processing_level = isResponseEnd ? PROCESSED : SENDING;

@@ -14,6 +14,8 @@
 #include <dirent.h>
 #include <fcntl.h>
 
+bool    hasQueryString(std::string uri);
+
 enum METHOD {
 	GET,
 	POST,
@@ -52,7 +54,6 @@ enum response_state {
 
 class Response {
     private:
-        std::map<std::string, std::string>	serverInfo;
         unsigned int                        status;
         std::string                         message;
         std::string                         body;
@@ -74,6 +75,7 @@ class Response {
         std::map<std::string, std::string>  content_type;
         std::string                         fileToSend;
         std::string                         fileToUpload;
+        std::string                         bodyFileName;
 
     public:
         Response();
@@ -88,6 +90,7 @@ class Response {
         void                setSocket(int fd);
         void                setError(int status_code);
         void                setSendingLevel(unsigned int level);
+        void                setBodyFileName(std::string bodyFileName);
 
 		bool                            send_response_error();
         bool                            send_response_index_files(std::string uri);
@@ -101,7 +104,7 @@ class Response {
         void                            redirect(const std::string& location);
         void                            reset();
         bool                            sendFile(std::string fileName);
-        bool                            newGet(std::string uri, std::map <std::string, std::string> _headers, int method_type);
+        bool                            newGet(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
         bool                            getRequestedResource(std::string uri);
         std::pair<std::string, size_t>  getMatchIndex(std::string uri);
         bool                            readAndSendFile(std::string path, size_t size);
@@ -115,10 +118,8 @@ class Response {
         void                            log_members();
         bool                            uploadPostMethod(Request &request);
         std::string                     getExtension(std::string filename);
-        void                            setServerInfo(std::map<std::string, std::string> serverInfo);
-        bool                            getMethod(std::string uri, std::map <std::string, std::string> _headers);
-        char**				            getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> _headers);
-        void                            executeCgi(std::string uri, std::map <std::string, std::string> _headers, int method_type);
+        char**				            getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> firstCgiEnv);
+        void                            executeCgi(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
         class ResponseFailed : public std::exception {
 			public:
 				const char * what() const throw();
