@@ -6,7 +6,7 @@
 /*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/09 12:06:49 by hel-mamo         ###   ########.fr       */
+/*   Updated: 2024/01/09 17:06:32 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -268,7 +268,9 @@ int Request::readHeaders()
         this->_lengthState = 0;
     }
     else if (this->thereIsBoundary())
+    {
         this->_state = BOUNDARY;
+    }
     else if (this->ContentLengthExists())
     {
         this->_state = CONTENT_LENGTH;
@@ -313,11 +315,6 @@ int Request::readByChunk()
                     return 0;
                 }
                 this->_bodySize += this->_lengthState;
-                // if (this->_bodySize > location->clientMaxBodySize) {
-                //     this->status = 413;
-                //     return 0;
-                // }
-
                 this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
                 this->_chunkState = CHUNK_DATA;
             }
@@ -362,7 +359,7 @@ int Request::readByChunk()
                 }
             }
         }
-   }
+    }
     return 1;
 }
 
@@ -431,56 +428,58 @@ int Request::parseRequest(char *buffer, int size, int fd)
 {   
     (void)fd;
     this->_request += std::string(buffer, size);
-    switch (this->_state)
+    if (this->_state == START)
     {
-        case START : 
-        {
-            if (this->_request.find("\r\n") == std::string::npos)
-                break;
-            this->_state = METHOD;
-        }
-        case METHOD:
-        {
-            std::string requestLine = this->_request.substr(0, this->_request.find("\r\n"));
-            std::stringstream ss(requestLine);
-            std::getline(ss, this->_method, ' ');
-            std::getline(ss, this->_uri, ' ');
-            std::getline(ss, this->_version, ' ');
-            if (!validateRequestLine())
-                goto end;
-            skipSlash(this->_uri);
-            this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
-            this->_state = HEADER;
-        }
-        case HEADER :
-        {
-            if (readHeaders())
-                break ;
-            goto end;
-        }
-        case CONTENT_LENGTH :
-        {            
-            if (readByContentLength())
-                break ;
-            goto end;
-        }
-        case CHUNKED :
-        {
-            if (readByChunk())
-                break ;
-            goto end;     
-        }
-        case BOUNDARY :
-        {
-            if (readBoundary())
-               break ;
-        }
-        case END :
-        {
-            end:
-                return 1;
-        }
+        if (this->_request.find("\r\n") == std::string::npos)
+            return 0;
+        this->_state = METHOD;
     }
+    if (this->_state == METHOD)
+    {
+        std::string requestLine = this->_request.substr(0, this->_request.find("\r\n"));
+        std::stringstream ss(requestLine);
+        std::getline(ss, this->_method, ' ');
+        std::getline(ss, this->_uri, ' ');
+        std::getline(ss, this->_version, ' ');
+        if (!validateRequestLine())
+            return 1;
+        skipSlash(this->_uri);
+        this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
+        this->_state = HEADER;
+    }
+    if (this->_state == HEADER)
+    {
+        if (readHeaders())
+        {
+            if (this->_request.length() == 0)
+                return 0;
+        }
+        else
+            return 1;
+    }
+    if (this->_state == CONTENT_LENGTH)
+    {
+        if (readByContentLength())
+            return 0;
+        else
+            return 1;
+    }
+    if (this->_state == CHUNKED)
+    {
+        if (readByChunk())
+            return 0;
+        else
+            return 1;
+    }
+    if (this->_state == BOUNDARY)
+    {
+        if (readBoundary())
+            return 0;
+        else
+            return 1;
+    }
+    if (this->_state == END)
+        return 1;
     return 0;
 }
 

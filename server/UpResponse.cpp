@@ -84,7 +84,6 @@ bool    Response::uploadPostMethod(Request &request)
             else
                 name = headers.substr(headers.find("name=\"") + 6); 
             name = name.substr(0, name.find("\""));
-          
             this->fileToUpload = "./" + this->location->getUploadLocation() + "/" + name;
         }
         std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
