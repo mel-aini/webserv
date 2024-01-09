@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ochouikh <ochouikh@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/08 11:21:35 by ochouikh         ###   ########.fr       */
+/*   Updated: 2024/01/09 11:31:04 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -397,10 +397,11 @@ int Request::readBoundary()
     /*
         append the request to a file until the end of the request
     */
-    if (this->_request.find(this->_boundary + "--") == std::string::npos)
+    std::string boundary = "--" + this->_boundary + "--";
+    size_t pos = this->_request.find(boundary);
+    if (pos == std::string::npos)
     {
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
-        this->_bodySize += this->_request.length();
         file << this->_request;
         this->_request = "";
         file.close();
@@ -408,14 +409,18 @@ int Request::readBoundary()
     }
     else 
     {
+        if (this->_request.substr(pos + boundary.length()) != "\r\n")
+        {
+            this->status = 400;
+            return 0;
+        }
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
-        this->_bodySize += this->_boundary.length() + 2;
-        file << this->_boundary + "--";
+        file << this->_request;
         this->_request = "";
         file.close();
         this->_state = END;
-        return 0;
     }
+    return 0;
 }
 
 int Request::parseRequest(char *buffer, int size, int fd)
