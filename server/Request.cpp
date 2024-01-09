@@ -6,7 +6,7 @@
 /*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/09 11:31:04 by hel-mamo         ###   ########.fr       */
+/*   Updated: 2024/01/09 12:06:49 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,8 @@ Request &Request::operator=(Request const &rhs)
         this->_headers = rhs._headers;
         this->_filename = rhs._filename;
         this->status = rhs.status;
+        this->_bodySize = rhs._bodySize;
+        this->_boundary = rhs._boundary;
     }
     return *this;
 }
@@ -311,7 +313,7 @@ int Request::readByChunk()
                     return 0;
                 }
                 this->_bodySize += this->_lengthState;
-                // if (_bodySize > location->clientMaxBodySize) {
+                // if (this->_bodySize > location->clientMaxBodySize) {
                 //     this->status = 413;
                 //     return 0;
                 // }
@@ -402,6 +404,7 @@ int Request::readBoundary()
     if (pos == std::string::npos)
     {
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+        this->_bodySize += this->_request.length();
         file << this->_request;
         this->_request = "";
         file.close();
@@ -415,6 +418,7 @@ int Request::readBoundary()
             return 0;
         }
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+        this->_bodySize += this->_request.length();
         file << this->_request;
         this->_request = "";
         file.close();

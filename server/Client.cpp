@@ -168,7 +168,7 @@ bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
 }
 
 bool        Client::isBeyondMaxBodySize() {
-	if (location && this->request.getBodysize() > (location->clientMaxBodySize / 1000000)) {
+	if (location && this->request.getBodysize() > (location->clientMaxBodySize * MEGABYTE)) {
 		this->response.setStatus(413);
 		this->response.setResponseType(ERROR);
 		return true;
@@ -197,10 +197,10 @@ bool		Client::readRequest(std::vector<Location> &locations) {
 
 	bool isReadEnd = this->request.parseRequest(buf, readed, this->fd);
 
-	// if (isBeyondMaxBodySize()) {
-	// 	this->reqHasRead();
-	// 	return true;
-	// }
+	if (isBeyondMaxBodySize()) {
+		this->reqHasRead();
+		return true;
+	}
 
 	if (isReadEnd) {
 
