@@ -33,7 +33,10 @@ bool    Response::uploadPostMethod(Request &request)
         
         std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
         if (!outputfile.is_open())
+        {
+            unlink(request.getFilename().c_str());
             throw 404;
+        }
 
         inputfile.seekg(this->fileOffset);
         inputfile.read(buffer, 10000);
@@ -46,6 +49,7 @@ bool    Response::uploadPostMethod(Request &request)
             this->fileOffset = 0;
             inputfile.close();
             outputfile.close();
+            unlink(request.getFilename().c_str());
             return true;
         }
         inputfile.close();
@@ -85,7 +89,11 @@ bool    Response::uploadPostMethod(Request &request)
         }
         std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
         if (!outputfile.is_open())
+        {
+            inputfile.close();
+            unlink(request.getFilename().c_str());
             throw 404;
+        }
         
         int i = 0;
         while (std::getline(inputfile, line))
@@ -112,6 +120,7 @@ bool    Response::uploadPostMethod(Request &request)
             std::cout << "-->" <<  this->fileOffset << std::endl;
             inputfile.close();
             outputfile.close();
+            unlink(request.getFilename().c_str());
             return true;
         }
         this->index = 0;
