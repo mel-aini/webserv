@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ochouikh <ochouikh@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/08 11:21:35 by ochouikh         ###   ########.fr       */
+/*   Updated: 2024/01/09 17:06:32 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -40,6 +40,8 @@ Request &Request::operator=(Request const &rhs)
         this->_headers = rhs._headers;
         this->_filename = rhs._filename;
         this->status = rhs.status;
+        this->_bodySize = rhs._bodySize;
+        this->_boundary = rhs._boundary;
     }
     return *this;
 }
@@ -266,7 +268,9 @@ int Request::readHeaders()
         this->_lengthState = 0;
     }
     else if (this->thereIsBoundary())
+    {
         this->_state = BOUNDARY;
+    }
     else if (this->ContentLengthExists())
     {
         this->_state = CONTENT_LENGTH;
@@ -311,11 +315,6 @@ int Request::readByChunk()
                     return 0;
                 }
                 this->_bodySize += this->_lengthState;
-                // if (_bodySize > location->clientMaxBodySize) {
-                //     this->status = 413;
-                //     return 0;
-                // }
-
                 this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
                 this->_chunkState = CHUNK_DATA;
             }
@@ -360,7 +359,7 @@ int Request::readByChunk()
                 }
             }
         }
-   }
+    }
     return 1;
 }
 
@@ -397,7 +396,9 @@ int Request::readBoundary()
     /*
         append the request to a file until the end of the request
     */
-    if (this->_request.find(this->_boundary + "--") == std::string::npos)
+    std::string boundary = "--" + this->_boundary + "--";
+    size_t pos = this->_request.find(boundary);
+    if (pos == std::string::npos)
     {
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
         this->_bodySize += this->_request.length();
@@ -408,70 +409,77 @@ int Request::readBoundary()
     }
     else 
     {
+        if (this->_request.substr(pos + boundary.length()) != "\r\n")
+        {
+            this->status = 400;
+            return 0;
+        }
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
-        this->_bodySize += this->_boundary.length() + 2;
-        file << this->_boundary + "--";
+        this->_bodySize += this->_request.length();
+        file << this->_request;
         this->_request = "";
         file.close();
         this->_state = END;
-        return 0;
     }
+    return 0;
 }
 
 int Request::parseRequest(char *buffer, int size, int fd)
 {   
     (void)fd;
     this->_request += std::string(buffer, size);
-    switch (this->_state)
+    if (this->_state == START)
     {
-        case START : 
-        {
-            if (this->_request.find("\r\n") == std::string::npos)
-                break;
-            this->_state = METHOD;
-        }
-        case METHOD:
-        {
-            std::string requestLine = this->_request.substr(0, this->_request.find("\r\n"));
-            std::stringstream ss(requestLine);
-            std::getline(ss, this->_method, ' ');
-            std::getline(ss, this->_uri, ' ');
-            std::getline(ss, this->_version, ' ');
-            if (!validateRequestLine())
-                goto end;
-            skipSlash(this->_uri);
-            this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
-            this->_state = HEADER;
-        }
-        case HEADER :
-        {
-            if (readHeaders())
-                break ;
-            goto end;
-        }
-        case CONTENT_LENGTH :
-        {            
-            if (readByContentLength())
-                break ;
-            goto end;
-        }
-        case CHUNKED :
-        {
-            if (readByChunk())
-                break ;
-            goto end;     
-        }
-        case BOUNDARY :
-        {
-            if (readBoundary())
-               break ;
-        }
-        case END :
-        {
-            end:
-                return 1;
-        }
+        if (this->_request.find("\r\n") == std::string::npos)
+            return 0;
+        this->_state = METHOD;
     }
+    if (this->_state == METHOD)
+    {
+        std::string requestLine = this->_request.substr(0, this->_request.find("\r\n"));
+        std::stringstream ss(requestLine);
+        std::getline(ss, this->_method, ' ');
+        std::getline(ss, this->_uri, ' ');
+        std::getline(ss, this->_version, ' ');
+        if (!validateRequestLine())
+            return 1;
+        skipSlash(this->_uri);
+        this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
+        this->_state = HEADER;
+    }
+    if (this->_state == HEADER)
+    {
+        if (readHeaders())
+        {
+            if (this->_request.length() == 0)
+                return 0;
+        }
+        else
+            return 1;
+    }
+    if (this->_state == CONTENT_LENGTH)
+    {
+        if (readByContentLength())
+            return 0;
+        else
+            return 1;
+    }
+    if (this->_state == CHUNKED)
+    {
+        if (readByChunk())
+            return 0;
+        else
+            return 1;
+    }
+    if (this->_state == BOUNDARY)
+    {
+        if (readBoundary())
+            return 0;
+        else
+            return 1;
+    }
+    if (this->_state == END)
+        return 1;
     return 0;
 }
 
