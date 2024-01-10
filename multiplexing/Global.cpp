@@ -100,7 +100,7 @@ void Global::create_servers()
         int sockfd = this->isAlreadyUsed(it->getHost(), it->getPort(), it - servers.begin());
 		if (sockfd > 0) {
 			it->setSocket(sockfd);
-			std::cout << "a server is listening on Port: " << YELLOW << it->getPort() << RESET << std::endl;
+			std::cout << "a server is listening on: " << YELLOW << it->getHost() + ":" + it->getPort() << RESET << std::endl;
 
 			// assign begin and end iterators of servers to each server
 			it->setServersBegin(this->servers.begin());
@@ -182,7 +182,7 @@ void Global::create_servers()
 		// assign begin and end iterators of servers to each server
 		it->setServersBegin(this->servers.begin());
 		it->setServersEnd(this->servers.end());
-        std::cout << "a server is listening on Port: " << YELLOW << it->getPort() << RESET << std::endl;
+        std::cout << "a server is listening on: " << YELLOW << it->getHost() + ":" + it->getPort() << RESET << std::endl;
     }
     if (servers.size() == 0) {
         std::cerr << "No Server has created" << std::endl;

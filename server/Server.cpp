@@ -143,7 +143,6 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 			it->setPollfd(pollfd);
 			if (!eventOccured) {
 				// then: no event occured
-				// std::cout << BLUE << "no event occured" << RESET << std::endl;
 				if (it->checkLogTime()) {
 					this->removeClient(pollfds, it);
 					return true;
@@ -188,7 +187,7 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 
 void	Server::logClients() {
 	std::vector<Client>::iterator it;
-	std::cout << "server at port: " << YELLOW << this->port << RESET
+	std::cout << "server with endpoint: " << YELLOW << this->host + ":" + this->port << RESET
 	<< " has " << YELLOW << this->clients.size() << RESET << " clients: " << std::endl;
 	for (it = this->clients.begin(); it != this->clients.end(); it++)
 		it->log();

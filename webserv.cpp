@@ -31,7 +31,6 @@ int main(int ac, char* av[])
     global.create_servers();
     struct pollfd *pollfds;
 
-
     while (true)
     {
         signal(SIGPIPE, handleSignal);

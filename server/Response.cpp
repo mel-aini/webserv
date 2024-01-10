@@ -124,6 +124,7 @@ bool	Response::sendFile(std::string fileName)
 		std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
 		throw ResponseFailed();
 	}
+
 	file.seekg(this->bodyOffset, std::ios::beg);
 
 	file.read(buf, sizeof(buf));
@@ -132,13 +133,14 @@ bool	Response::sendFile(std::string fileName)
 	int s = send(this->socket, buf, bytesRead, 0);
 	if (s == -1)
 		throw ResponseFailed();
+
 	bodyOffset += s;
 	// std::cout << "send: " << BOLDCYAN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
 	if (file.eof()) {
 		this->sending_level = SENDING_END;
 		// std::cout << "bytes sent: " << BOLDGREEN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
 		file.close();
-		std::cout << BOLDGREEN << "Reached end of file" << RESET << std::endl;
+		// std::cout << BOLDGREEN << "Reached end of file" << RESET << std::endl;
 		return true;
 	}
 	file.close();
@@ -257,6 +259,7 @@ void	Response::send_status_line_and_headers()
 	}
 
 	std::string response = status_line + headers + "\r\n\r\n";
+
 	// std::cout << YELLOW << response << RESET << std::endl; 
 	// std::cout << YELLOW << response << RESET << std::endl;
 	const char *buf = response.c_str();
@@ -270,7 +273,6 @@ void    Response::redirect(const std::string& location)
 	this->status = 301;
 	this->headers["Location: "] = location;
 	send_status_line_and_headers();
-	// std::cout << "REDIRECT" << std::endl;
 }
 
 bool	Response::getRequestedResource(std::string uri)
@@ -335,7 +337,7 @@ void	Response::setError(int status_code) {
 // ... working on
 bool	Response::isFileExist(std::string& target) {
 	if (access(target.c_str(), F_OK) == 0) { // then: exist 
-		if (access(target.c_str(), R_OK) == 0) { // then: has permission
+		if (access(target.c_str(), W_OK) == 0) { // then: has permission
 			return true;
 		}
 		else {
@@ -358,6 +360,26 @@ bool	Response::isTarget(std::string& target,  struct stat *fileInfo) {
 	throw 404;
 }
 
+void	Response::decode_uri(std::string& uri)
+{
+	size_t l = 0;
+	for (; l < uri.length(); l++)
+	{
+		if (uri[l] == '+')
+			uri[l] = ' ';
+		else if (uri[l] == '%' && uri[l + 1] && uri[l + 2])
+		{
+			std::string hexChar = uri.substr(l + 1, 2);
+			std::stringstream ss(hexChar);
+			int c;
+			ss >> std::hex >> c;
+			std::cout << l << std::endl;
+			if (c != 0)
+			    uri = uri.substr(0, l) + static_cast<char>(c) + uri.substr(l + 3);
+		}
+	}
+}
+
 // ... working on
 bool	Response::getRequestedFile(std::string uri)
 {
@@ -367,9 +389,11 @@ bool	Response::getRequestedFile(std::string uri)
 	if (hasQueryString(uri))
 		uri = uri.substr(0, uri.find('?'));
 
+	decode_uri(uri);
+
 	std::string	target = this->location->getRoot() + uri;
 
-	std::cout << BOLDRED << "target: " << target << RESET << std::endl;
+	// std::cout << BOLDRED << "target: " << target << RESET << std::endl;
 	if (!this->isFileExist(target)) {
 		// std::cout << BOLDRED << "Here!!! 1" << RESET << std::endl;
 		throw 404;
@@ -378,7 +402,6 @@ bool	Response::getRequestedFile(std::string uri)
 	struct stat fileInfo;
 
 	if (this->isTarget(target, &fileInfo)) {
-		// std::cout << BOLDRED << "isTarget" << RESET << std::endl;
 		return true;
 	}
 	else if (S_ISDIR(fileInfo.st_mode)) {
@@ -390,14 +413,16 @@ bool	Response::getRequestedFile(std::string uri)
 		std::vector<std::string>::iterator it;
 		std::vector<std::string> index = this->location->getIndex();
 
-		std::cout << "before: " << target << std::endl;
+		if (index.size() == 0)
+			return false;
 	
 		for (it = index.begin(); it != index.end(); it++) {
 			std::string target2 = target + *it;
 
-			std::cout << "new target: " << target2 << std::endl;
+			// std::cout << "new target: " << target2 << std::endl;
 		
 			if (this->isFileExist(target2)) {
+				// std::cout << "Exist" << std::endl;
 				struct stat fileInfo2;
 				if (!this->isTarget(target2, &fileInfo2)) {
 					throw 403;
@@ -405,9 +430,7 @@ bool	Response::getRequestedFile(std::string uri)
 				return true;
 			}
 		}
-		// std::cout << BOLDRED << "Here!!! 3" << RESET << std::endl;
-		// std::cout << BOLDRED << "No Index" << RESET << std::endl;
-		return false;
+		throw 404;
 	}
 	return false;
 }
@@ -557,17 +580,118 @@ bool	Response::post_method(Request &request, std::map <std::string, std::string>
 	return this->uploadPostMethod(request);
 }
 
+void	Response::check_dir_permission(std::string target) {
+	if (access(target.c_str(), W_OK) != 0) {
+		throw 403;
+	}
+
+	std::cout << BOLDRED << "before: " + target << RESET << std::endl;
+	DIR *dir = opendir(target.c_str());
+	if (!dir)
+		throw 404;
+	std::cout << BOLDRED << "after" << RESET << std::endl;
+	std::string oldTarget = target;
+	struct dirent *dirContent;
+	struct stat fileInfo;
+
+	while ((dirContent = readdir(dir)) != NULL) {
+		std::string	dirstring = dirContent->d_name;
+		if (dirstring == "." || dirstring == "..") {
+			continue;
+		}
+		std::string newTarget = oldTarget + "/" + dirstring;
+		if (stat(newTarget.c_str(), &fileInfo) == 0) {
+			if (access(newTarget.c_str(), W_OK) != 0) {
+				closedir(dir);
+				throw 403;
+			}
+			if (S_ISDIR(fileInfo.st_mode)) {
+				check_dir_permission(newTarget);
+			}
+		} else {
+			closedir(dir);
+			throw 404;
+		}
+	}
+}
+
+void	Response::remove_dir(std::string target) {
+	DIR *dir = opendir(target.c_str());
+	if (!dir)
+		throw 404;
+
+	std::string oldTarget = target;
+	struct dirent *dirContent;
+	struct stat fileInfo;
+
+	while ((dirContent = readdir(dir)) != NULL) {
+		std::string	dirstring = dirContent->d_name;
+		if (dirstring == "." || dirstring == "..") {
+			continue;
+		}
+		std::string newTarget = oldTarget + "/" + dirstring;
+		if (stat(newTarget.c_str(), &fileInfo) == 0) {
+			if (S_ISREG(fileInfo.st_mode)) {
+				if (unlink(newTarget.c_str()) == -1)
+					throw 500;
+			}
+			else if (S_ISDIR(fileInfo.st_mode)) {
+				remove_dir(newTarget);
+			}
+		} else {
+			throw 404;
+		}
+	}
+	if (rmdir(target.c_str()) == -1)
+		throw 500;
+}
+
 bool	Response::delete_method(std::string uri) {
 	if (uri[0] == '/')
 		uri.erase(0, 1);
 
+	decode_uri(uri);
+
 	std::string	target = this->location->getRoot() + uri;
-	if (isFileExist(target))
+	this->fileToSend = target;
+
+	std::cout << "target: " + target << std::endl;
+
+	if (!isFileExist(target))
 		throw 404;
-	
-	
-	(void)uri;
-	return false;
+
+	struct stat fileInfo;
+
+	if (stat(target.c_str(), &fileInfo) == 0) {
+		if (S_ISREG(fileInfo.st_mode)) {
+			if (!hasCgi()) {
+				if (access(target.c_str(), R_OK) != 0)
+					throw 403;
+			
+				if (unlink(target.c_str()) == -1)
+					throw 500;
+
+			}
+		}
+		else if (S_ISDIR(fileInfo.st_mode)) {
+			if (uri.back() != '/')
+				throw 409;
+
+			if (!hasCgi()) {
+				check_dir_permission(target);
+				remove_dir(target);
+			}
+		}
+	}
+	else {
+		throw 404;
+	}
+
+	this->status = 204;
+	this->headers["Content-Length: "] = "0";
+	send_status_line_and_headers();
+
+	return true;
 }
 
 bool	Response::hasCgi(void)
@@ -579,23 +703,23 @@ bool	Response::hasCgi(void)
 bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type) {
 	// todo: new GET
 	if (this->sending_level == GET_REQUESTED_RES) {
-		bool isNoIndex = getRequestedFile(uri);
+		bool isIndex = getRequestedFile(uri);
 		if (sending_level == SENDING_END)
 			return true;
 
-		if (isNoIndex)
-			this->sending_level = SENDING_HEADERS;
-		if (this->hasCgi())
-		{
+		if (this->hasCgi()) {
 			this->executeCgi(uri, firstCgiEnv, method_type);
 			this->sending_level = SENDING_END;
 		}
-		if (!isNoIndex) {
+		if (!isIndex) {
 			// then: autoIndex
 			if (!this->location->getAutoIndex())
 				throw 403;
+
 			this->send_response_index_files(uri);
 			this->sending_level = SENDING_END;
+		} else {
+			this->sending_level = SENDING_HEADERS;
 		}
 	}
 	else if (this->sending_level == SENDING_HEADERS) {

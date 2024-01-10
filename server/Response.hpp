@@ -106,9 +106,12 @@ class Response {
         bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
         bool                            post_method(Request &request, std::map <std::string, std::string> _headers, int method_type);
         bool                            delete_method(std::string uri);
+        void                            check_dir_permission(std::string target);
+        void                            remove_dir(std::string target);
         bool                            getRequestedResource(std::string uri);
         std::pair<std::string, size_t>  getMatchIndex(std::string uri);
         bool                            readAndSendFile(std::string path, size_t size);
+        void                            decode_uri(std::string& uri);
         std::string                     getContentType(std::string path);
         bool                            getRequestedFile(std::string uri);
         bool                            isFileExist(std::string& target);
