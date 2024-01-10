@@ -16,7 +16,6 @@ class Location
 		std::string												redirection;
 		bool													autoIndex;
 		std::vector<std::string>								cgiExec;
-		std::vector<std::string>								cgiAllowMethods;
 		bool													acceptUpload;
 		std::string												uploadLocation;
 		std::vector<std::pair<std::string, std::vector<int> > >	errorPages;
@@ -24,7 +23,7 @@ class Location
 		Location(void);
 		Location(std::string path, std::string root, std::vector<std::string> index, 
 			int clientMaxBodySize, std::vector<std::string> allowMethods, std::string redirection, bool autoIndex,
-				std::vector<std::string> cgiExec, std::vector<std::string> cgiAllowMethods, bool acceptUpload,
+				std::vector<std::string> cgiExec, bool acceptUpload,
 					std::string uploadLocation);
 		~Location(void);
 
@@ -38,7 +37,6 @@ class Location
 		void	setRedirection(std::string redirection);
 		void	setAutoIndex(bool autoIndex);
 		void	setCgiExec(std::vector<std::string> cgiExec);
-		void	setCgiAllowMethods(std::vector<std::string> cgiAllowMethods);
 		void	setAcceptUpload(bool acceptUpload);
 		void	setUploadLocation(std::string uploadLocation);
 		void	setErrorPages(std::pair<std::string, std::vector<int> > errorPage, std::string num);
@@ -48,6 +46,7 @@ class Location
 		std::string	getRoot(void);
 		std::vector<std::string>	getIndex(void);
 		bool	getAutoIndex(void);
+		bool	getAcceptUpload(void);
 		std::vector<std::string>	getCgiExec(void);
 		std::string	getUploadLocation(void);
 		std::vector<std::string>&	getAllowMethods(void);

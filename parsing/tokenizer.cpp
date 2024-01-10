@@ -57,8 +57,6 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 				tokens.push_back(tokenizeWords(AUTO_INDEX, "auto_index"));
 			else if (data == "cgi_exec")
 				tokens.push_back(tokenizeWords(CGI_EXEC, "cgi_exec"));
-			else if (data == "cgi_allowed_methods")
-				tokens.push_back(tokenizeWords(CGI_ALLOWED_METHODS, "cgi_allowed_methods"));
 			else if (data == "accept_upload")
 				tokens.push_back(tokenizeWords(ACCEPT_UPLOAD, "accept_upload"));
 			else if (data == "upload_location")

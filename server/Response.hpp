@@ -13,13 +13,9 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include "Cgi.hpp"
 
 bool    hasQueryString(std::string uri);
-
-enum METHOD {
-	GET,
-	POST,
-};
 
 enum sending_level{
     GET_REQUESTED_RES,
@@ -76,6 +72,7 @@ class Response {
         std::string                         fileToSend;
         std::string                         fileToUpload;
         std::string                         bodyFileName;
+        Cgi                                 cgi;
 
     public:
         Response();
@@ -83,6 +80,7 @@ class Response {
 
         const std::string&  getBody() const;
         int                 getStatus() const;
+        int                 getSocket();
         void                setStatus(unsigned int status);
         std::string         getStatusMessage();
         unsigned int        getResponseType() const;
@@ -103,8 +101,10 @@ class Response {
         void                            redirect(const std::string& location);
         void                            reset();
         bool                            sendFile(std::string fileName);
-        bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
-        bool                            post_method(Request &request, std::map <std::string, std::string> _headers, int method_type);
+        bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv);
+        bool                            post_method(Request &request, std::map <std::string, std::string> _headers);
+        // bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
+        // bool                            post_method(Request &request, std::map <std::string, std::string> _headers, int method_type);
         bool                            delete_method(std::string uri);
         bool                            getRequestedResource(std::string uri);
         std::pair<std::string, size_t>  getMatchIndex(std::string uri);
@@ -122,6 +122,8 @@ class Response {
         bool                            hasCgi(void);
         char**				            getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> firstCgiEnv);
         void                            executeCgi(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
+        bool	                        sendCgiHeader(void);
+        bool	                        sendCgiBody(void);
         class ResponseFailed : public std::exception {
 			public:
 				const char * what() const throw();

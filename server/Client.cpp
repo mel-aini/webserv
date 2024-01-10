@@ -36,9 +36,11 @@ void	Client::setServerInfo(std::string port, std::string host, std::string s_nam
 
 void	Client::setFirstCgiEnv(void)
 {
-	long long	pos;
 	std::string uri = this->request.getUri();
-	bool	hasQS = hasQueryString(uri);
+	size_t	ptPos = uri.find('.');
+	size_t slashPos = uri.find('/', ptPos);
+	size_t qsPos = uri.find('?', ptPos);
+
 	this->firstCgiEnv["SERVER_NAME"] = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
 	this->firstCgiEnv["SERVER_PORT"] = "SERVER_PORT=" + this->serverInfo["PORT"];
 	this->firstCgiEnv["SERVER_PROTOCOL"] = "SERVER_PROTOCOL=HTTP/1.1";
@@ -52,32 +54,11 @@ void	Client::setFirstCgiEnv(void)
 	this->firstCgiEnv["REQUEST_URI"] = "REQUEST_URI=" + uri;
 	this->firstCgiEnv["DOCUMENT_ROOT"] = "DOCUMENT_ROOT=" + this->location->getRoot();
 
-	if (this->location->getCgiExec().size() == 0)
-		pos = -1;
-	else
-		pos = uri.find(this->location->getCgiExec()[1]) + this->location->getCgiExec()[1].length();
-
-	if (pos != -1)
-	{
-		this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, pos);
-		if (hasQS)
-		{
-			this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri.substr(pos, uri.find('?') - pos); // pos + 1 I think
-			this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + uri.substr(pos, uri.find('?') - pos);
-		}
-		else
-		{
-			this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri.substr(pos); // pos + 1 I think
-			this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + uri.substr(pos);
-		}
-	}
-	// if (uri[0] == '/')
-	// 	uri.erase(0, 1);
 	if (this->request.getMethod() == "GET")
 	{
 		this->firstCgiEnv["REQUEST_METHOD"] = "REQUEST_METHOD=GET";
 
-		if (hasQS)
+		if (qsPos != std::string::npos)
 			this->firstCgiEnv["QUERY_STRING"] = "QUERY_STRING=" + uri.substr(uri.find('?') + 1);
 	}
 	else if (this->request.getMethod() == "POST")
@@ -85,6 +66,27 @@ void	Client::setFirstCgiEnv(void)
 		this->firstCgiEnv["REQUEST_METHOD"] = "REQUEST_METHOD=POST";
 		this->firstCgiEnv["CONTENT_TYPE"] = "CONTENT_TYPE=" + this->request.getHeader("content-type");
 		this->firstCgiEnv["CONTENT_LENGTH"] = "CONTENT_LENGTH=" + this->request.getHeader("content-length");
+	}
+
+
+	if (ptPos != std::string::npos)
+	{
+		if (slashPos != std::string::npos)
+		{
+			if (ptPos < slashPos)
+			{
+				this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, slashPos);
+				this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri.substr(slashPos);
+				this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + uri.substr(slashPos + 1);
+			}
+		}
+		else
+		{
+			if (qsPos != std::string::npos)
+				this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, qsPos);
+			else
+				this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri;
+		}
 	}
 }
 
@@ -230,6 +232,7 @@ bool	Client::createResponse() {
 			else if (!this->methodIsAllowed(location->getAllowMethods(), this->request.getMethod()))
 				this->response.setResponseType(ERROR);
 		}
+		this->setFirstCgiEnv();
 		processing_level = SENDING;
 	}
 	if (processing_level == SENDING)
@@ -249,13 +252,11 @@ void	Client::send_response()
 		{
 			// todo: DELETE Method
 			// todo complete: POST Method
-
-			this->setFirstCgiEnv();
 			bool isResponseEnd = false;
 			if (this->request.getMethod() == "GET")
-				isResponseEnd = this->response.get_method(this->request.getUri(), this->firstCgiEnv, GET);
+				isResponseEnd = this->response.get_method(this->request.getUri(), this->firstCgiEnv);
 			else if (this->request.getMethod() == "POST")
-				isResponseEnd = this->response.post_method(this->request, this->request.getHeaders(), POST);
+				isResponseEnd = this->response.post_method(this->request, this->firstCgiEnv);
 			else if (this->request.getMethod() == "DELETE")
 				isResponseEnd = this->response.delete_method(this->request.getUri());
 			this->processing_level = isResponseEnd ? PROCESSED : SENDING;

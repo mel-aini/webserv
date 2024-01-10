@@ -24,7 +24,6 @@ enum {
 	RETURN,
 	AUTO_INDEX,
 	CGI_EXEC,
-	CGI_ALLOWED_METHODS,
 	ACCEPT_UPLOAD,
 	UPLOAD_LOCATION,
 	WORD,
@@ -42,7 +41,6 @@ typedef struct s_ckeckDup
 	bool	hasReturn;
 	bool	hasAutoIndex;
 	bool	hasCgiExec;
-	bool	hasCgiAllowMethods;
 	bool	hasAcceptUpload;
 	bool	hasUploadLocation;
 }			t_checkDup;

@@ -54,6 +54,11 @@ void	Response::setBodyFileName(std::string bodyFileName)
 	this->bodyFileName = bodyFileName;
 }
 
+int	Response::getSocket()
+{
+	return (this->socket);
+}
+
 int	Response::getStatus() const {
 	return this->status;
 }
@@ -425,136 +430,37 @@ bool	hasQueryString(std::string uri)
 	return (true);
 }
 
-char**	Response::getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> firstCgiEnv)
+bool	Response::hasCgi(void)
 {
-	std::map<std::string, std::string>::iterator it = firstCgiEnv.begin();
-	size_t	size;
-	if (method_type == GET)
-		size = hasQueryString(uri) ? 19 : 18;
-	size = (method_type == POST) ? 20 : size;
-	char	**env = new char*[size];
-
-	std::cout << size << std::endl;
-	size_t i = 0;
-	for (; it != firstCgiEnv.end(); it++)
-	{
-		std::cout << it->second << "         " << i << std::endl;
-		env[i] = strdup(it->second.c_str());
-		i++;
-	}
-
-	std::string	variable;
-
-	if (uri[0] == '/')
-		uri.erase(0, 1);
-	variable = "SCRIPT_FILENAME=" + this->fileToSend;
-	env[i++] = strdup(variable.c_str());
-	env[i] = NULL;
-	return (env);
+	return (this->location->getCgiExec().size() != 0 && this->fileToSend.substr(this->fileToSend.rfind('.')) == this->location->getCgiExec()[1]);
 }
 
-void	freeEnv(char **env)
-{
-	size_t i = 0;
-
-	while (env[i++])
-		free(env[i]);
-	free(env);
-}
-
-void	Response::executeCgi(std::string uri, std::map <std::string, std::string> _headers, int method_type)
-{
-	char **env = this->getCgiEnv(method_type, uri, _headers);
-	pid_t	pid = fork();
-	if (pid == -1)
-		throw 502;
-	int fdes = open("/tmp/result", O_CREAT | O_RDWR | O_TRUNC, 0666);
-	// std::cout << fdes << std::endl;
-	if (fdes == -1)
-		throw 502;
-	if (pid == 0)
-	{
-		dup2(fdes, 1);
-		close(fdes);
-		if (method_type == POST)
-		{
-			int fd = open(this->bodyFileName.c_str(), O_RDONLY);
-			if (fd == -1)
-				throw (502);
-			dup2(fd, 0);
-			close(fd);
-		}
-		execve(this->location->getCgiExec()[0].c_str(), NULL, env);
-		throw 502;
-	}
-	wait(0);
-	freeEnv(env);
-	close(fdes);
-	std::ifstream result("/tmp/result");
-	if (!result.is_open())
-		throw 502;
-	std::string header;
-	std::string body;
-	std::string tmp;
-	std::string status;
-	bool	hasContentLength = 0;
-	size_t	contentLength = 0;
-	bool	hasContentType = 0;
-	while (getline(result, tmp, '\n'))
-	{
-		if (tmp == "\r")
-			break ;
-		if (tmp.substr(0, 14) == "Content-type: ")
-			hasContentType = 1;
-		if (tmp.substr(0, 16) == "Content-length: ")
-			hasContentLength = 1;
-		if (tmp.substr(0, 8) == "Status: ")
-			status = tmp.substr(8);
+bool	Response::post_method(Request &request, std::map <std::string, std::string> firstCgiEnv) {
+	if (location->getAcceptUpload())
+		return this->uploadPostMethod(request);
+	if (this->sending_level == GET_REQUESTED_RES) {
+		bool isIndex = getRequestedFile(request.getUri());
+		if (sending_level == SENDING_END)
+			return true;
+		if (!isIndex)
+			throw (403);
 		else
-			header += tmp + "\n";
+			this->sending_level = SENDING_HEADERS;
 	}
-	if (status.empty())
-		status = "HTTP/1.1 200 OK \r\n";
-	else
-		status = "HTTP/1.1 " + status + "\r\n";
-	if (!hasContentType)
-		header += "Content-type: text/html\r\n";
-	header = status + header;
-	while (getline(result, tmp, '\n'))
-		body += tmp + "\n";
-	result.close();
-	contentLength = body.size();
-	if (!hasContentLength)
-	{
-		std::stringstream ss;
-		ss << contentLength;
-		std::string size;
-		ss >> size;
-		header += "Content-length: " + size + "\r\n";
+	else if (this->sending_level == SENDING_HEADERS) {
+		if (!this->hasCgi())
+			throw (403);
+		this->cgi.executeCgi(this->fileToSend ,this->location->getCgiExec()[0], this->bodyFileName, firstCgiEnv, POST);
+		this->cgi.sendCgiHeader(this->socket);
+		this->sending_level = SENDING_BODY;
 	}
-	header += "\r\n";
-	std::string	response = header + body;
-	// std::ofstream file("file");
-	// if (file.is_open())
-	// {
-	// 	file << response;
-	// 	file.close();
-	// }
-	// int fds = open("file", O_RDONLY);
-	// char *buf = new char [response.length() + 1];
-	// read(fds, buf, response.length());
-	// buf[response.length()] = '\0';
-	const char *buf = response.c_str();
-	if (send(this->socket, buf, response.length(), 0) == -1)
-		throw ResponseFailed();
-}
-
-bool	Response::post_method(Request &request, std::map <std::string, std::string> _headers, int method_type) {
-	if (!location->acceptUpload)
-		throw 403;
-	(void)method_type;
-	(void)_headers;
-	return this->uploadPostMethod(request);
+	else if (this->sending_level == SENDING_BODY) {
+		if (this->cgi.sendCgiBody(this->socket))
+			this->sending_level = SENDING_END;
+	}
+	else if (this->sending_level == SENDING_END)
+		return true;
+	return false;
 }
 
 bool	Response::delete_method(std::string uri) {
@@ -570,64 +476,58 @@ bool	Response::delete_method(std::string uri) {
 	return false;
 }
 
-bool	Response::hasCgi(void)
-{
-	return (this->location->getCgiExec().size() != 0 && this->fileToSend.substr(this->fileToSend.rfind('.')) == this->location->getCgiExec()[1]);
-}
-
 // ... working on
-bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type) {
-	// todo: new GET
+bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv) {
 	if (this->sending_level == GET_REQUESTED_RES) {
-		bool isNoIndex = getRequestedFile(uri);
-		if (sending_level == SENDING_END)
-			return true;
-
-		if (isNoIndex)
-			this->sending_level = SENDING_HEADERS;
-		if (this->hasCgi())
-		{
-			this->executeCgi(uri, firstCgiEnv, method_type);
-			this->sending_level = SENDING_END;
-		}
-		if (!isNoIndex) {
-			// then: autoIndex
-			if (!this->location->getAutoIndex())
-				throw 403;
-			this->send_response_index_files(uri);
-			this->sending_level = SENDING_END;
-		}
+		bool isIndex = getRequestedFile(uri);
+        if (sending_level == SENDING_END)
+            return true;
+        if (!isIndex) {
+            // then: autoIndex
+            if (!this->location->getAutoIndex())
+                throw 403;
+            this->send_response_index_files(uri);
+            this->sending_level = SENDING_END;
+        } else {
+            this->sending_level = SENDING_HEADERS;
+        }
 	}
 	else if (this->sending_level == SENDING_HEADERS) {
-		std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
-		std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
-		if (!file.is_open())
-			throw 500;
-
-		std::stringstream sizestream;
-		struct stat fileInfo;
-		if (stat(this->fileToSend.c_str(), &fileInfo) == 0) {
-			sizestream << fileInfo.st_size;
-			// std::cout << "Content-Length: " << RED << sizestream.str() << RESET << std::endl;
+		if (this->hasCgi())
+		{
+			this->cgi.executeCgi(this->fileToSend ,this->location->getCgiExec()[0], this->bodyFileName, firstCgiEnv, GET);
+			this->cgi.sendCgiHeader(this->socket);
 		}
-		this->headers["Content-Type: "] = getContentType(this->fileToSend);
-		this->headers["Content-Length: "] = sizestream.str();
-		this->headers["Accept-Ranges: "] = "none";
-		// this->headers["Connection: "] = "keep-alive";
-		// this->headers["Keep-Alive: "] = "timeout=100000, max=10000";
-		// this->headers["Keep-Alive: "] = "timeout=100, max=100";
-		send_status_line_and_headers();
+		else
+		{
+			std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
+			std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
+			if (!file.is_open())
+				throw 500;
+
+			std::stringstream sizestream;
+			struct stat fileInfo;
+			if (stat(this->fileToSend.c_str(), &fileInfo) == 0) {
+				sizestream << fileInfo.st_size;
+				// std::cout << "Content-Length: " << RED << sizestream.str() << RESET << std::endl;
+			}
+			this->headers["Content-Type: "] = getContentType(this->fileToSend);
+			this->headers["Content-Length: "] = sizestream.str();
+			this->headers["Accept-Ranges: "] = "none";
+			// this->headers["Connection: "] = "keep-alive";
+			// this->headers["Keep-Alive: "] = "timeout=100000, max=10000";
+			// this->headers["Keep-Alive: "] = "timeout=100, max=100";
+			send_status_line_and_headers();
+		}
 		this->sending_level = SENDING_BODY;
 	}
 	else if (this->sending_level == SENDING_BODY) {
-		/*
-			todo: cgi design
-			if (location has cgi)
-				run cgi
-			else
-				return file
-		*/
-		return this->sendFile(this->fileToSend);
+		if (this->hasCgi()) {
+			if (this->cgi.sendCgiBody(this->socket))
+				this->sending_level = SENDING_END;
+		}
+		else
+			return this->sendFile(this->fileToSend);
 	}
 	else if (this->sending_level == SENDING_END)
 		return true;

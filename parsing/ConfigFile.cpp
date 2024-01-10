@@ -13,8 +13,7 @@ Location	defLocation()
 	allowMethods.push_back("POST");
 	allowMethods.push_back("DELETE");
 	std::vector<std::string>	cgiExec;
-	std::vector<std::string>	cgiAllowMethods;
-	return (Location("/", "public/html", index, 50, allowMethods, "", true, cgiExec, cgiAllowMethods, true, "/upload"));
+	return (Location("/", "public/html", index, 50, allowMethods, "", true, cgiExec, true, "/upload"));
 }
 
 std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &it, bool & hasData, std::string name, int num)
@@ -330,49 +329,6 @@ std::vector<std::string>	parseCgiExec(std::vector<std::pair<int, std::string> >:
 	return (cgiExec);
 }
 
-std::vector<std::string>	parseCgiAllowMethods(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool &hasCgiAllowMethods, int num)
-{
-	std::vector<std::string>	cgiAllowMethods;
-
-	if (hasCgiAllowMethods)
-		printError("location " + toStr(num) + ":" + " duplicated cgi_allow_methods");
-	int hasGet = 0;
-	int hasPost = 0;
-
-	if ((it + 1)->first != WORD)
-		printError("location " + toStr(num) + ":" + " cgi_allowed_methods: argument must be \'GET\' or \'POST\'");
-	it += 1;
-	for (; it != tokens.end(); it++)
-	{
-		if (it->second == "GET")
-		{
-			if (!hasGet)
-			{
-				hasGet = 1;
-				cgiAllowMethods.push_back(it->second);
-			}
-			else
-				printError("location " + toStr(num) + ":" + " cgi_allowed_methods: duplicated method \'GET\'");
-		}
-		else if (it->second == "POST")
-		{
-			if (!hasPost)
-			{
-				hasPost = 1;
-				cgiAllowMethods.push_back(it->second);
-			}
-			else
-				printError("location " + toStr(num) + ":" + " cgi_allowed_methods: duplicated method \'POST\'");
-		}
-		else if (it->first == END_OF_LINE)
-			break ;
-		else
-			printError("location " + toStr(num) + ":" + " cgi_allowed_methods: argument must be \'GET\' or \'POST\'");
-	}
-	hasCgiAllowMethods = 1;
-	return (cgiAllowMethods);
-}
-
 std::pair<std::string, std::vector<int> >	defErrorPage()
 {
 	std::pair<std::string, std::vector<int> >	defErrorPage;
@@ -553,8 +509,6 @@ std::vector<Server>	parser(int ac, char* av[])
 							tmpLocation.setAllowMethods(parseAllowMethods(it, tokens, check.hasAllowMethods, locationNum));
 						else if (it->first == CGI_EXEC)
 							tmpLocation.setCgiExec(parseCgiExec(it, check.hasCgiExec, locationNum));
-						else if (it->first == CGI_ALLOWED_METHODS)
-							tmpLocation.setCgiAllowMethods(parseCgiAllowMethods(it, tokens, check.hasCgiAllowMethods, locationNum));
 						else if (it->first == ACCEPT_UPLOAD)
 							tmpLocation.setAcceptUpload(parseBool(it, check.hasAcceptUpload, "accept_upload", locationNum));
 						else if (it->first == UPLOAD_LOCATION)
