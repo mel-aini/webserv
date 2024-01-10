@@ -42,19 +42,23 @@ void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bo
 	pid_t	pid = fork();
 	if (pid == -1)
 		throw 502;
-	int fdes = open("/tmp/result", O_CREAT | O_RDWR | O_TRUNC, 0666);
-	// std::cout << fdes << std::endl;
-	if (fdes == -1)
-		throw 502;
 	if (pid == 0)
 	{
+			std::cout << bodyFileName << std::endl;
+		int fdes = open("/tmp/result", O_CREAT | O_RDWR | O_TRUNC, 0666);
+		if (fdes == -1)
+		{
+			throw 502;
+		}
 		dup2(fdes, 1);
 		close(fdes);
 		if (method_type == POST)
 		{
 			int fd = open(bodyFileName.c_str(), O_RDONLY);
 			if (fd == -1)
+			{
 				throw (502);
+			}
 			dup2(fd, 0);
 			close(fd);
 		}
@@ -63,7 +67,6 @@ void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bo
 	}
 	wait(0);
 	freeEnv(env);
-	close(fdes);
 }
 
 bool	Cgi::sendCgiHeader(int socket)
@@ -71,8 +74,9 @@ bool	Cgi::sendCgiHeader(int socket)
 	struct stat fileInf;
 	stat("/tmp/result", &fileInf);
 	std::ifstream result("/tmp/result", std::ios::binary | std::ios::in);
-	if (!result.is_open())
+	if (!result.is_open()) {
 		throw 502;
+	}
 	std::string header;
 	std::string tmp;
 	std::string status;
@@ -126,8 +130,9 @@ bool	Cgi::sendCgiBody(int socket)
 {
 	char buf[1024] = {0};
 	std::ifstream result("/tmp/result", std::ios::binary | std::ios::in);
-	if (!result.is_open())
+	if (!result.is_open()) {
 		throw 502;
+	}
 
 	result.seekg(this->offset, std::ios::beg);
 
@@ -139,6 +144,7 @@ bool	Cgi::sendCgiBody(int socket)
 	this->offset += s;
 	if (result.eof()) {
 		result.close();
+		this->offset = 0;
 		return true;
 	}
 	result.close();

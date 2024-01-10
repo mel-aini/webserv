@@ -209,7 +209,6 @@ bool		Client::readRequest(std::vector<Location> &locations) {
 		this->reqHasRead();
 		if (!this->location)
 			findLocation(locations, this->request.getUri());
-		
 		return true;
 	}
 	return false;
@@ -229,8 +228,9 @@ bool	Client::createResponse() {
 			if (!location->getRedirection().empty()) {
 				this->response.setResponseType(REDIRECT);
 			}
-			else if (!this->methodIsAllowed(location->getAllowMethods(), this->request.getMethod()))
+			else if (!this->methodIsAllowed(location->getAllowMethods(), this->request.getMethod())) {
 				this->response.setResponseType(ERROR);
+			}
 		}
 		this->setFirstCgiEnv();
 		processing_level = SENDING;
@@ -240,10 +240,6 @@ bool	Client::createResponse() {
 
 	return processing_level == PROCESSED;
 }
-
-// std::string	getRequestedResource()
-// {
-// }
 
 void	Client::send_response()
 {
