@@ -369,8 +369,18 @@ bool	Response::getRequestedFile(std::string uri)
 	if (uri[0] == '/')
 		uri.erase(0, 1);
 
-	if (hasQueryString(uri))
-		uri = uri.substr(0, uri.find('?'));
+	size_t	ptPos = uri.find('.');
+	size_t slashPos = uri.find('/', ptPos);
+	size_t qsPos = uri.find('?', ptPos);
+	if (ptPos != std::string::npos)
+	{
+		if (slashPos != std::string::npos && qsPos != std::string::npos && qsPos < slashPos)
+			uri = uri.substr(0, qsPos);
+		else if (slashPos != std::string::npos)
+			uri = uri.substr(0, slashPos);
+		else if (qsPos != std::string::npos)
+			uri = uri.substr(0, qsPos);
+	}
 
 	std::string	target = this->location->getRoot() + uri;
 

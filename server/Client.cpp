@@ -44,8 +44,9 @@ void	Client::setFirstCgiEnv(void)
 	this->firstCgiEnv["SERVER_NAME"] = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
 	this->firstCgiEnv["SERVER_PORT"] = "SERVER_PORT=" + this->serverInfo["PORT"];
 	this->firstCgiEnv["SERVER_PROTOCOL"] = "SERVER_PROTOCOL=HTTP/1.1";
-	this->firstCgiEnv["HTTP_HOST"] = "HTTP_HOST=" + this->serverInfo["HOST"];
 	this->firstCgiEnv["REMOTE_ADDR"] = "REMOTE_ADDR=" + this->serverInfo["HOST"];
+	std::string remotAdr = this->request.getHeader("host");
+	this->firstCgiEnv["HTTP_HOST"] = "HTTP_HOST=" + remotAdr.substr(0, remotAdr.find(':'));
 	this->firstCgiEnv["HTTP_CONNECTION"] = "HTTP_CONNECTION=" + this->request.getHeader("connection");
 	this->firstCgiEnv["HTTP_ACCEPT"] = "HTTP_ACCEPT=" + this->request.getHeader("accept");
 	this->firstCgiEnv["HTTP_USER_AGENT"] = "HTTP_USER_AGENT=" + this->request.getHeader("user-agent");
@@ -68,17 +69,15 @@ void	Client::setFirstCgiEnv(void)
 		this->firstCgiEnv["CONTENT_LENGTH"] = "CONTENT_LENGTH=" + this->request.getHeader("content-length");
 	}
 
-
 	if (ptPos != std::string::npos)
 	{
-		if (slashPos != std::string::npos)
+		if (slashPos != std::string::npos && qsPos != std::string::npos && qsPos < slashPos)
+			this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, qsPos);
+		else if (slashPos != std::string::npos)
 		{
-			if (ptPos < slashPos)
-			{
-				this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, slashPos);
-				this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri.substr(slashPos);
-				this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + uri.substr(slashPos + 1);
-			}
+			this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, slashPos);
+			this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri.substr(slashPos);
+			this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + uri.substr(slashPos + 1);
 		}
 		else
 		{
