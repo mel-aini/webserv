@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ochouikh <ochouikh@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/10 13:17:01 by ochouikh         ###   ########.fr       */
+/*   Updated: 2024/01/11 13:38:43 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -241,6 +241,7 @@ int Request::readHeaders()
         if (ss2.peek() == ' ')// skip the space after the :
             ss2.seekg(1, ss2.cur);
         std::getline(ss2, value, '\r');
+        std::cout << BLUE << value << RESET << std::endl;
         std::transform(key.begin(), key.end(), key.begin(), ::tolower);
         this->currentHeaderKey = key;
         this->currentHeaderValue = value;
@@ -282,6 +283,7 @@ int Request::readHeaders()
         this->status = 400;
         return 0;
     }
+    printRequest();
     return 1;
 }
 

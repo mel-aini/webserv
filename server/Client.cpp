@@ -231,8 +231,8 @@ bool	Client::createResponse() {
 			else if (!this->methodIsAllowed(location->getAllowMethods(), this->request.getMethod())) {
 				this->response.setResponseType(ERROR);
 			}
+			this->setFirstCgiEnv();
 		}
-		this->setFirstCgiEnv();
 		processing_level = SENDING;
 	}
 	if (processing_level == SENDING)
