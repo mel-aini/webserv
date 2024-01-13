@@ -278,59 +278,6 @@ void    Response::redirect(const std::string& location)
 	// std::cout << "REDIRECT" << std::endl;
 }
 
-bool	Response::getRequestedResource(std::string uri)
-{
-	memset(&this->fileInf, 0, sizeof(this->fileInf));
-	uri = uri.substr(0, uri.find(".php") + 4);
-	if (uri[0] == '/')
-		uri.erase(0, 1);
-	if (uri[uri.length() - 1] == '/')
-		uri.erase(uri.length() - 1, 1);
-	if (stat(uri.c_str(), &this->fileInf) == 0)
-	if (access(uri.c_str(), F_OK | R_OK) == 0)
-	{
-		if (stat(uri.c_str(), &this->fileInf) == 0)
-		{
-			this->request_case = OTHER_CASE;
-			return (true);
-		}
-	}
-	std::string	fileCase = this->location->getRoot() + uri;
-	std::cout << BOLDMAGENTA << "REQ_RES: " << RESET << fileCase << RESET << std::endl;
-	if (stat(fileCase.c_str(), &this->fileInf) == 0)
-	{
-		std::cout << GREEN << "FOUND" << RESET << std::endl;
-		if (S_ISREG(this->fileInf.st_mode))
-		{
-			this->request_case = FILE_CASE;
-			return (true);
-			if (S_ISREG(this->fileInf.st_mode))
-			{
-				this->request_case = OTHER_CASE;
-				return (true);
-			}
-		}
-	}
-	std::string	path = this->location->getRoot() + "/" + uri;
-	if (access(path.c_str(), F_OK | R_OK) == 0)
-	{
-		if (stat(path.c_str(), &this->fileInf) == 0)
-		{
-			if (S_ISDIR(this->fileInf.st_mode))
-			{
-				this->request_case = DIR_CASE;
-				return (true);
-			}
-			else if (S_ISREG(this->fileInf.st_mode))
-			{
-				this->request_case = FILE_CASE;
-				return (true);
-			}
-		}
-	}
-	return (false);
-}
-
 
 void	Response::setError(int status_code) {
 	this->status = status_code;
@@ -366,21 +313,10 @@ bool	Response::isTarget(std::string& target,  struct stat *fileInfo) {
 // ... working on
 bool	Response::getRequestedFile(std::string uri)
 {
+	size_t qsPos = uri.find('?');
+	uri = (qsPos != std::string::npos) ? uri.substr(0, qsPos) : uri;
 	if (uri[0] == '/')
 		uri.erase(0, 1);
-
-	size_t	ptPos = uri.find('.');
-	size_t slashPos = uri.find('/', ptPos);
-	size_t qsPos = uri.find('?', ptPos);
-	if (ptPos != std::string::npos)
-	{
-		if (slashPos != std::string::npos && qsPos != std::string::npos && qsPos < slashPos)
-			uri = uri.substr(0, qsPos);
-		else if (slashPos != std::string::npos)
-			uri = uri.substr(0, slashPos);
-		else if (qsPos != std::string::npos)
-			uri = uri.substr(0, qsPos);
-	}
 
 	std::string	target = this->location->getRoot() + uri;
 
@@ -428,17 +364,6 @@ bool	Response::getRequestedFile(std::string uri)
 }
 
 ///////////////////////
-
-bool	hasQueryString(std::string uri)
-{
-	size_t	i;
-	for (i = 0; i < uri.length(); i++)
-		if (uri[i] == '?')
-			break ;
-	if (i == uri.length())
-		return (false);
-	return (true);
-}
 
 bool	Response::hasCgi(void)
 {

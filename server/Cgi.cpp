@@ -162,6 +162,7 @@ bool	Cgi::sendCgiBody(int socket)
 		if (result.eof()) {
 			result.close();
 			this->offset = 0;
+			this->cL = -1;
 			return true;
 		}
 		result.close();
@@ -189,6 +190,7 @@ bool	Cgi::sendCgiBody(int socket)
 				throw ResponseFailed();
 			result.close();
 			this->offset = 0;
+			this->cL = -1;
 			return true;
 		}
 	}

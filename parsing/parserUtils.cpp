@@ -106,7 +106,7 @@ int	isLocationPath(std::string str)
 	i++;
 	while (str[i])
 	{
-		if (!isalnum(str[i]) && str[i] != '/' && str[i] != '_' && str[i] != '.')
+		if (!isalnum(str[i]) && str[i] != '/' && str[i] != '_' && str[i] != '.' && str[i] != '-')
 			return (0);
 		i++;
 	}
@@ -118,17 +118,11 @@ int	isFile(std::string str)
 	size_t i = 0;
 	size_t len = str.length();
 
-	// if (len < 6)
-	// 	printError("index: you must enter a htm or html files");
-	// std::string extension = str.substr(len - 5);
-	// if (extension != ".html")
-	// 	printError("index: you must enter a html files");
-	// str.erase(len - 5);
 	if (len == 0)
 		return (0);
 	while (str[i])
 	{
-		if (!isalnum(str[i]) && str[i] != '.' && str[i] != '_' && str[i] != '/')
+		if (!isalnum(str[i]) && str[i] != '.' && str[i] != '_' && str[i] != '/' && str[i] != '-')
 			return (0);
 		i++;
 	}

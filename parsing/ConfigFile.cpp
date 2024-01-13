@@ -339,7 +339,7 @@ std::pair<std::string, std::vector<int> >	defErrorPage()
 	tmpCodes.push_back(402);
 	tmpCodes.push_back(403);
 	tmpCodes.push_back(404);
-	defErrorPage.first = "error.html";
+	defErrorPage.first = "err.html";
 	defErrorPage.second = tmpCodes;
 	return (defErrorPage);
 }
@@ -349,10 +349,8 @@ Location	initializeLocation()
 	Location	location;
 
 	location.setPath("/");
-	location.setRoot("root");
+	location.setRoot("public/html");
 	std::vector<std::string> index;
-	// index.push_back("index.html");
-	// index.push_back("index.htm");
 	location.setIndex(index);
 	location.setClientMaxBodySize(50);
 	std::vector<std::string> allowMethods;
@@ -362,7 +360,7 @@ Location	initializeLocation()
 	location.setAllowMethods(allowMethods);
 	location.setAutoIndex(true);
 	location.setAcceptUpload(true);
-	location.setUploadLocation("/upload");
+	location.setUploadLocation("public/storage");
 	return (location);
 }
 

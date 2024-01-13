@@ -6,14 +6,14 @@ if( $_GET["name"] || $_GET["age"] ) {
    exit();
 }
 ?>
-<html>
+<!-- <html>
    <body>
    
-      <form action = "./cgi/test.php" method = "GET">
+      <form action = "./test.php" method = "GET">
          Name: <input type = "text" name = "name" />
          Age: <input type = "text" name = "age" />
          <input type = "submit" />
       </form>
       
    </body>
-</html>
+</html> -->
