@@ -55,14 +55,16 @@ void	Server::addClient(std::vector<struct pollfd> &pollfds) {
 		Client newClient(clientSocket, clientAddress);
 		newClient.setServerInfo(this->port, this->host, this->serverName);
 		this->clients.push_back(newClient);
-		std::cout << GREEN << "server active in port: " << this->port << " accepted new request" << RESET << std::endl;
+		// exit(0);
+		// std::cout << GREEN << "server active in port: " << this->port << " accepted new request" << RESET << std::endl;
 
 		// -> monitor new fd
 		struct pollfd fd;
 		fd.fd = clientSocket;
 		fd.events = POLLIN | POLLHUP;
 		fd.revents = 0;
-		std::cout << "new Client fd: " << fd.fd << std::endl;
+		// std::cout << "new Client fd: " << fd.fd << std::endl;
+		// std::cout << BOLDYELLOW << "[NEW CONNECTION][" << clientSocket << "]" << RESET << std::endl;
 		pollfds.push_back(fd);
 	}
 	catch (std::exception &e) {
@@ -76,9 +78,14 @@ void	Server::removeClient(std::vector<struct pollfd> &pollfds, std::vector<Clien
 
 	for (it2 = pollfds.begin(); it2 != pollfds.end(); it2++) {
 		if (it2->fd == it->getFd()) {
+			// std::cout << BOLDRED << "[LIFETIME]: " << it->getLifeTime() << "" << RESET << std::endl;
 			// close file descriptor related to this client
-			std::cout << RED << "Client with fd: " << it2->fd << " disconnected" << RESET << std::endl;
-			close(it->getFd());
+			it->getLog().addLog("DISCONNECTED", "");
+			// std::cout << BOLDRED << "[DISCONNECTED][" << it->getFd() << "]" << RESET << std::endl;
+			// std::cout << RED << "Client with fd: " << it2->fd << " disconnected" << RESET << std::endl;
+			if (close(it2->fd) == -1) {
+				std::cout << BOLDRED << "[CLOSE FAILED!!!][" << it->getFd() << "]" << RESET << std::endl;
+			}
 			pollfds.erase(it2);
 			break;
 		}
@@ -125,11 +132,10 @@ void	Server::findRelatedHost(std::vector<Client>::iterator& it)
 }
 
 bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd) {
-	std::string val;
 	bool eventOccured = false;
 
 	std::vector<Client>::iterator it;
-	if (pollfd->revents & POLLIN || pollfd->revents & POLLOUT || pollfd->revents & POLLHUP)
+	if (pollfd->revents)
 		eventOccured = true;
 	
 	if (eventOccured && pollfd->fd == this->socket) {
@@ -138,43 +144,45 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 	}
 	else if (this->isClient(pollfd, it))
 	{
-		try
-		{
-			it->setPollfd(pollfd);
+		it->setPollfd(pollfd);
+		try {
 			if (!eventOccured) {
 				// then: no event occured
 				if (it->checkLogTime()) {
 					this->removeClient(pollfds, it);
-					return true;
 				}
-				return false;
 			}
 			if (pollfd->revents & POLLIN) {
+				it->getLog().addLog("POLLIN EVENT", "");
 				// std::cout << CYAN << "#### POLLIN EVENT ####" << RESET << std::endl;
 				bool read_complete = it->readRequest(this->locations);
 				//	todo: transfer client to the right server or keep it
 				if (read_complete && !this->hostsMatch(it))
 					this->findRelatedHost(it);
 			}
-			else if ((pollfd->revents & POLLOUT)) {
+			else if (pollfd->revents & POLLOUT) {
+				it->getLog().addLog("POLLOUT EVENT", "");
 				// std::cout << YELLOW << "#### POLLOUT EVENT ####" << RESET << std::endl;
 				bool send_complete = it->createResponse();
 				if (send_complete) {
 					if (it->getRequest().getHeader("connection") != "keep-alive") {
+						it->getLog().addLog("INFO", "connection: " + it->getRequest().getHeader("connection"));
+						// std::cout << BOLDYELLOW << "[INFO][" << it->getFd() << "]: connection: " << it->getRequest().getHeader("connection") << RESET << std::endl;
 						this->removeClient(pollfds, it);
-					}
-					else {
+					} else {
 						it->resHasSent();
 					}
 				}
 			}
 			else if (pollfd->revents & POLLHUP) {
-				// std::cout << RED << "#### POLLHUP EVENT ####" << RESET << std::endl;
+				it->getLog().addLog("POLLHUP EVENT", "");
+				// std::cout << RED << "[POLLHUP][" << it->getFd() << "]" << RESET << std::endl;
 				this->removeClient(pollfds, it);
 			}
 		}
 		catch (const std::exception& e) {
 			// then: an error occured in read or send...
+			it->getLog().addLog("CATCHED EXCEPTION", e.what());
 			this->removeClient(pollfds, it);
 			std::cout << RED << e.what() << RESET << std::endl;
 		}
@@ -189,8 +197,8 @@ void	Server::logClients() {
 	std::vector<Client>::iterator it;
 	std::cout << "server with endpoint: " << YELLOW << this->host + ":" + this->port << RESET
 	<< " has " << YELLOW << this->clients.size() << RESET << " clients: " << std::endl;
-	for (it = this->clients.begin(); it != this->clients.end(); it++)
-		it->log();
+	// for (it = this->clients.begin(); it != this->clients.end(); it++)
+	// 	it->log();
 }
 
 void	Server::setListen(std::pair<std::string, std::string> listen)

@@ -61,20 +61,13 @@ int	Global::isAlreadyUsed(std::string host, std::string port, int index)
 	return -1;
 }
 
-void Global::checkAndProcessFd(int fds) {
-
+void Global::checkAndProcessFd() {
 	for (unsigned int i = 0; i < getPollfds().size(); i++) {
-		if (getPollfds().data()[i].fd >= 0) {
-			std::vector<Server>::iterator it;
-			for (it = this->servers.begin(); it != this->servers.end(); it++) {
-				if (it->processFd(this->pollfds, &getPollfds().data()[i]))
-				{
-					fds--;
-					if (i >= getPollfds().size() || fds == 0)
-						return ;
-					break;
-				}
-			}
+		std::vector<Server>::iterator it;
+
+		for (it = this->servers.begin(); it != this->servers.end(); it++) {
+			if (it->processFd(this->pollfds, &getPollfds().data()[i]))
+				break;
 		}
 	}
 }
@@ -137,6 +130,7 @@ void Global::create_servers()
 				break;
 			continue;
         }
+		
         fcntl(sockfd, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
         it->setSocket(sockfd);
     
@@ -161,7 +155,7 @@ void Global::create_servers()
 
         freeaddrinfo(res);
         
-        if (listen(sockfd, 1) == -1) {
+        if (listen(sockfd, SOMAXCONN) == -1) {
             perror("listen");
             close(sockfd);
             it = servers.erase(it);

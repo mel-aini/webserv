@@ -93,7 +93,9 @@ class Request
         State       getState() const;
         std::string getHeaderLine(std::string key);
         void        reset();
+		void				log_uri();
 
+        void log();
 
         class RequestFailed : public std::exception {
 			public:

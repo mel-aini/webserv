@@ -29,27 +29,31 @@ int main(int ac, char* av[])
     Global global;
     global.setServers(parser(ac, av));
     global.create_servers();
-    struct pollfd *pollfds;
+
+    // size_t  serverLifeTime = 0;
+	// size_t  serverLifeTime_start = time(0);
 
     while (true)
     {
+        // std::cout << "server life time: " << BOLDRED << serverLifeTime << RESET << std::endl;
         signal(SIGPIPE, handleSignal);
-        pollfds = global.getPollfds().data();
 
-        int fds = poll(pollfds, global.getPollfds().size(), 5000);
+        int fds = poll(global.getPollfds().data(), global.getPollfds().size(), 30000);
         if (fds == -1) {
             perror("poll");
             continue;
         }
         else if (fds == 0) {
             // then: no event occurs in that specified time
-            // std::cout << "no event occurs in that specified time" << std::endl;
+            std::cout << "no event occurs in that specified time" << std::endl;
             continue;
         }
         try  {
-            global.checkAndProcessFd(fds);
-        } catch(const std::exception& e) {
+            global.checkAndProcessFd();
+        }
+        catch(const std::exception& e) {
             std::cerr << RED << "in main: " << e.what() << RESET << std::endl;
         }
+        // serverLifeTime = time(0) - serverLifeTime_start;
     }
 }

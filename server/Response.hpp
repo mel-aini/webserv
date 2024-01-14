@@ -14,6 +14,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include "Cgi.hpp"
+#include "Log.hpp"
 
 bool    hasQueryString(std::string uri);
 
@@ -73,11 +74,18 @@ class Response {
         std::string                         fileToUpload;
         std::string                         bodyFileName;
         Cgi                                 cgi;
+        Log                                 traces;
 
     public:
         Response();
+        // Response(const Response& R);
+		// Response& operator= (const Response& R);
         ~Response();
 
+        // title: getters
+        Log&                getTraces();
+
+        void                setTraces(Log *traces);
         const std::string&  getBody() const;
         int                 getStatus() const;
         int                 getSocket();
@@ -120,6 +128,7 @@ class Response {
         void                            log_res_type();
         void                            log_res_level();
         void                            log_members();
+        void                            log_response();
         bool                            uploadPostMethod(Request &request);
         std::string                     getExtension(std::string filename);
         bool                            hasCgi(void);
@@ -127,6 +136,7 @@ class Response {
         void                            executeCgi(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
         bool	                        sendCgiHeader(void);
         bool	                        sendCgiBody(void);
+
         class ResponseFailed : public std::exception {
 			public:
 				const char * what() const throw();

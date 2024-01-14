@@ -1,5 +1,5 @@
-port="8000"
-host="localhost"
+port="8080"
+host="10.12.1.1"
 path=""
 curl $host:$port/$path > /dev/null  &
 curl $host:$port/$path > /dev/null  &

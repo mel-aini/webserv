@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ochouikh <ochouikh@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/10 13:17:01 by ochouikh         ###   ########.fr       */
+/*   Updated: 2024/01/11 18:04:17 by mel-aini         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -424,6 +424,11 @@ int Request::readBoundary()
     return 0;
 }
 
+void				Request::log_uri() {
+    std::cout << this->_uri;
+}
+
+
 int Request::parseRequest(char *buffer, int size, int fd)
 {   
     (void)fd;
@@ -515,6 +520,10 @@ void    Request::reset()
     this->_version = "";
     this->currentHeaderKey = "";
     this->currentHeaderValue = "";
+}
+
+void Request::log() {
+    std::cout << BOLDWHITE << _method + " " + _uri << RESET << std::endl;
 }
 
 // title: exceptions

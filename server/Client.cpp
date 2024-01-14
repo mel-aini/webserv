@@ -5,6 +5,8 @@ Client::Client(int fd, struct sockaddr_in address)
 	fd(fd),
 	address(address),
 	pollfd(NULL),
+	request(),
+	response(),
 	processing_level(INITIAL),
 	isAllowedMethod(false),
 	location(NULL)
@@ -12,10 +14,72 @@ Client::Client(int fd, struct sockaddr_in address)
 	// set timout
 	this->logtime = 0;
 	this->logtime_start = time(0);	this->response.setSocket(this->fd);
+	this->lifetime = 0;
+
+	std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+    // Convert the time point to nanoseconds since the epoch
+    std::chrono::nanoseconds nanoseconds = std::chrono::time_point_cast<std::chrono::nanoseconds>(currentTime).time_since_epoch();
+
+	this->trace.setId(std::to_string(nanoseconds.count()));
+	this->response.getTraces().setId(std::to_string(nanoseconds.count()));
+	this->trace.addLog("CONSTRUCTED", "()");
 }
 
+// Client::Client(const Client& C) {
+// 	*this = C;
+// }
+
+// Client& Client::operator= (const Client& C) {
+// 	if (this != &C) {
+// 		fd = C.fd;
+// 		address = C.address;
+// 		pollfd = C.pollfd;
+// 		request = C.request;
+// 		response = C.response;
+// 		processing_level = C.processing_level;
+// 		isAllowedMethod = C.isAllowedMethod;
+// 		location = C.location;
+// 	}
+// 	return *this;
+// }
+
 Client::~Client() {
+	this->trace.addLog("DESTRUCTED", "~()");
 	// std::cout << BOLDRED << "Client Destructor Called" << RESET << std::endl;
+}
+
+// title: GETTERS
+
+struct pollfd		*Client::getPollfd() const {
+	return this->pollfd;
+}
+
+Log&				Client::getLog() {
+	return this->trace;
+}
+
+int					Client::getProcessing_level() const {
+	return this->processing_level;
+}
+
+bool				Client::getIsAllowedMethod() const {
+	return this->isAllowedMethod;
+}
+
+Location			*Client::getLocation() const {
+	return this->location;
+}
+
+Response	Client::getResponse() const {
+	return this->response;
+}
+
+// void				Client::setLog() {
+	
+// }
+
+time_t	Client::getLifeTime() {
+	return this->lifetime;
 }
 
 int Client::getFd() const {
@@ -112,10 +176,13 @@ bool	Client::methodIsAllowed(std::vector<std::string> &allowMethods, std::string
 
 bool	Client::checkLogTime()
 {
-	this->logtime = time(0) - this->logtime_start;
-	if (this->logtime >= CLIENT_TIMEOUT) {
-		std::cout << RED << "TIMEOUT PASSED" << RESET << std::endl;
-		return true;
+	if (this->response.getSendingLevel() == INITIAL) {
+		this->logtime = time(0) - this->logtime_start;
+		if (this->logtime >= CLIENT_TIMEOUT) {
+			this->getLog().addLog("TIMEOUT", "PASSED");
+			// std::cout << RED << "TIMEOUT PASSED" << RESET << std::endl;
+			return true;
+		}
 	}
 	return false;
 }
@@ -179,19 +246,20 @@ bool        Client::isBeyondMaxBodySize() {
 }
 
 bool		Client::readRequest(std::vector<Location> &locations) {
+	this->log_members();
 	this->logtime = 0;
 
 	char buf[1024] = {0};
-
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
-	if (readed == -1 || readed == 0) {
-		this->reqHasRead();
-		return true;
-		// then: close connection
-		// throw RequestFailed();
+	if (readed <= 0) {
+		throw RequestFailed();
 	}
+
+	this->getLog().addLog("READING", "...");
+	// std::cerr << "buffer: " << RED << buf << RESET << std::endl;
+
 	if (!this->location && this->request.getState() > METHOD) {
-		if(!findLocation(locations, this->request.getUri())) {
+		if (!findLocation(locations, this->request.getUri())) {
 			this->reqHasRead();
 			return true;
 		}
@@ -205,7 +273,9 @@ bool		Client::readRequest(std::vector<Location> &locations) {
 	}
 
 	if (isReadEnd) {
-
+		this->getLog().addLog("REQUEST URI", this->request.getUri());
+		// std::cout << BOLDRED << "[" << this->getFd() << "][URI]: " << this->request.getUri() << RESET << std::endl;
+		// request.printRequest();
 		this->reqHasRead();
 		if (!this->location)
 			findLocation(locations, this->request.getUri());
@@ -215,12 +285,9 @@ bool		Client::readRequest(std::vector<Location> &locations) {
 }
 
 bool	Client::createResponse() {
-	// log_level();
-	// -> find location that matches with uri
-
-
 	if (processing_level == INITIAL)
 	{
+		this->getLog().addLog("INIT RESPONSE", "...");
 		this->response.setLocation(location);
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
@@ -231,14 +298,21 @@ bool	Client::createResponse() {
 			else if (!this->methodIsAllowed(location->getAllowMethods(), this->request.getMethod())) {
 				this->response.setResponseType(ERROR);
 			}
+			this->setFirstCgiEnv();
 		}
-		this->setFirstCgiEnv();
 		processing_level = SENDING;
 	}
-	if (processing_level == SENDING)
+	if (processing_level == SENDING) {
+		this->getLog().addLog("RESPONSE SENDING", "...");
+		// this->getLog().addLog("RESPONSE TYPE", this->response.getHttp());
 		this->send_response();
-
-	return processing_level == PROCESSED;
+	}
+	if (processing_level == PROCESSED) {
+		// this->response.log_response();
+		this->getLog().addLog("RESPONSE", "DONE");
+		return true;
+	}
+	return false;
 }
 
 void	Client::send_response()
@@ -246,8 +320,7 @@ void	Client::send_response()
 	if (this->response.getResponseType() == OK) {
 		try
 		{
-			// todo: DELETE Method
-			// todo complete: POST Method
+			this->getLog().addLog("SENDING TYPE", "OK");
 			bool isResponseEnd = false;
 			if (this->request.getMethod() == "GET")
 				isResponseEnd = this->response.get_method(this->request.getUri(), this->firstCgiEnv);
@@ -259,15 +332,18 @@ void	Client::send_response()
 		}
 		catch (int error_code)
 		{
+			this->getLog().addLog("ERROR THROWED", "RESPONSE");
 			this->response.setStatus(error_code);
 			this->response.setResponseType(ERROR);
 		}
 	}
 	if (this->response.getResponseType() == REDIRECT) {
+		this->getLog().addLog("SENDING TYPE", "REDIRECT");
 		this->response.redirect(this->response.getLocation()->getRedirection());
 		this->processing_level = PROCESSED;
 	}
 	if (this->response.getResponseType() == ERROR) {
+		this->getLog().addLog("SENDING TYPE", "ERROR");
 		bool isResponseEnd = this->response.send_response_error();
 		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 	}
@@ -275,15 +351,26 @@ void	Client::send_response()
 
 void	Client::reqHasRead()
 {
-	std::cout << "request " << GREEN << "done" << RESET << std::endl;
+	// std::cout << "request " << GREEN << "done" << RESET << std::endl;
+	this->getLog().addLog("REQUEST", "DONE");
+	// this->getLog().addLog("Method: ", this->request.getMethod());
+    // this->getLog().addLog("Path: ", this->request.getUri());
+    // this->getLog().addLog("Version: ", this->request.getVersion());
+    // this->getLog().addLog("Headers: ", "");
 
+	// std::map<std::string, std::string>::iterator it;
+    // for (it = this->request.getHeaders().begin(); it != this->request.getHeaders().end(); it++) {
+	// 	this->getLog().addLog(it->first, it->second);
+    // }
+	// this->getLog().addLog("REQUEST MSG", this->request.);
+	// std::cout << BOLDGREEN << "[DONE][" << this->fd << "]: Request" << RESET << std::endl;
 	this->pollfd->events = POLLOUT | POLLHUP;
+	this->logtime_start = time(0);
 }
 
 void	Client::resHasSent()
 {
-	std::cout << "response " << GREEN << "sent" << RESET << std::endl;
-
+	// std::cout << "response " << GREEN << "sent" << RESET << std::endl;
 	this->pollfd->events = POLLIN | POLLHUP;
 	this->reset();
 	this->response.reset();
@@ -321,4 +408,18 @@ void	Client::log_level() {
 			break;
 	}
 	std::cout << RESET;
+}
+
+void	Client::log_members() {
+	this->getLog().addLog("[CLIENT MEMBERS]", "");
+	std::stringstream s;
+	s << processing_level;
+	this->getLog().addLog("-- processing level --", s.str());
+	this->response.log_members();
+}
+
+// title: exceptions
+
+const char	*Client::RequestFailed::what() const throw() {
+	return "Error occured while receiving the request";
 }
