@@ -6,7 +6,7 @@ Location::Location()
 
 Location::Location(std::string path, std::string root, std::vector<std::string> index,
 int clientMaxBodySize, std::vector<std::string> allowMethods, std::string redirection, bool autoIndex,
-std::vector<std::string> cgiExec, std::vector<std::string> cgiAllowMethods, bool acceptUpload,
+std::vector<std::string> cgiExec, bool acceptUpload,
 std::string uploadLocation)
 {
 		this->path = path;
@@ -17,7 +17,6 @@ std::string uploadLocation)
 		this->redirection = redirection;
 		this->autoIndex = autoIndex;
 		this->cgiExec = cgiExec;
-		this->cgiAllowMethods = cgiAllowMethods;
 		this->acceptUpload = acceptUpload;
 		this->uploadLocation = uploadLocation;
 }
@@ -75,11 +74,6 @@ void	Location::setAutoIndex(bool autoIndex)
 void	Location::setCgiExec(std::vector<std::string> cgiExec)
 {
 	this->cgiExec = cgiExec;
-}
-
-void	Location::setCgiAllowMethods(std::vector<std::string> cgiAllowMethods)
-{
-	this->cgiAllowMethods = cgiAllowMethods;
 }
 
 void	Location::setAcceptUpload(bool acceptUpload)
@@ -150,6 +144,11 @@ bool	Location::getAutoIndex(void)
 	return (this->autoIndex);
 }
 
+bool	Location::getAcceptUpload(void)
+{
+	return (this->acceptUpload);
+}
+
 std::vector<std::string>&	Location::getAllowMethods(void)
 {
 	return (this->allowMethods);
@@ -175,10 +174,7 @@ std::ostream & operator<<(std::ostream & out, const Location & obj)
 	std::vector<const std::string>::iterator it4 = obj.cgiExec.begin();
 	for (; it4 != obj.cgiExec.end(); it4++)
 		out << "\ncgiExec:\n" << *it4 << std::endl;
-	
-	std::vector<const std::string>::iterator it5 = obj.cgiAllowMethods.begin();
-	for (; it5 != obj.cgiAllowMethods.end(); it5++)
-		out << "\ncgiallowMethods:\n" << *it5 << std::endl;
+
 	out << " acceptUpload: " << obj.acceptUpload << " uploadLocation: " << obj.uploadLocation << std::endl;
 
 	size_t i = 0;

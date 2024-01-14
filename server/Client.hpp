@@ -14,7 +14,7 @@
 #include <map>
 
 #define CLIENT_TIMEOUT 30
-
+#define MEGABYTE 1048576
 enum proccess_response {
 	INITIAL,
 	SENDING,

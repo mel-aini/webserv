@@ -45,13 +45,45 @@ Response::Response()
 	content_type[".php"] = "application/x-httpd-php";
 }
 
+// Response::Response(const Response& R) {
+// 	*this = R;
+// }
+
+// Response& Response::operator= (const Response& R) {
+// 	if (this != &R) {
+// 		status = R.status;
+// 		location = R.location;
+// 		sending_level = R.sending_level;
+// 		method_level = R.method_level;
+// 		request_case = R.request_case;
+// 		response_type = R.response_type;
+// 		match_index = R.match_index;
+// 		bodyOffset = R.bodyOffset;
+// 		fileOffset = R.fileOffset;
+// 		index = R.index;
+// 		sendingFile = R.sendingFile;
+// 		fileToUpload = R.fileToUpload;
+// 		status_codes = R.status_codes;
+// 	}
+// 	return *this;
+// }
+
 Response::~Response() {
 	// std::cout << BOLDRED << "Response Destructor Called" << RESET << std::endl;
+}
+
+Log&               Response::getTraces() {
+	return this->traces;
 }
 
 void	Response::setBodyFileName(std::string bodyFileName)
 {
 	this->bodyFileName = bodyFileName;
+}
+
+int	Response::getSocket()
+{
+	return (this->socket);
 }
 
 int	Response::getStatus() const {
@@ -116,27 +148,38 @@ bool	Response::sendFile(std::string fileName)
 {
 	char buf[4000] = {0};
 
-	if (bodyOffset == 0)
-		std::cout << BOLDWHITE << "fileName: " + fileName << RESET << std::endl;
+	// if (bodyOffset == 0)
+	// 	std::cout << BOLDWHITE << "fileName: " + fileName << RESET << std::endl;
 
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
 		std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
-		throw ResponseFailed();
+		throw 404;
 	}
 
 	file.seekg(this->bodyOffset, std::ios::beg);
 
 	file.read(buf, sizeof(buf));
 	int bytesRead = file.gcount();
-	// std::cout << "bodyOffset: " << RED << bodyOffset << RESET << std::endl;
 	int s = send(this->socket, buf, bytesRead, 0);
-	if (s == -1)
+	// if (s == -1) {
+
+	// 	throw ResponseFailed();
+	// }
+	if (s == -1) {
+		this->traces.addLog("SEND", "RETURNED -1");
 		throw ResponseFailed();
+	}
+	else if (s == 0) {
+		this->traces.addLog("SEND", "RETURNED 0");
+	}
+	else {
+		this->traces.addLog("SEND", "RETURNED POSITIVE NUMBER");
+	}
 
 	bodyOffset += s;
-	// std::cout << "send: " << BOLDCYAN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
-	if (file.eof()) {
+	std::cout << "send: " << BOLDCYAN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
+	if (file.eof() || s == 0) {
 		this->sending_level = SENDING_END;
 		// std::cout << "bytes sent: " << BOLDGREEN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
 		file.close();
@@ -213,7 +256,7 @@ bool	Response::send_response_index_files(std::string uri)
 	std::cout << BOLDRED << "---- target: " << target << std::endl;
 	DIR *dir = opendir(target.c_str());
 	if (!dir)
-		throw 500;
+		throw 404;
 
 	struct dirent *dirContent;
 	std::vector<std::string> content;
@@ -263,8 +306,19 @@ void	Response::send_status_line_and_headers()
 	// std::cout << YELLOW << response << RESET << std::endl; 
 	// std::cout << YELLOW << response << RESET << std::endl;
 	const char *buf = response.c_str();
-	if (send(this->socket, buf, response.size(), 0) == -1)
-		throw ResponseFailed();
+	int s = send(this->socket, buf, response.size(), 0);
+	if (s == -1) {
+		this->traces.addLog("SEND", "RETURNED -1");
+		// throw ResponseFailed();
+		this->traces.addLog("SEND", "RETURNED -1");
+	}
+	else if (s == 0) {
+		this->traces.addLog("SEND", "RETURNED 0");
+	}
+	else {
+		this->traces.addLog("SEND", "RETURNED +0");
+	}
+	
 }
 
 void    Response::redirect(const std::string& location)
@@ -293,10 +347,10 @@ bool	Response::getRequestedResource(std::string uri)
 		}
 	}
 	std::string	fileCase = this->location->getRoot() + uri;
-	std::cout << BOLDMAGENTA << "REQ_RES: " << RESET << fileCase << RESET << std::endl;
+	// std::cout << BOLDMAGENTA << "REQ_RES: " << RESET << fileCase << RESET << std::endl;
 	if (stat(fileCase.c_str(), &this->fileInf) == 0)
 	{
-		std::cout << GREEN << "FOUND" << RESET << std::endl;
+		// std::cout << GREEN << "FOUND" << RESET << std::endl;
 		if (S_ISREG(this->fileInf.st_mode))
 		{
 			this->request_case = FILE_CASE;
@@ -448,136 +502,103 @@ bool	hasQueryString(std::string uri)
 	return (true);
 }
 
-char**	Response::getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> firstCgiEnv)
+bool	Response::hasCgi(void)
 {
-	std::map<std::string, std::string>::iterator it = firstCgiEnv.begin();
-	size_t	size;
-	if (method_type == GET)
-		size = hasQueryString(uri) ? 19 : 18;
-	size = (method_type == POST) ? 20 : size;
-	char	**env = new char*[size];
-
-	std::cout << size << std::endl;
-	size_t i = 0;
-	for (; it != firstCgiEnv.end(); it++)
-	{
-		std::cout << it->second << "         " << i << std::endl;
-		env[i] = strdup(it->second.c_str());
-		i++;
-	}
-
-	std::string	variable;
-
-	if (uri[0] == '/')
-		uri.erase(0, 1);
-	variable = "SCRIPT_FILENAME=" + this->fileToSend;
-	env[i++] = strdup(variable.c_str());
-	env[i] = NULL;
-	return (env);
+	return (this->location->getCgiExec().size() != 0 && this->fileToSend.substr(this->fileToSend.rfind('.')) == this->location->getCgiExec()[1]);
 }
 
-void	freeEnv(char **env)
-{
-	size_t i = 0;
-
-	while (env[i++])
-		free(env[i]);
-	free(env);
-}
-
-void	Response::executeCgi(std::string uri, std::map <std::string, std::string> _headers, int method_type)
-{
-	char **env = this->getCgiEnv(method_type, uri, _headers);
-	pid_t	pid = fork();
-	if (pid == -1)
-		throw 502;
-	int fdes = open("/tmp/result", O_CREAT | O_RDWR | O_TRUNC, 0666);
-	// std::cout << fdes << std::endl;
-	if (fdes == -1)
-		throw 502;
-	if (pid == 0)
-	{
-		dup2(fdes, 1);
-		close(fdes);
-		if (method_type == POST)
-		{
-			int fd = open(this->bodyFileName.c_str(), O_RDONLY);
-			if (fd == -1)
-				throw (502);
-			dup2(fd, 0);
-			close(fd);
-		}
-		execve(this->location->getCgiExec()[0].c_str(), NULL, env);
-		throw 502;
-	}
-	wait(0);
-	freeEnv(env);
-	close(fdes);
-	std::ifstream result("/tmp/result");
-	if (!result.is_open())
-		throw 502;
-	std::string header;
-	std::string body;
-	std::string tmp;
-	std::string status;
-	bool	hasContentLength = 0;
-	size_t	contentLength = 0;
-	bool	hasContentType = 0;
-	while (getline(result, tmp, '\n'))
-	{
-		if (tmp == "\r")
-			break ;
-		if (tmp.substr(0, 14) == "Content-type: ")
-			hasContentType = 1;
-		if (tmp.substr(0, 16) == "Content-length: ")
-			hasContentLength = 1;
-		if (tmp.substr(0, 8) == "Status: ")
-			status = tmp.substr(8);
+bool	Response::post_method(Request &request, std::map <std::string, std::string> firstCgiEnv) {
+	if (location->getAcceptUpload())
+		return this->uploadPostMethod(request);
+	if (this->sending_level == GET_REQUESTED_RES) {
+		bool isIndex = getRequestedFile(request.getUri());
+		if (sending_level == SENDING_END)
+			return true;
+		if (!isIndex)
+			throw (403);
 		else
-			header += tmp + "\n";
+			this->sending_level = SENDING_HEADERS;
 	}
-	if (status.empty())
-		status = "HTTP/1.1 200 OK \r\n";
-	else
-		status = "HTTP/1.1 " + status + "\r\n";
-	if (!hasContentType)
-		header += "Content-type: text/html\r\n";
-	header = status + header;
-	while (getline(result, tmp, '\n'))
-		body += tmp + "\n";
-	result.close();
-	contentLength = body.size();
-	if (!hasContentLength)
-	{
-		std::stringstream ss;
-		ss << contentLength;
-		std::string size;
-		ss >> size;
-		header += "Content-length: " + size + "\r\n";
+	else if (this->sending_level == SENDING_HEADERS) {
+		if (!this->hasCgi())
+			throw (403);
+		this->cgi.executeCgi(this->fileToSend ,this->location->getCgiExec()[0], this->bodyFileName, firstCgiEnv, POST);
+		this->cgi.sendCgiHeader(this->socket);
+		this->sending_level = SENDING_BODY;
 	}
-	header += "\r\n";
-	std::string	response = header + body;
-	// std::ofstream file("file");
-	// if (file.is_open())
-	// {
-	// 	file << response;
-	// 	file.close();
-	// }
-	// int fds = open("file", O_RDONLY);
-	// char *buf = new char [response.length() + 1];
-	// read(fds, buf, response.length());
-	// buf[response.length()] = '\0';
-	const char *buf = response.c_str();
-	if (send(this->socket, buf, response.length(), 0) == -1)
-		throw ResponseFailed();
+	else if (this->sending_level == SENDING_BODY) {
+		if (this->cgi.sendCgiBody(this->socket))
+			this->sending_level = SENDING_END;
+	}
+	else if (this->sending_level == SENDING_END)
+		return true;
+	return false;
 }
 
-bool	Response::post_method(Request &request, std::map <std::string, std::string> _headers, int method_type) {
-	if (!location->acceptUpload)
+void	Response::check_dir_permission(std::string target) {
+	if (access(target.c_str(), W_OK) != 0) {
 		throw 403;
-	(void)method_type;
-	(void)_headers;
-	return this->uploadPostMethod(request);
+	}
+
+	std::cout << BOLDRED << "before: " + target << RESET << std::endl;
+	DIR *dir = opendir(target.c_str());
+	if (!dir)
+		throw 404;
+	std::cout << BOLDRED << "after" << RESET << std::endl;
+	std::string oldTarget = target;
+	struct dirent *dirContent;
+	struct stat fileInfo;
+
+	while ((dirContent = readdir(dir)) != NULL) {
+		std::string	dirstring = dirContent->d_name;
+		if (dirstring == "." || dirstring == "..") {
+			continue;
+		}
+		std::string newTarget = oldTarget + "/" + dirstring;
+		if (stat(newTarget.c_str(), &fileInfo) == 0) {
+			if (access(newTarget.c_str(), W_OK) != 0) {
+				closedir(dir);
+				throw 403;
+			}
+			if (S_ISDIR(fileInfo.st_mode)) {
+				check_dir_permission(newTarget);
+			}
+		} else {
+			closedir(dir);
+			throw 404;
+		}
+	}
+}
+
+void	Response::remove_dir(std::string target) {
+	DIR *dir = opendir(target.c_str());
+	if (!dir)
+		throw 404;
+
+	std::string oldTarget = target;
+	struct dirent *dirContent;
+	struct stat fileInfo;
+
+	while ((dirContent = readdir(dir)) != NULL) {
+		std::string	dirstring = dirContent->d_name;
+		if (dirstring == "." || dirstring == "..") {
+			continue;
+		}
+		std::string newTarget = oldTarget + "/" + dirstring;
+		if (stat(newTarget.c_str(), &fileInfo) == 0) {
+			if (S_ISREG(fileInfo.st_mode)) {
+				if (unlink(newTarget.c_str()) == -1)
+					throw 500;
+			}
+			else if (S_ISDIR(fileInfo.st_mode)) {
+				remove_dir(newTarget);
+			}
+		} else {
+			throw 404;
+		}
+	}
+	if (rmdir(target.c_str()) == -1)
+		throw 500;
 }
 
 void	Response::check_dir_permission(std::string target) {
@@ -659,102 +680,81 @@ bool	Response::delete_method(std::string uri) {
 
 	if (!isFileExist(target))
 		throw 404;
-
-	struct stat fileInfo;
-
-	if (stat(target.c_str(), &fileInfo) == 0) {
-		if (S_ISREG(fileInfo.st_mode)) {
-			if (!hasCgi()) {
-				if (access(target.c_str(), R_OK) != 0)
-					throw 403;
-			
-				if (unlink(target.c_str()) == -1)
-					throw 500;
-
-			}
-		}
-		else if (S_ISDIR(fileInfo.st_mode)) {
-			if (uri.back() != '/')
-				throw 409;
-
-			if (!hasCgi()) {
-				check_dir_permission(target);
-				remove_dir(target);
-			}
-		}
-	}
-	else {
-		throw 404;
-	}
-
-	this->status = 204;
-	this->headers["Content-Length: "] = "0";
-	send_status_line_and_headers();
-
-	return true;
-}
-
-bool	Response::hasCgi(void)
-{
-	return (this->location->getCgiExec().size() != 0 && this->fileToSend.substr(this->fileToSend.rfind('.')) == this->location->getCgiExec()[1]);
+	
+	
+	(void)uri;
+	return false;
 }
 
 // ... working on
-bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type) {
-	// todo: new GET
+bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv) {
 	if (this->sending_level == GET_REQUESTED_RES) {
-		bool isIndex = getRequestedFile(uri);
+		bool isNoIndex = getRequestedFile(uri);
 		if (sending_level == SENDING_END)
 			return true;
 
-		if (this->hasCgi()) {
+		if (isNoIndex)
+			this->sending_level = SENDING_HEADERS;
+		if (this->hasCgi())
+		{
 			this->executeCgi(uri, firstCgiEnv, method_type);
 			this->sending_level = SENDING_END;
 		}
-		if (!isIndex) {
+		if (!isNoIndex) {
 			// then: autoIndex
 			if (!this->location->getAutoIndex())
 				throw 403;
-
 			this->send_response_index_files(uri);
 			this->sending_level = SENDING_END;
-		} else {
-			this->sending_level = SENDING_HEADERS;
 		}
 	}
 	else if (this->sending_level == SENDING_HEADERS) {
-		std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
-		std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
-		if (!file.is_open())
-			throw 500;
-
-		std::stringstream sizestream;
-		struct stat fileInfo;
-		if (stat(this->fileToSend.c_str(), &fileInfo) == 0) {
-			sizestream << fileInfo.st_size;
-			// std::cout << "Content-Length: " << RED << sizestream.str() << RESET << std::endl;
+		if (this->hasCgi())
+		{
+			this->cgi.executeCgi(this->fileToSend ,this->location->getCgiExec()[0], this->bodyFileName, firstCgiEnv, GET);
+			this->cgi.sendCgiHeader(this->socket);
 		}
-		this->headers["Content-Type: "] = getContentType(this->fileToSend);
-		this->headers["Content-Length: "] = sizestream.str();
-		this->headers["Accept-Ranges: "] = "none";
-		// this->headers["Connection: "] = "keep-alive";
-		// this->headers["Keep-Alive: "] = "timeout=100000, max=10000";
-		// this->headers["Keep-Alive: "] = "timeout=100, max=100";
-		send_status_line_and_headers();
+		else
+		{
+			std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
+			std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
+			if (!file.is_open())
+				throw 500;
+
+			std::stringstream sizestream;
+			struct stat fileInfo;
+			if (stat(this->fileToSend.c_str(), &fileInfo) == 0) 
+				sizestream << fileInfo.st_size;
+
+			this->traces.addLog("Content-Length: ", sizestream.str());
+			this->headers["Content-Length: "] = sizestream.str();
+			if (sizestream.str() != "0")
+				this->headers["Content-Type: "] = getContentType(this->fileToSend);
+			// this->headers["Accept-Ranges: "] = "none";
+			// this->headers["Connection: "] = "keep-alive";
+			send_status_line_and_headers();
+			if (sizestream.str() == "0") {
+				this->sending_level = SENDING_END;
+				file.close();
+				return true;
+			}
+			file.close();
+		}
 		this->sending_level = SENDING_BODY;
 	}
 	else if (this->sending_level == SENDING_BODY) {
-		/*
-			todo: cgi design
-			if (location has cgi)
-				run cgi
-			else
-				return file
-		*/
-		return this->sendFile(this->fileToSend);
+		this->traces.addLog("SENDING_BODY", "...");
+		if (this->hasCgi()) {
+			if (this->cgi.sendCgiBody(this->socket))
+				this->sending_level = SENDING_END;
+		}
+		else
+			return this->sendFile(this->fileToSend);
 	}
-	else if (this->sending_level == SENDING_END)
+	if (this->sending_level == SENDING_END) {
+		this->traces.addLog("SENDING_END", "");
 		return true;
+	}
 	return false;
 }
 
@@ -780,6 +780,7 @@ void	Response::reset() {
 	this->bodyOffset = 0;
 	this->sendingFile = false;
 	this->fileToSend = "";
+	// this->traces = NULL;
 }
 
 // title: exceptions
@@ -791,7 +792,20 @@ const char	*Response::ResponseFailed::what() const throw() {
 // title: log methods
 
 void    Response::log_members() {
-	std::cout << "bodyOffset: " << YELLOW << bodyOffset << RESET << std::endl;
+	this->traces.addLog("[RESPONSE MEMBERS]", "...");
+	std::stringstream s1;
+	s1 << sending_level;
+
+	std::stringstream s2;
+	s2 << response_type;
+
+	std::stringstream s3;
+	s3 << status;
+	
+	this->traces.addLog("--- status ---", s3.str());
+	this->traces.addLog("--- sending_level ---", s1.str());
+	this->traces.addLog("--- response_type ---", s2.str());
+	// std::cout << "bodyOffset: " << YELLOW << bodyOffset << RESET << std::endl;
 }
 
 void    Response::log_res_type()
@@ -868,4 +882,16 @@ void	Response::log()
 	else if (this->match_index == NO) {
 		std::cout << CYAN << "match_index = NO"  << RESET << std::endl;
 	}
+}
+
+void    Response::log_response() {
+	std::cout << BOLDGREEN << "[DONE][" << this->socket << "]: http response: # " << RESET;
+	std::cout << "HTTP/1.1 " << this->status << " " + this->status_codes[this->status] << " | ";
+
+	std::string headers;
+	std::map<std::string, std::string>::iterator it = this->headers.begin();
+	for (; it != this->headers.end(); it++) {
+		std::cout << it->first << it->second << " *|* ";
+	}
+	std::cout << std::endl;
 }
