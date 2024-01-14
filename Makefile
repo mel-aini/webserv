@@ -10,7 +10,7 @@ OBJ = $(SRC:.cpp=.o)
 
 FLAGS = -Wall -Wextra -Werror -g -std=c++98 #-fsanitize=address
 
-all : cleanTraces $(NAME)
+all : $(NAME)
 
 $(NAME) : $(OBJ)
 	@c++ $(FLAGS) $(OBJ) -o $@
@@ -24,12 +24,12 @@ clean :
 fclean : clean
 	@rm -rf $(NAME)
 
-cleanTraces:
-	rm -rf Traces/*
-
 re : fclean all
 
-run : all clean
-	@./$(NAME) webserv.conf
+run : cleanTraces
+	@./$(NAME) webser.conf
+
+cleanTraces:
+	@rm -rf Traces/*
 
 .PHONY : clean fclean re run

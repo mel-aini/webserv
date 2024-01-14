@@ -82,6 +82,7 @@ class Client
 		bool        		isBeyondMaxBodySize();
 		void				setServerInfo(std::string port, std::string host, std::string s_name);
 		void				setFirstCgiEnv(void);
+		// void				searchPathInfo(void);
 		void				log();
 		void				log_level();
 		void				log_members();

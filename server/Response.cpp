@@ -347,10 +347,10 @@ bool	Response::getRequestedResource(std::string uri)
 		}
 	}
 	std::string	fileCase = this->location->getRoot() + uri;
-	// std::cout << BOLDMAGENTA << "REQ_RES: " << RESET << fileCase << RESET << std::endl;
+	std::cout << BOLDMAGENTA << "REQ_RES: " << RESET << fileCase << RESET << std::endl;
 	if (stat(fileCase.c_str(), &this->fileInf) == 0)
 	{
-		// std::cout << GREEN << "FOUND" << RESET << std::endl;
+		std::cout << GREEN << "FOUND" << RESET << std::endl;
 		if (S_ISREG(this->fileInf.st_mode))
 		{
 			this->request_case = FILE_CASE;
@@ -437,13 +437,10 @@ void	Response::decode_uri(std::string& uri)
 // ... working on
 bool	Response::getRequestedFile(std::string uri)
 {
+	size_t qsPos = uri.find('?');
+	uri = (qsPos != std::string::npos) ? uri.substr(0, qsPos) : uri;
 	if (uri[0] == '/')
 		uri.erase(0, 1);
-
-	if (hasQueryString(uri))
-		uri = uri.substr(0, uri.find('?'));
-
-	decode_uri(uri);
 
 	std::string	target = this->location->getRoot() + uri;
 
@@ -490,17 +487,6 @@ bool	Response::getRequestedFile(std::string uri)
 }
 
 ///////////////////////
-
-bool	hasQueryString(std::string uri)
-{
-	size_t	i;
-	for (i = 0; i < uri.length(); i++)
-		if (uri[i] == '?')
-			break ;
-	if (i == uri.length())
-		return (false);
-	return (true);
-}
 
 bool	Response::hasCgi(void)
 {
@@ -601,72 +587,6 @@ void	Response::remove_dir(std::string target) {
 		throw 500;
 }
 
-void	Response::check_dir_permission(std::string target) {
-	if (access(target.c_str(), W_OK) != 0) {
-		throw 403;
-	}
-
-	std::cout << BOLDRED << "before: " + target << RESET << std::endl;
-	DIR *dir = opendir(target.c_str());
-	if (!dir)
-		throw 404;
-	std::cout << BOLDRED << "after" << RESET << std::endl;
-	std::string oldTarget = target;
-	struct dirent *dirContent;
-	struct stat fileInfo;
-
-	while ((dirContent = readdir(dir)) != NULL) {
-		std::string	dirstring = dirContent->d_name;
-		if (dirstring == "." || dirstring == "..") {
-			continue;
-		}
-		std::string newTarget = oldTarget + "/" + dirstring;
-		if (stat(newTarget.c_str(), &fileInfo) == 0) {
-			if (access(newTarget.c_str(), W_OK) != 0) {
-				closedir(dir);
-				throw 403;
-			}
-			if (S_ISDIR(fileInfo.st_mode)) {
-				check_dir_permission(newTarget);
-			}
-		} else {
-			closedir(dir);
-			throw 404;
-		}
-	}
-}
-
-void	Response::remove_dir(std::string target) {
-	DIR *dir = opendir(target.c_str());
-	if (!dir)
-		throw 404;
-
-	std::string oldTarget = target;
-	struct dirent *dirContent;
-	struct stat fileInfo;
-
-	while ((dirContent = readdir(dir)) != NULL) {
-		std::string	dirstring = dirContent->d_name;
-		if (dirstring == "." || dirstring == "..") {
-			continue;
-		}
-		std::string newTarget = oldTarget + "/" + dirstring;
-		if (stat(newTarget.c_str(), &fileInfo) == 0) {
-			if (S_ISREG(fileInfo.st_mode)) {
-				if (unlink(newTarget.c_str()) == -1)
-					throw 500;
-			}
-			else if (S_ISDIR(fileInfo.st_mode)) {
-				remove_dir(newTarget);
-			}
-		} else {
-			throw 404;
-		}
-	}
-	if (rmdir(target.c_str()) == -1)
-		throw 500;
-}
-
 bool	Response::delete_method(std::string uri) {
 	if (uri[0] == '/')
 		uri.erase(0, 1);
@@ -695,11 +615,6 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 
 		if (isNoIndex)
 			this->sending_level = SENDING_HEADERS;
-		if (this->hasCgi())
-		{
-			this->executeCgi(uri, firstCgiEnv, method_type);
-			this->sending_level = SENDING_END;
-		}
 		if (!isNoIndex) {
 			// then: autoIndex
 			if (!this->location->getAutoIndex())

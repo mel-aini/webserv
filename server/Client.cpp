@@ -98,18 +98,52 @@ void	Client::setServerInfo(std::string port, std::string host, std::string s_nam
 	this->response.setBodyFileName(this->request.getFilename());
 }
 
+// void	Client::searchPathInfo(void)
+// {
+// 	std::string uri = this->request.getUri();
+// 	std::string pathInf;
+// 	size_t	ptPos = uri.find('.');
+// 	size_t qsPos = uri.find('?');
+// 	size_t slashPos = std::string::npos;
+
+// 	if (ptPos != std::string::npos && qsPos != std::string::npos && ptPos < qsPos)
+// 	{
+// 		slashPos = uri.find('/', ptPos);
+// 		if (slashPos != std::string::npos && slashPos < qsPos)
+// 			pathInf = uri.substr(slashPos, qsPos - slashPos);
+// 		else
+// 		{
+// 			slashPos = std::string::npos;
+// 			this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, qsPos);
+// 		}
+// 	}
+// 	else if (ptPos != std::string::npos)
+// 	{
+// 		slashPos = uri.find('/', ptPos);
+// 		if (slashPos != std::string::npos)
+// 			pathInf = uri.substr(slashPos);
+// 		else
+// 			this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri;
+// 	}
+// 	if (slashPos != std::string::npos)
+// 	{
+// 		this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + pathInf;
+// 		this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + pathInf.substr(1);
+// 		this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, slashPos);
+// 	}
+// }
+
 void	Client::setFirstCgiEnv(void)
 {
 	std::string uri = this->request.getUri();
-	size_t	ptPos = uri.find('.');
-	size_t slashPos = uri.find('/', ptPos);
-	size_t qsPos = uri.find('?', ptPos);
+	size_t qsPos = uri.find('?');
 
 	this->firstCgiEnv["SERVER_NAME"] = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
 	this->firstCgiEnv["SERVER_PORT"] = "SERVER_PORT=" + this->serverInfo["PORT"];
 	this->firstCgiEnv["SERVER_PROTOCOL"] = "SERVER_PROTOCOL=HTTP/1.1";
-	this->firstCgiEnv["HTTP_HOST"] = "HTTP_HOST=" + this->serverInfo["HOST"];
-	this->firstCgiEnv["REMOTE_ADDR"] = "REMOTE_ADDR=" + this->serverInfo["HOST"];
+	this->firstCgiEnv["REMOTE_ADDR"] = "REMOTE_ADDR=" + this->serverInfo["HOST"]; // client address
+	std::string httpHost = this->request.getHeader("host");
+	this->firstCgiEnv["HTTP_HOST"] = "HTTP_HOST=" + httpHost.substr(0, httpHost.find(':'));
 	this->firstCgiEnv["HTTP_CONNECTION"] = "HTTP_CONNECTION=" + this->request.getHeader("connection");
 	this->firstCgiEnv["HTTP_ACCEPT"] = "HTTP_ACCEPT=" + this->request.getHeader("accept");
 	this->firstCgiEnv["HTTP_USER_AGENT"] = "HTTP_USER_AGENT=" + this->request.getHeader("user-agent");
@@ -117,13 +151,14 @@ void	Client::setFirstCgiEnv(void)
 	this->firstCgiEnv["REDIRECT_STATUS"] = "REDIRECT_STATUS=0";
 	this->firstCgiEnv["REQUEST_URI"] = "REQUEST_URI=" + uri;
 	this->firstCgiEnv["DOCUMENT_ROOT"] = "DOCUMENT_ROOT=" + this->location->getRoot();
+	this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri;
 
 	if (this->request.getMethod() == "GET")
 	{
 		this->firstCgiEnv["REQUEST_METHOD"] = "REQUEST_METHOD=GET";
 
 		if (qsPos != std::string::npos)
-			this->firstCgiEnv["QUERY_STRING"] = "QUERY_STRING=" + uri.substr(uri.find('?') + 1);
+			this->firstCgiEnv["QUERY_STRING"] = "QUERY_STRING=" + uri.substr(qsPos + 1);
 	}
 	else if (this->request.getMethod() == "POST")
 	{
@@ -131,27 +166,7 @@ void	Client::setFirstCgiEnv(void)
 		this->firstCgiEnv["CONTENT_TYPE"] = "CONTENT_TYPE=" + this->request.getHeader("content-type");
 		this->firstCgiEnv["CONTENT_LENGTH"] = "CONTENT_LENGTH=" + this->request.getHeader("content-length");
 	}
-
-
-	if (ptPos != std::string::npos)
-	{
-		if (slashPos != std::string::npos)
-		{
-			if (ptPos < slashPos)
-			{
-				this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, slashPos);
-				this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri.substr(slashPos);
-				this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + uri.substr(slashPos + 1);
-			}
-		}
-		else
-		{
-			if (qsPos != std::string::npos)
-				this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, qsPos);
-			else
-				this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri;
-		}
-	}
+	// this->searchPathInfo();
 }
 
 Request	Client::getRequest() const {
@@ -195,7 +210,8 @@ bool	compareByLength(Location& a, Location& b)
 bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
 {
 	std::vector<Location>::iterator	it;
-	std::string tmp = hasQueryString(uri) ? uri.substr(0, uri.find('?')) : uri;
+	size_t qsPos = uri.find('?');
+	std::string tmp = (qsPos != std::string::npos) ? uri.substr(0, qsPos) : uri;
 
 	if (tmp.empty() || tmp[0] != '/') {
 		this->response.setStatus(400);

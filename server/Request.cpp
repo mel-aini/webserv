@@ -6,7 +6,7 @@
 /*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/11 18:04:17 by mel-aini         ###   ########.fr       */
+/*   Updated: 2024/01/14 10:38:28 by mel-aini         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -241,10 +241,11 @@ int Request::readHeaders()
         if (ss2.peek() == ' ')// skip the space after the :
             ss2.seekg(1, ss2.cur);
         std::getline(ss2, value, '\r');
+        std::cout << BLUE << value << RESET << std::endl;
         std::transform(key.begin(), key.end(), key.begin(), ::tolower);
         this->currentHeaderKey = key;
-        this->currentHeaderValue = value;
-        this->_headers[key] = value;
+        this->currentHeaderValue = trimSpacesAndTabs(value);
+        this->_headers[this->currentHeaderKey] = this->currentHeaderValue;
     }
     if (!this->isHostExists())
     {
@@ -282,6 +283,7 @@ int Request::readHeaders()
         this->status = 400;
         return 0;
     }
+    printRequest();
     return 1;
 }
 
@@ -427,65 +429,79 @@ int Request::readBoundary()
 void				Request::log_uri() {
     std::cout << this->_uri;
 }
+ 
+int Request::parseMethod()
+{
+    std::string requestLine = this->_request.substr(0, this->_request.find("\r\n"));
+    std::stringstream ss(requestLine);
+    std::getline(ss, this->_method, ' ');
+    std::getline(ss, this->_uri, ' ');
+    std::getline(ss, this->_version, ' ');
+    if (!validateRequestLine())
+        return 0;
+    skipSlash(this->_uri);
+    this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
+    this->_state = HEADER;
+    return 1;
+}
 
-
-int Request::parseRequest(char *buffer, int size, int fd)
-{   
+bool Request::parseRequest(char *buffer, int size, int fd)
+{
     (void)fd;
     this->_request += std::string(buffer, size);
+
     if (this->_state == START)
     {
         if (this->_request.find("\r\n") == std::string::npos)
-            return 0;
+            return false;
         this->_state = METHOD;
     }
+
     if (this->_state == METHOD)
     {
-        std::string requestLine = this->_request.substr(0, this->_request.find("\r\n"));
-        std::stringstream ss(requestLine);
-        std::getline(ss, this->_method, ' ');
-        std::getline(ss, this->_uri, ' ');
-        std::getline(ss, this->_version, ' ');
-        if (!validateRequestLine())
-            return 1;
-        skipSlash(this->_uri);
-        this->_request = this->_request.substr(this->_request.find("\r\n") + 2);
-        this->_state = HEADER;
+        if (!parseMethod())
+            return true;
     }
+
     if (this->_state == HEADER)
     {
         if (readHeaders())
         {
-            if (this->_request.length() == 0)
-                return 0;
+            if (!this->_request.length())
+                return false;
         }
         else
-            return 1;
+            return true;
     }
+
     if (this->_state == CONTENT_LENGTH)
     {
         if (readByContentLength())
-            return 0;
+            return false;
         else
-            return 1;
+            return true;
     }
+
     if (this->_state == CHUNKED)
     {
         if (readByChunk())
-            return 0;
+            return false;
         else
-            return 1;
+            return true;
     }
+
     if (this->_state == BOUNDARY)
     {
         if (readBoundary())
-            return 0;
+            return false;
         else
-            return 1;
+            return true;
     }
+
     if (this->_state == END)
-        return 1;
-    return 0;
+        return true;
+
+    return false;
 }
 
 void Request::printRequest()
@@ -503,6 +519,15 @@ void Request::printRequest()
 void Request::setUri(std::string str)
 {
     this->_uri = str;
+}
+
+std::string trimSpacesAndTabs(std::string str)
+{
+    size_t start = str.find_first_not_of(" \t");
+    size_t end = str.find_last_not_of(" \t");
+    if (start == std::string::npos)
+        return "";
+    return str.substr(start, end - start + 1);
 }
 
 void    Request::reset()

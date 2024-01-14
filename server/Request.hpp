@@ -63,7 +63,8 @@ class Request
         ~Request();
         Request(Request const &src);
         Request     &operator=(Request const &rhs);
-        int         parseRequest(char *buffer, int size, int fd);
+        bool        parseRequest(char *buffer, int size, int fd);
+        int         parseMethod();
         void        printRequest();
         size_t      getContentLenght();
         std::string getTransferEncoding();
@@ -103,6 +104,7 @@ class Request
 		};
 };
 
-void    skipSlash(std::string & str);
+void            skipSlash(std::string & str);
+std::string     trimSpacesAndTabs(std::string str);
 
 #endif

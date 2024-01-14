@@ -22,6 +22,7 @@ class Cgi
 {
 	private:
 		size_t	offset;
+		long long	cL;
 
 	public:
 		Cgi(void);

@@ -16,8 +16,6 @@
 #include "Cgi.hpp"
 #include "Log.hpp"
 
-bool    hasQueryString(std::string uri);
-
 enum sending_level{
     GET_REQUESTED_RES,
     SENDING_HEADERS,
@@ -111,8 +109,6 @@ class Response {
         bool                            sendFile(std::string fileName);
         bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv);
         bool                            post_method(Request &request, std::map <std::string, std::string> _headers);
-        // bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
-        // bool                            post_method(Request &request, std::map <std::string, std::string> _headers, int method_type);
         bool                            delete_method(std::string uri);
         void                            check_dir_permission(std::string target);
         void                            remove_dir(std::string target);

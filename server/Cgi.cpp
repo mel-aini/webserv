@@ -3,6 +3,7 @@
 Cgi::Cgi(void)
 {
 	this->offset = 0;
+	this->cL = -1;
 }
 
 char**	Cgi::getCgiEnv(std::string fileToSend, std::map <std::string, std::string> firstCgiEnv)
@@ -31,20 +32,20 @@ void	freeEnv(char **env)
 {
 	size_t i = 0;
 
-	while (env[i++])
-		free(env[i]);
-	free(env);
+	while (env[i])
+		delete (env[i++]);
+	delete [] (env);
 }
 
 void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type)
 {
 	char **env = this->getCgiEnv(fileToSend, firstCgiEnv);
+	char *arg[3] = {const_cast<char *>(cgiPath.c_str()), const_cast<char *>(fileToSend.c_str()), NULL};
 	pid_t	pid = fork();
 	if (pid == -1)
 		throw 502;
 	if (pid == 0)
 	{
-			std::cout << bodyFileName << std::endl;
 		int fdes = open("/tmp/result", O_CREAT | O_RDWR | O_TRUNC, 0666);
 		if (fdes == -1)
 		{
@@ -62,7 +63,7 @@ void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bo
 			dup2(fd, 0);
 			close(fd);
 		}
-		execve(cgiPath.c_str(), NULL, env);
+		execve(arg[0], arg, env);
 		throw 502;
 	}
 	wait(0);
@@ -71,6 +72,7 @@ void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bo
 
 bool	Cgi::sendCgiHeader(int socket)
 {
+	std::stringstream ss;
 	struct stat fileInf;
 	stat("/tmp/result", &fileInf);
 	std::ifstream result("/tmp/result", std::ios::binary | std::ios::in);
@@ -81,15 +83,23 @@ bool	Cgi::sendCgiHeader(int socket)
 	std::string tmp;
 	std::string status;
 	bool	hasContentLength = 0;
+	bool	hasHeader = 0;
 	bool	hasContentType = 0;
 	while (getline(result, tmp, '\n'))
 	{
 		if (tmp == "\r")
+		{
+			hasHeader = 1;
 			break ;
+		}
 		if (tmp.substr(0, 14) == "Content-type: ")
 			hasContentType = 1;
 		if (tmp.substr(0, 16) == "Content-length: ")
+		{
+			ss << tmp.substr(16);
+			ss >> this->cL;
 			hasContentLength = 1;
+		}
 		if (tmp.substr(0, 8) == "Status: ")
 		{
 			this->offset += tmp.length();
@@ -98,8 +108,14 @@ bool	Cgi::sendCgiHeader(int socket)
 		else
 			header += tmp + "\n";
 	}
-	this->offset += header.length() + 2;
-	std::cout << RED << this->offset << RESET << std::endl;
+	if (hasHeader)
+		this->offset += header.length() + 2;
+	else
+	{
+		header = "";
+		this->offset = 0;
+	}
+	// std::cout << RED << this->offset << RESET << std::endl;
 	result.seekg(this->offset, std::ios::beg);
 	if (status.empty())
 		status = "HTTP/1.1 200 OK \r\n";
@@ -111,7 +127,6 @@ bool	Cgi::sendCgiHeader(int socket)
 		header += "Content-type: text/html\r\n";
 	if (!hasContentLength)
 	{
-		std::stringstream ss;
 		ss << (fileInf.st_size - this->offset);
 		std::string size;
 		ss >> size;
@@ -136,18 +151,49 @@ bool	Cgi::sendCgiBody(int socket)
 
 	result.seekg(this->offset, std::ios::beg);
 
-	result.read(buf, sizeof(buf));
-	int bytesRead = result.gcount();
-	int s = send(socket, buf, bytesRead, 0);
-	if (s == -1)
-		throw ResponseFailed();
-	this->offset += s;
-	if (result.eof()) {
+	if (this->cL == -1)
+	{
+		result.read(buf, sizeof(buf));
+		int bytesRead = result.gcount();
+		int s = send(socket, buf, bytesRead, 0);
+		if (s == -1)
+			throw ResponseFailed();
+		this->offset += s;
+		if (result.eof()) {
+			result.close();
+			this->offset = 0;
+			this->cL = -1;
+			return true;
+		}
 		result.close();
-		this->offset = 0;
-		return true;
 	}
-	result.close();
+	else
+	{
+		if (this->cL > 1024)
+		{
+			this->cL -= 1024;
+			result.read(buf, sizeof(buf));
+			int bytesRead = result.gcount();
+			int s = send(socket, buf, bytesRead, 0);
+			if (s == -1)
+				throw ResponseFailed();
+			this->offset += s;
+			result.close();
+		}
+		else
+		{
+			this->cL -= this->cL;
+			result.read(buf, this->cL);
+			int bytesRead = result.gcount();
+			int s = send(socket, buf, bytesRead, 0);
+			if (s == -1)
+				throw ResponseFailed();
+			result.close();
+			this->offset = 0;
+			this->cL = -1;
+			return true;
+		}
+	}
 	return (false);
 }
 
