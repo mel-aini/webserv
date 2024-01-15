@@ -58,6 +58,7 @@ class Response {
         std::string                         bodyFileName;
         Cgi                                 cgi;
         Log                                 traces;
+        std::pair<std::string, std::string> matchCgi;
 
     public:
         Response();

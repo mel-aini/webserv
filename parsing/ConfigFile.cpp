@@ -1,9 +1,5 @@
 #include "ConfigFile.hpp"
 
-using std::cout;
-using std::cerr;
-using std::endl;
-
 Location	defLocation()
 {
 	std::vector<std::string>	index;
@@ -12,11 +8,11 @@ Location	defLocation()
 	allowMethods.push_back("GET");
 	allowMethods.push_back("POST");
 	allowMethods.push_back("DELETE");
-	std::vector<std::string>	cgiExec;
-	return (Location("/", "public/html", index, 50, allowMethods, "", true, cgiExec, true, "/upload"));
+	std::pair<std::string, std::string>	cgiExec;
+	return (Location("/", "public/html", index, 50, allowMethods, "", true, cgiExec, true, "public/storage"));
 }
 
-std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &it, bool & hasData, std::string name, int num)
+std::string	parseOneStrArg(Tokens::iterator &it, bool & hasData, std::string name, int num)
 {
 	std::string data;
 
@@ -78,7 +74,7 @@ std::string	parseOneStrArg(std::vector<std::pair<int, std::string> >::iterator &
 	return (data);
 }
 
-std::pair<std::string, std::string>	parseListen(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool & hasListen, int num)
+std::pair<std::string, std::string>	parseListen(Tokens::iterator &it, Tokens &tokens, bool & hasListen, int num)
 {
 	std::pair<std::string, std::string>	listen;
 	int hasPort = 0;
@@ -122,7 +118,7 @@ std::pair<std::string, std::string>	parseListen(std::vector<std::pair<int, std::
 	return (listen);
 }
 
-std::vector<std::string>	parseIndex(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool & hasIndex, int num)
+std::vector<std::string>	parseIndex(Tokens::iterator &it, Tokens &tokens, bool & hasIndex, int num)
 {
 	std::vector<std::string> index;
 
@@ -156,7 +152,7 @@ std::vector<std::string>	parseIndex(std::vector<std::pair<int, std::string> >::i
 	return (index);
 }
 
-std::pair<std::string, std::vector<int> >	parseErrorPage(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, int num)
+std::pair<std::string, std::vector<int> >	parseErrorPage(Tokens::iterator &it, Tokens &tokens, int num)
 {
 	int hasFile = 0;
 	int hasCodes = 0;
@@ -202,7 +198,7 @@ std::pair<std::string, std::vector<int> >	parseErrorPage(std::vector<std::pair<i
 	return (tmpErrorPage);
 }
 
-int	parseClientMaxBodySize(std::vector<std::pair<int, std::string> >::iterator &it, bool &hasClientMaxBodySize, int num)
+int	parseClientMaxBodySize(Tokens::iterator &it, bool &hasClientMaxBodySize, int num)
 {
 	int	clientMaxBodySize = 0;
 
@@ -229,7 +225,7 @@ int	parseClientMaxBodySize(std::vector<std::pair<int, std::string> >::iterator &
 	return (clientMaxBodySize);
 }
 
-bool	parseBool(std::vector<std::pair<int, std::string> >::iterator &it, bool &hasData, std::string name, int num)
+bool	parseBool(Tokens::iterator &it, bool &hasData, std::string name, int num)
 {
 	bool	data = false;
 
@@ -252,7 +248,7 @@ bool	parseBool(std::vector<std::pair<int, std::string> >::iterator &it, bool &ha
 	return (data);
 }
 
-std::vector<std::string> parseAllowMethods(std::vector<std::pair<int, std::string> >::iterator &it, std::vector<std::pair<int, std::string> > &tokens, bool &hasAllowMethods, int num)
+std::vector<std::string> parseAllowMethods(Tokens::iterator &it, Tokens &tokens, bool &hasAllowMethods, int num)
 {
 	std::vector<std::string>	allowMethods;
 	if (hasAllowMethods)
@@ -305,19 +301,19 @@ std::vector<std::string> parseAllowMethods(std::vector<std::pair<int, std::strin
 	return (allowMethods);
 }
 
-std::vector<std::string>	parseCgiExec(std::vector<std::pair<int, std::string> >::iterator &it, bool &hasCgiExec, int num)
+std::pair<std::string, std::string>	parseCgiExec(Tokens::iterator &it, int num)
 {
-	std::vector<std::string>	cgiExec;
+	std::pair<std::string, std::string>	cgiExec;
 
-	if (hasCgiExec)
-		printError("location " + toStr(num) + ":" + " duplicated cgi_exec");
+	// if (hasCgiExec)
+	// 	printError("location " + toStr(num) + ":" + " duplicated cgi_exec");
 	if ((it + 1)->first == WORD && (it + 2)->first == WORD && (it + 3)->first == END_OF_LINE)
 	{
 		it += 1;
 		if (isPath(it->second) && isExtension((it + 1)->second))
 		{
-			cgiExec.push_back(it->second);
-			cgiExec.push_back((it + 1)->second);
+			cgiExec.first = it->second;
+			cgiExec.second = (it + 1)->second;
 		}
 		else
 			printError("location " + toStr(num) + ":" + "cgi_exec: argument must be \'path of the program\' then \'extension\'");
@@ -325,7 +321,6 @@ std::vector<std::string>	parseCgiExec(std::vector<std::pair<int, std::string> >:
 	}
 	else
 		printError("location " + toStr(num) + ":" + "cgi_exec: argument must be \'path of the program\' then \'extension\'");
-	hasCgiExec = 1;
 	return (cgiExec);
 }
 
@@ -358,9 +353,8 @@ Location	initializeLocation()
 	allowMethods.push_back("POST");
 	allowMethods.push_back("DELETE");
 	location.setAllowMethods(allowMethods);
-	location.setAutoIndex(true);
-	location.setAcceptUpload(true);
-	location.setUploadLocation("public/storage");
+	location.setAutoIndex(false);
+	location.setAcceptUpload(false);
 	return (location);
 }
 
@@ -373,8 +367,7 @@ void	addServers(std::vector<Server> & servers, Server & tmpServer)
 		if (tmpServer.getHost() == it->getHost() && tmpServer.getPort() == it->getPort()
 			&& tmpServer.getServerName() == it->getServerName())
 		{
-			std::cerr << "config file: duplicated servers" << std::endl;
-			exit(EXIT_FAILURE);
+			printError("config file: duplicated servers");
 		}
 	}
 	servers.push_back(tmpServer);
@@ -394,21 +387,19 @@ Server	initializeServer()
 std::vector<Server>	parser(int ac, char* av[])
 {
 	if (ac != 2) {
-		cerr << "Error" << endl << "invalid arguments" << endl;
-		std::exit(1);
+		printError("invalid arguments");
 	}
     std::string	file = av[1];
 	long long pos = file.rfind('.');
 	if ((pos != -1 && file.substr(pos) != ".conf") || pos == -1)
 	{
-		cerr << "Error" << endl << "config file must be \'.conf\'" << endl;
-		std::exit(1);
+		printError("config file must be \'.conf\'");
 	}
-	std::vector<std::pair<int, std::string> > tokens = tokenizer(av[1]);
+	Tokens tokens = tokenizer(av[1]);
 	std::vector<Server>	servers;
 	int serverNum = 0;
 
-	for (std::vector<std::pair<int, std::string> >::iterator it = tokens.begin(); it != tokens.end(); it++)
+	for (Tokens::iterator it = tokens.begin(); it != tokens.end(); it++)
 	{
 		bool	serverHasCloseBracket = false;
 		Server	tmpServer = initializeServer();
@@ -506,7 +497,7 @@ std::vector<Server>	parser(int ac, char* av[])
 						else if (it->first == ALLOW_METHODS)
 							tmpLocation.setAllowMethods(parseAllowMethods(it, tokens, check.hasAllowMethods, locationNum));
 						else if (it->first == CGI_EXEC)
-							tmpLocation.setCgiExec(parseCgiExec(it, check.hasCgiExec, locationNum));
+							tmpLocation.setCgiExec(parseCgiExec(it, locationNum), toStr(locationNum));
 						else if (it->first == ACCEPT_UPLOAD)
 							tmpLocation.setAcceptUpload(parseBool(it, check.hasAcceptUpload, "accept_upload", locationNum));
 						else if (it->first == UPLOAD_LOCATION)
@@ -533,10 +524,7 @@ std::vector<Server>	parser(int ac, char* av[])
 					break ;
 				}
 				else
-				{
-					cout << it->first << endl;
 					printError("server " + toStr(serverNum) + " : invalid names \'" + it->second + "\'");
-				}
 			}
 			if (!serverHasCloseBracket)
 				printError("server " + toStr(serverNum) + " : close bracket required");

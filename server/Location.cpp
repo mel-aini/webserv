@@ -6,7 +6,7 @@ Location::Location()
 
 Location::Location(std::string path, std::string root, std::vector<std::string> index,
 int clientMaxBodySize, std::vector<std::string> allowMethods, std::string redirection, bool autoIndex,
-std::vector<std::string> cgiExec, bool acceptUpload,
+std::pair<std::string, std::string> cgiExec, bool acceptUpload,
 std::string uploadLocation)
 {
 		this->path = path;
@@ -16,7 +16,7 @@ std::string uploadLocation)
 		this->allowMethods = allowMethods;
 		this->redirection = redirection;
 		this->autoIndex = autoIndex;
-		this->cgiExec = cgiExec;
+		this->cgiExec.push_back(cgiExec);
 		this->acceptUpload = acceptUpload;
 		this->uploadLocation = uploadLocation;
 }
@@ -71,9 +71,18 @@ void	Location::setAutoIndex(bool autoIndex)
 	this->autoIndex = autoIndex;
 }
 
-void	Location::setCgiExec(std::vector<std::string> cgiExec)
+void	Location::setCgiExec(std::pair<std::string, std::string> cgiExec, std::string num)
 {
-	this->cgiExec = cgiExec;
+	std::vector<std::pair<std::string, std::string> >::iterator	it = this->cgiExec.begin();
+	for (; it != this->cgiExec.end(); it++)
+	{
+		if (it->first == cgiExec.first)
+		{
+			std::cerr << "location " + num + ":" + " duplicated cgi program name" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+	}
+	this->cgiExec.push_back(cgiExec);
 }
 
 void	Location::setAcceptUpload(bool acceptUpload)
@@ -86,7 +95,7 @@ void	Location::setUploadLocation(std::string uploadLocation)
 	this->uploadLocation = uploadLocation;
 }
 
-std::vector<std::string>	Location::getCgiExec(void)
+std::vector<std::pair<std::string, std::string> >	Location::getCgiExec(void)
 {
 	return (this->cgiExec);
 }
@@ -171,9 +180,9 @@ std::ostream & operator<<(std::ostream & out, const Location & obj)
 
 	out << " redirection: " << obj.redirection << " autoIndex: " << obj.autoIndex;
 
-	std::vector<const std::string>::iterator it4 = obj.cgiExec.begin();
-	for (; it4 != obj.cgiExec.end(); it4++)
-		out << "\ncgiExec:\n" << *it4 << std::endl;
+	// std::vector<const std::string>::iterator it4 = obj.cgiExec.begin();
+	// for (; it4 != obj.cgiExec.end(); it4++)
+	// 	out << "\ncgiExec:\n" << *it4 << std::endl;
 
 	out << " acceptUpload: " << obj.acceptUpload << " uploadLocation: " << obj.uploadLocation << std::endl;
 

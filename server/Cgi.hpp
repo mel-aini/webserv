@@ -21,7 +21,8 @@ enum METHOD {
 class Cgi
 {
 	private:
-		size_t	offset;
+		std::string	cgiOutput;
+		size_t		offset;
 		long long	cL;
 
 	public:
