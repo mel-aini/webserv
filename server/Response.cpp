@@ -148,9 +148,6 @@ bool	Response::sendFile(std::string fileName)
 {
 	char buf[4000] = {0};
 
-	// if (bodyOffset == 0)
-	// 	std::cout << BOLDWHITE << "fileName: " + fileName << RESET << std::endl;
-
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
 		std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
@@ -162,28 +159,16 @@ bool	Response::sendFile(std::string fileName)
 	file.read(buf, sizeof(buf));
 	int bytesRead = file.gcount();
 	int s = send(this->socket, buf, bytesRead, 0);
-	// if (s == -1) {
-
-	// 	throw ResponseFailed();
-	// }
-	if (s == -1) {
+	if (s <= 0) {
 		// this->traces.addLog("SEND", "RETURNED -1");
-		throw ResponseFailed();
-	}
-	else if (s == 0) {
-		// this->traces.addLog("SEND", "RETURNED 0");
-	}
-	else {
-		// this->traces.addLog("SEND", "RETURNED POSITIVE NUMBER");
+		throw ConnectionClosed();
 	}
 
 	bodyOffset += s;
-	std::cout << "send: " << BOLDCYAN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
+
 	if (file.eof() || s == 0) {
 		this->sending_level = SENDING_END;
-		// std::cout << "bytes sent: " << BOLDGREEN << static_cast<double>(bodyOffset) / 1000000 << "Mb" << RESET << std::endl;
 		file.close();
-		// std::cout << BOLDGREEN << "Reached end of file" << RESET << std::endl;
 		return true;
 	}
 	file.close();
@@ -264,18 +249,18 @@ bool	Response::send_response_index_files(std::string uri)
 		content.push_back(dirContent->d_name);
 
 	std::stringstream	sizestream;
-	HtmlTemplate htmlErrorPage(target, content);
-	sizestream << htmlErrorPage.getHtml().size();
+	HtmlTemplate htmlIndex(target, content);
+	sizestream << htmlIndex.getHtml().size();
 	this->headers["Content-Type: "] = "text/html";
 	this->headers["Content-Length: "] = sizestream.str();
 
 	send_status_line_and_headers();
 
-	const std::string& response = htmlErrorPage.getHtml();
+	const std::string& response = htmlIndex.getHtml();
 
 	const char *buf = response.c_str();
-	if (send(this->socket, buf, response.size(), 0) == -1)
-		throw ResponseFailed();
+	if (send(this->socket, buf, response.size(), 0) <= 0)
+		throw ConnectionClosed();
 
 	this->sending_level = SENDING_END;
 	return true;
@@ -283,7 +268,6 @@ bool	Response::send_response_index_files(std::string uri)
 
 void	Response::send_status_line_and_headers()
 {
-	// this->log_members();
 	// title: prepare status line
 	std::stringstream str;
 	str << this->status;
@@ -303,22 +287,11 @@ void	Response::send_status_line_and_headers()
 
 	std::string response = status_line + headers + "\r\n\r\n";
 
-	// std::cout << YELLOW << response << RESET << std::endl; 
-	// std::cout << YELLOW << response << RESET << std::endl;
 	const char *buf = response.c_str();
 	int s = send(this->socket, buf, response.size(), 0);
-	if (s == -1) {
-		// this->traces.addLog("SEND", "RETURNED -1");
-		// throw ResponseFailed();
-		// this->traces.addLog("SEND", "RETURNED -1");
-	}
-	else if (s == 0) {
-		// this->traces.addLog("SEND", "RETURNED 0");
-	}
-	else {
-		// this->traces.addLog("SEND", "RETURNED +0");
-	}
 	
+	if (s <= 0)
+		throw ConnectionClosed();
 }
 
 void    Response::redirect(const std::string& location)
@@ -327,59 +300,6 @@ void    Response::redirect(const std::string& location)
 	this->status = 301;
 	this->headers["Location: "] = location;
 	send_status_line_and_headers();
-}
-
-bool	Response::getRequestedResource(std::string uri)
-{
-	memset(&this->fileInf, 0, sizeof(this->fileInf));
-	uri = uri.substr(0, uri.find(".php") + 4);
-	if (uri[0] == '/')
-		uri.erase(0, 1);
-	if (uri[uri.length() - 1] == '/')
-		uri.erase(uri.length() - 1, 1);
-	if (stat(uri.c_str(), &this->fileInf) == 0)
-	if (access(uri.c_str(), F_OK | R_OK) == 0)
-	{
-		if (stat(uri.c_str(), &this->fileInf) == 0)
-		{
-			this->request_case = OTHER_CASE;
-			return (true);
-		}
-	}
-	std::string	fileCase = this->location->getRoot() + uri;
-	std::cout << BOLDMAGENTA << "REQ_RES: " << RESET << fileCase << RESET << std::endl;
-	if (stat(fileCase.c_str(), &this->fileInf) == 0)
-	{
-		std::cout << GREEN << "FOUND" << RESET << std::endl;
-		if (S_ISREG(this->fileInf.st_mode))
-		{
-			this->request_case = FILE_CASE;
-			return (true);
-			if (S_ISREG(this->fileInf.st_mode))
-			{
-				this->request_case = OTHER_CASE;
-				return (true);
-			}
-		}
-	}
-	std::string	path = this->location->getRoot() + "/" + uri;
-	if (access(path.c_str(), F_OK | R_OK) == 0)
-	{
-		if (stat(path.c_str(), &this->fileInf) == 0)
-		{
-			if (S_ISDIR(this->fileInf.st_mode))
-			{
-				this->request_case = DIR_CASE;
-				return (true);
-			}
-			else if (S_ISREG(this->fileInf.st_mode))
-			{
-				this->request_case = FILE_CASE;
-				return (true);
-			}
-		}
-	}
-	return (false);
 }
 
 
@@ -435,7 +355,7 @@ void	Response::decode_uri(std::string& uri)
 }
 
 // ... working on
-bool	Response::getRequestedFile(std::string uri)
+bool	Response::getRequestedResource(std::string uri)
 {
 	size_t qsPos = uri.find('?');
 	uri = (qsPos != std::string::npos) ? uri.substr(0, qsPos) : uri;
@@ -495,11 +415,10 @@ bool	Response::hasCgi(void)
 
 bool	Response::post_method(Request &request, std::map <std::string, std::string> firstCgiEnv) {
 	if (location->getAcceptUpload()) {
-		if (this->uploadPostMethod(request))
-			this->sending_level = SENDING_END;
+		return this->uploadPostMethod(request);
 	}
 	if (this->sending_level == GET_REQUESTED_RES) {
-		bool isIndex = getRequestedFile(request.getUri());
+		bool isIndex = getRequestedResource(request.getUri());
 		if (sending_level == SENDING_END)
 			return true;
 		if (!isIndex)
@@ -518,9 +437,7 @@ bool	Response::post_method(Request &request, std::map <std::string, std::string>
 		if (this->cgi.sendCgiBody(this->socket))
 			this->sending_level = SENDING_END;
 	}
-	if (this->sending_level == SENDING_END)
-		return true;
-	return false;
+	return this->sending_level == SENDING_END;
 }
 
 void	Response::check_dir_permission(std::string target) {
@@ -630,7 +547,7 @@ bool	Response::delete_method(std::string uri) {
 // ... working on
 bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv) {
 	if (this->sending_level == GET_REQUESTED_RES) {
-		bool isNoIndex = getRequestedFile(uri);
+		bool isNoIndex = getRequestedResource(uri);
 		if (sending_level == SENDING_END)
 			return true;
 
@@ -684,11 +601,7 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 		else
 			return this->sendFile(this->fileToSend);
 	}
-	if (this->sending_level == SENDING_END) {
-		// this->traces.addLog("SENDING_END", "");
-		return true;
-	}
-	return false;
+	return this->sending_level == SENDING_END;
 }
 
 std::string	Response::getContentType(std::string path)
@@ -720,6 +633,10 @@ void	Response::reset() {
 
 const char	*Response::ResponseFailed::what() const throw() {
 	return "Error occured while sending response";
+}
+
+const char	*Response::ConnectionClosed::what() const throw() {
+	return "Client Closed it's endpoint";
 }
 
 // title: log methods

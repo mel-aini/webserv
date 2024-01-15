@@ -295,6 +295,7 @@ bool		Client::readRequest(std::vector<Location> &locations) {
 		this->reqHasRead();
 		if (!this->location)
 			findLocation(locations, this->request.getUri());
+
 		return true;
 	}
 	return false;
@@ -320,15 +321,9 @@ bool	Client::createResponse() {
 	}
 	if (processing_level == SENDING) {
 		// this->getLog().addLog("RESPONSE SENDING", "...");
-		// // this->getLog().addLog("RESPONSE TYPE", this->response.getHttp());
 		this->send_response();
 	}
-	if (processing_level == PROCESSED) {
-		// this->response.log_response();
-		// this->getLog().addLog("RESPONSE", "DONE");
-		return true;
-	}
-	return false;
+	return processing_level == PROCESSED;
 }
 
 void	Client::send_response()
