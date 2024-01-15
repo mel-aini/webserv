@@ -1,13 +1,10 @@
 #include "ConfigFile.hpp"
 
-using std::cout;
-using std::cerr;
-using std::endl;
-
 void	printError(std::string name)
 {
-	cerr << name << endl;
-	exit(EXIT_FAILURE);
+	std::cerr << "Error" << std::endl;
+	std::cerr << name << std::endl;
+	std::exit(EXIT_FAILURE);
 }
 
 int		toInt(std::string str)

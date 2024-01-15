@@ -262,7 +262,7 @@ bool	Response::send_response_index_files(std::string uri)
 	std::vector<std::string> content;
 	while ((dirContent = readdir(dir)) != NULL)
 		content.push_back(dirContent->d_name);
-
+	closedir(dir);
 	std::stringstream	sizestream;
 	HtmlTemplate htmlErrorPage(target, content);
 	sizestream << htmlErrorPage.getHtml().size();
@@ -490,7 +490,19 @@ bool	Response::getRequestedFile(std::string uri)
 
 bool	Response::hasCgi(void)
 {
-	return (this->location->getCgiExec().size() != 0 && this->fileToSend.substr(this->fileToSend.rfind('.')) == this->location->getCgiExec()[1]);
+	if (this->location->getCgiExec().size() == 0)
+		return (false);
+	std::vector<std::pair<std::string, std::string> > cgiExec = this->location->getCgiExec();
+	std::vector<std::pair<std::string, std::string> >::iterator it = cgiExec.begin();
+	for (; it != cgiExec.end(); it++)
+	{
+		if (it->second == this->fileToSend.substr(this->fileToSend.rfind('.')))
+		{
+			this->matchCgi = *it;
+			return (true);
+		}
+	}
+	return (false);
 }
 
 bool	Response::post_method(Request &request, std::map <std::string, std::string> firstCgiEnv) {
@@ -508,7 +520,7 @@ bool	Response::post_method(Request &request, std::map <std::string, std::string>
 	else if (this->sending_level == SENDING_HEADERS) {
 		if (!this->hasCgi())
 			throw (403);
-		this->cgi.executeCgi(this->fileToSend ,this->location->getCgiExec()[0], this->bodyFileName, firstCgiEnv, POST);
+		this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, this->bodyFileName, firstCgiEnv, POST);
 		this->cgi.sendCgiHeader(this->socket);
 		this->sending_level = SENDING_BODY;
 	}
@@ -626,7 +638,7 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 	else if (this->sending_level == SENDING_HEADERS) {
 		if (this->hasCgi())
 		{
-			this->cgi.executeCgi(this->fileToSend ,this->location->getCgiExec()[0], this->bodyFileName, firstCgiEnv, GET);
+			this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, this->bodyFileName, firstCgiEnv, GET);
 			this->cgi.sendCgiHeader(this->socket);
 		}
 		else
