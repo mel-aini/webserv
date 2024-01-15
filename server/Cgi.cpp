@@ -39,6 +39,7 @@ void	freeEnv(char **env)
 
 void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type)
 {
+	this->cgiOutput = "/tmp/" + std::to_string(time(0));
 	char **env = this->getCgiEnv(fileToSend, firstCgiEnv);
 	char *arg[3] = {const_cast<char *>(cgiPath.c_str()), const_cast<char *>(fileToSend.c_str()), NULL};
 	pid_t	pid = fork();
@@ -46,7 +47,7 @@ void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bo
 		throw 502;
 	if (pid == 0)
 	{
-		int fdes = open("/tmp/result", O_CREAT | O_RDWR | O_TRUNC, 0666);
+		int fdes = open(this->cgiOutput.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
 		if (fdes == -1)
 		{
 			throw 502;
@@ -74,8 +75,8 @@ bool	Cgi::sendCgiHeader(int socket)
 {
 	std::stringstream ss;
 	struct stat fileInf;
-	stat("/tmp/result", &fileInf);
-	std::ifstream result("/tmp/result", std::ios::binary | std::ios::in);
+	stat(this->cgiOutput.c_str(), &fileInf);
+	std::ifstream result(this->cgiOutput, std::ios::binary | std::ios::in);
 	if (!result.is_open()) {
 		throw 502;
 	}
@@ -144,7 +145,7 @@ bool	Cgi::sendCgiHeader(int socket)
 bool	Cgi::sendCgiBody(int socket)
 {
 	char buf[1024] = {0};
-	std::ifstream result("/tmp/result", std::ios::binary | std::ios::in);
+	std::ifstream result(this->cgiOutput, std::ios::binary | std::ios::in);
 	if (!result.is_open()) {
 		throw 502;
 	}

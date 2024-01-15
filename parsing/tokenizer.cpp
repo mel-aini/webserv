@@ -9,9 +9,9 @@ std::pair<int, std::string>	tokenizeWords(int tokNum, std::string word)
 	return (pair);
 }
 
-std::vector<std::pair<int, std::string> >	tokenizer(char *file)
+Tokens	tokenizer(char *file)
 {
-	std::vector<std::pair<int, std::string> >	tokens;
+	Tokens	tokens;
 	std::string	tmp;
 	std::ifstream	infile(file);
 	std::string	data;
@@ -77,7 +77,7 @@ std::vector<std::pair<int, std::string> >	tokenizer(char *file)
 		// }
 	}
 	// cout << tokens.size() << endl;
-	// for (std::vector<std::pair<int, std::string> >::iterator it = tokens.begin(); it != tokens.end(); it++)
+	// for (Tokens::iterator it = tokens.begin(); it != tokens.end(); it++)
 	// 	cout << it->first << " >>> " << it->second << endl;
 	return (tokens);
 }

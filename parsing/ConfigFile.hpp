@@ -40,13 +40,14 @@ typedef struct s_ckeckDup
 	bool	hasAllowMethods;
 	bool	hasReturn;
 	bool	hasAutoIndex;
-	bool	hasCgiExec;
 	bool	hasAcceptUpload;
 	bool	hasUploadLocation;
 }			t_checkDup;
 
+typedef std::vector<std::pair<int, std::string> >	Tokens;
+
 std::vector<Server>	parser(int ac, char* av[]);
-std::vector<std::pair<int, std::string> >	tokenizer(char *file);
+Tokens	tokenizer(char *file);
 void	printError(std::string name);
 int		toInt(std::string str);
 std::string	toStr(int num);
