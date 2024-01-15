@@ -158,9 +158,7 @@ bool	Server::isClient(struct pollfd *pollfd, std::vector<Client>::iterator &it) 
 
 bool	Server::hostsMatch(std::vector<Client>::iterator& it)
 {
-	if (this->serverName == it->getRequest().getHeader("host"))
-		return true;
-	return false;
+	return this->serverName == it->getRequest().getHeader("host");
 }
 
 void	Server::transferClient(std::vector<Client>::iterator& it)

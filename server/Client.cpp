@@ -8,47 +8,25 @@ Client::Client(int fd, struct sockaddr_in address)
 	request(),
 	response(),
 	processing_level(INITIAL),
-	isAllowedMethod(false),
 	location(NULL)
 {
 	// set timout
 	this->logtime = 0;
-	this->logtime_start = time(0);	this->response.setSocket(this->fd);
-	this->lifetime = 0;
+	this->logtime_start = time(0);
+	this->response.setSocket(this->fd);
 
-	std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+	// std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
     // Convert the time point to nanoseconds since the epoch
-    std::chrono::nanoseconds nanoseconds = std::chrono::time_point_cast<std::chrono::nanoseconds>(currentTime).time_since_epoch();
+    // std::chrono::nanoseconds nanoseconds = std::chrono::time_point_cast<std::chrono::nanoseconds>(currentTime).time_since_epoch();
 
-	this->trace.setId(std::to_string(nanoseconds.count()));
-	this->response.getTraces().setId(std::to_string(nanoseconds.count()));
+	// this->trace.setId(std::to_string(nanoseconds.count()));
+	// this->response.getTraces().setId(std::to_string(nanoseconds.count()));
 	//this->// this->trace.addLog("CONSTRUCTED", "()");
 }
 
-// Client::Client(const Client& C) {
-// 	*this = C;
-// }
+Client::~Client() {}
 
-// Client& Client::operator= (const Client& C) {
-// 	if (this != &C) {
-// 		fd = C.fd;
-// 		address = C.address;
-// 		pollfd = C.pollfd;
-// 		request = C.request;
-// 		response = C.response;
-// 		processing_level = C.processing_level;
-// 		isAllowedMethod = C.isAllowedMethod;
-// 		location = C.location;
-// 	}
-// 	return *this;
-// }
-
-Client::~Client() {
-	// this->trace.addLog("DESTRUCTED", "~()");
-	// std::cout << BOLDRED << "Client Destructor Called" << RESET << std::endl;
-}
-
-// title: GETTERS
+// title: getters
 
 struct pollfd		*Client::getPollfd() const {
 	return this->pollfd;
@@ -62,33 +40,27 @@ int					Client::getProcessing_level() const {
 	return this->processing_level;
 }
 
-bool				Client::getIsAllowedMethod() const {
-	return this->isAllowedMethod;
-}
-
 Location			*Client::getLocation() const {
 	return this->location;
 }
 
-Response	Client::getResponse() const {
+Response			Client::getResponse() const {
 	return this->response;
 }
 
-// void				Client::setLog() {
-	
-// }
-
-time_t	Client::getLifeTime() {
-	return this->lifetime;
-}
-
-int Client::getFd() const {
+int 				Client::getFd() const {
 	return this->fd;
 }
 
-struct sockaddr_in Client::getAddress() const {
+Request				Client::getRequest() const {
+	return this->request;
+}
+
+struct 				sockaddr_in Client::getAddress() const {
 	return this->address;
 }
+
+// title: setters
 
 void	Client::setServerInfo(std::string port, std::string host, std::string s_name)
 {
@@ -97,41 +69,6 @@ void	Client::setServerInfo(std::string port, std::string host, std::string s_nam
 	this->serverInfo["SERVER_NAME"] = s_name;
 	this->response.setBodyFileName(this->request.getFilename());
 }
-
-// void	Client::searchPathInfo(void)
-// {
-// 	std::string uri = this->request.getUri();
-// 	std::string pathInf;
-// 	size_t	ptPos = uri.find('.');
-// 	size_t qsPos = uri.find('?');
-// 	size_t slashPos = std::string::npos;
-
-// 	if (ptPos != std::string::npos && qsPos != std::string::npos && ptPos < qsPos)
-// 	{
-// 		slashPos = uri.find('/', ptPos);
-// 		if (slashPos != std::string::npos && slashPos < qsPos)
-// 			pathInf = uri.substr(slashPos, qsPos - slashPos);
-// 		else
-// 		{
-// 			slashPos = std::string::npos;
-// 			this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, qsPos);
-// 		}
-// 	}
-// 	else if (ptPos != std::string::npos)
-// 	{
-// 		slashPos = uri.find('/', ptPos);
-// 		if (slashPos != std::string::npos)
-// 			pathInf = uri.substr(slashPos);
-// 		else
-// 			this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri;
-// 	}
-// 	if (slashPos != std::string::npos)
-// 	{
-// 		this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + pathInf;
-// 		this->firstCgiEnv["PATH_TRANSLATED"] = "PATH_TRANSLATED=" + this->location->getRoot() + pathInf.substr(1);
-// 		this->firstCgiEnv["SCRIPT_NAME"] = "SCRIPT_NAME=" + uri.substr(0, slashPos);
-// 	}
-// }
 
 void	Client::setFirstCgiEnv(void)
 {
@@ -166,16 +103,14 @@ void	Client::setFirstCgiEnv(void)
 		this->firstCgiEnv["CONTENT_TYPE"] = "CONTENT_TYPE=" + this->request.getHeader("content-type");
 		this->firstCgiEnv["CONTENT_LENGTH"] = "CONTENT_LENGTH=" + this->request.getHeader("content-length");
 	}
-	// this->searchPathInfo();
-}
-
-Request	Client::getRequest() const {
-	return this->request;
 }
 
 void	Client::setPollfd(struct pollfd	*pollfd) {
 	this->pollfd = pollfd;
 }
+
+
+// title: methods
 
 bool	Client::methodIsAllowed(std::vector<std::string> &allowMethods, std::string method)
 {
@@ -194,8 +129,6 @@ bool	Client::checkLogTime()
 	if (this->response.getSendingLevel() == INITIAL) {
 		this->logtime = time(0) - this->logtime_start;
 		if (this->logtime >= CLIENT_TIMEOUT) {
-			// this->getLog().addLog("TIMEOUT", "PASSED");
-			// std::cout << RED << "TIMEOUT PASSED" << RESET << std::endl;
 			return true;
 		}
 	}
@@ -252,7 +185,7 @@ bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
 	return true;
 }
 
-bool        Client::isBeyondMaxBodySize() {
+bool    Client::isBeyondMaxBodySize() {
 	if (location && this->request.getBodysize() > (location->clientMaxBodySize * MEGABYTE)) {
 		this->response.setStatus(413);
 		this->response.setResponseType(ERROR);
@@ -261,8 +194,7 @@ bool        Client::isBeyondMaxBodySize() {
 	return false;
 }
 
-bool		Client::readRequest(std::vector<Location> &locations) {
-	this->log_members();
+bool	Client::readRequest(std::vector<Location> &locations) {
 	this->logtime = 0;
 
 	char buf[1024] = {0};
@@ -270,9 +202,6 @@ bool		Client::readRequest(std::vector<Location> &locations) {
 	if (readed <= 0) {
 		throw RequestFailed();
 	}
-
-	// this->getLog().addLog("READING", "...");
-	// std::cerr << "buffer: " << RED << buf << RESET << std::endl;
 
 	if (!this->location && this->request.getState() > METHOD) {
 		if (!findLocation(locations, this->request.getUri())) {
@@ -362,26 +291,12 @@ void	Client::send_response()
 
 void	Client::reqHasRead()
 {
-	// std::cout << "request " << GREEN << "done" << RESET << std::endl;
-	// this->getLog().addLog("REQUEST", "DONE");
-	// // this->getLog().addLog("Method: ", this->request.getMethod());
-    // // this->getLog().addLog("Path: ", this->request.getUri());
-    // // this->getLog().addLog("Version: ", this->request.getVersion());
-    // // this->getLog().addLog("Headers: ", "");
-
-	// std::map<std::string, std::string>::iterator it;
-    // for (it = this->request.getHeaders().begin(); it != this->request.getHeaders().end(); it++) {
-	// 	// this->getLog().addLog(it->first, it->second);
-    // }
-	// // this->getLog().addLog("REQUEST MSG", this->request.);
-	// std::cout << BOLDGREEN << "[DONE][" << this->fd << "]: Request" << RESET << std::endl;
 	this->pollfd->events = POLLOUT | POLLHUP;
 	this->logtime_start = time(0);
 }
 
 void	Client::resHasSent()
 {
-	// std::cout << "response " << GREEN << "sent" << RESET << std::endl;
 	this->pollfd->events = POLLIN | POLLHUP;
 	this->reset();
 	this->response.reset();
@@ -391,7 +306,6 @@ void	Client::resHasSent()
 void	Client::reset()
 {
 	this->pollfd->events = POLLIN | POLLHUP;
-	this->isAllowedMethod = false;
 	this->processing_level = INITIAL;
 	this->location = NULL;
 	this->logtime = 0;
@@ -400,7 +314,7 @@ void	Client::reset()
 
 // title : log methods
 
-void Client::log() {
+void	Client::log() {
 	std::cout << "client with fd: " << this->fd << std::endl;
 }
 
