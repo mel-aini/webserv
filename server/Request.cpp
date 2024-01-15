@@ -6,7 +6,7 @@
 /*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/15 17:40:01 by hel-mamo         ###   ########.fr       */
+/*   Updated: 2024/01/15 20:12:39 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -134,7 +134,8 @@ size_t Request::getContentLenght()
     std::map<std::string, std::string>::iterator it = this->_headers.find("content-length");
     if (it == this->_headers.end())
         return 0;
-    return std::stoi(it->second);
+    
+    return toLong(it->second);
 }
 
 std::string Request::getTransferEncoding()
@@ -207,6 +208,14 @@ int Request::validateRequestLine()
     return 1;
 }
 
+long Request::toLong(std::string str)
+{
+    std::stringstream ss(str);
+    long num;
+    ss >> num;
+    return num;
+}
+
 std::string Request::GenerateName()
 {
     struct timeval  tv;
@@ -216,25 +225,15 @@ std::string Request::GenerateName()
     gettimeofday(&tv, NULL);
     ms = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
     ss << ms;
-    std::cout << ss.str() << std::endl;
-    return ss.str();
+    return (ss.str());
 }
 
-// int Request::validateHeaderLine()
-// {
-//     std::string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=";
-//     if (this->currentHeaderKey.find_first_not_of(allowed) != std::string::npos)
-//     {
-//         this->status = 400;
-//         return 0;
-//     }
-//     if (this->currentHeaderValue.find_first_not_of(allowed) != std::string::npos)
-//     {
-//         this->status = 400;
-//         return 0;
-//     }
-//     return 1;
-// }
+int Request::validateHeaderLine()
+{
+    if (isAssci(this->currentHeaderKey) && isAssci(this->currentHeaderValue))
+        return 1;
+    return 0;
+}
 
 int Request::readHeaders()
 {
@@ -258,6 +257,11 @@ int Request::readHeaders()
         std::transform(key.begin(), key.end(), key.begin(), ::tolower);
         this->currentHeaderKey = key;
         this->currentHeaderValue = trimSpacesAndTabs(value);
+        if (!validateHeaderLine())
+        {
+            this->status = 400;
+            return 0;
+        }
         this->_headers[this->currentHeaderKey] = this->currentHeaderValue;
     }
     if (!this->isHostExists())
@@ -285,7 +289,7 @@ int Request::readHeaders()
     {
         this->_state = BOUNDARY;
     }
-    else if (this->ContentLengthExists())
+    else if (this->ContentLengthExists() && isNum(this->getHeader("content-length")))
     {
         this->_state = CONTENT_LENGTH;
         this->_lengthState = this->getContentLenght();
@@ -347,6 +351,8 @@ int Request::readByChunk()
             if (this->_lengthState < this->_request.length())
             {
                 file << this->_request.substr(0, this->_lengthState);
+                if (file.fail())
+                    throw 507;
                 this->_request = this->_request.substr(this->_lengthState + 2);
                 this->_lengthState = 0;
                 this->_chunkState = CHUNK_SIZE_START;
@@ -358,6 +364,8 @@ int Request::readByChunk()
                 if (this->_lengthState > this->_request.length())
                 {
                     file << this->_request;
+                    if (file.fail())
+                        throw 507;
                     this->_lengthState -= this->_request.length();
                     this->_request = "";
                     file.close();
@@ -366,6 +374,8 @@ int Request::readByChunk()
                 else if (this->_lengthState == this->_request.length())
                 {
                     file << this->_request;
+                    if (file.fail())
+                        throw 507;
                     this->_lengthState = 0;
                     this->_request = "";
                     file.close();
@@ -384,6 +394,8 @@ int Request::readByContentLength()
     if (this->_request.length() > this->_lengthState)
     {
         file << this->_request.substr(0, this->_lengthState);
+        if (file.fail())
+            throw 507;
         this->_request = this->_request.substr(this->_lengthState);
         file.close();
         return 1;
@@ -392,6 +404,8 @@ int Request::readByContentLength()
     if (this->_lengthState > 0)
     {
         file << this->_request;
+        if (file.fail())
+            throw 507;
         this->_request = "";
         file.close();
         return 1;
@@ -399,6 +413,8 @@ int Request::readByContentLength()
     else if (this->_lengthState == 0)
     {
         file << this->_request;
+        if (file.fail())
+            throw 507;
         this->_request = "";
         file.close();
     }
@@ -418,6 +434,8 @@ int Request::readBoundary()
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
         this->_bodySize += this->_request.length();
         file << this->_request;
+        if (file.fail())
+            throw 507;
         this->_request = "";
         file.close();
         return 1;
@@ -432,6 +450,8 @@ int Request::readBoundary()
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
         this->_bodySize += this->_request.length();
         file << this->_request;
+        if (file.fail())
+            throw 507;
         this->_request = "";
         file.close();
         this->_state = END;
@@ -532,6 +552,16 @@ void Request::printRequest()
 void Request::setUri(std::string str)
 {
     this->_uri = str;
+}
+
+bool    Request::isAssci(std::string str)
+{
+    for (size_t i = 0; i < str.length(); i++)
+    {
+        if (str[i] < 0 || str[i] > 127)
+            return false;
+    }
+    return true;
 }
 
 std::string trimSpacesAndTabs(std::string str)
