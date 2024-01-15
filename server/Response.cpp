@@ -167,14 +167,14 @@ bool	Response::sendFile(std::string fileName)
 	// 	throw ResponseFailed();
 	// }
 	if (s == -1) {
-		this->traces.addLog("SEND", "RETURNED -1");
+		// this->traces.addLog("SEND", "RETURNED -1");
 		throw ResponseFailed();
 	}
 	else if (s == 0) {
-		this->traces.addLog("SEND", "RETURNED 0");
+		// this->traces.addLog("SEND", "RETURNED 0");
 	}
 	else {
-		this->traces.addLog("SEND", "RETURNED POSITIVE NUMBER");
+		// this->traces.addLog("SEND", "RETURNED POSITIVE NUMBER");
 	}
 
 	bodyOffset += s;
@@ -308,15 +308,15 @@ void	Response::send_status_line_and_headers()
 	const char *buf = response.c_str();
 	int s = send(this->socket, buf, response.size(), 0);
 	if (s == -1) {
-		this->traces.addLog("SEND", "RETURNED -1");
+		// this->traces.addLog("SEND", "RETURNED -1");
 		// throw ResponseFailed();
-		this->traces.addLog("SEND", "RETURNED -1");
+		// this->traces.addLog("SEND", "RETURNED -1");
 	}
 	else if (s == 0) {
-		this->traces.addLog("SEND", "RETURNED 0");
+		// this->traces.addLog("SEND", "RETURNED 0");
 	}
 	else {
-		this->traces.addLog("SEND", "RETURNED +0");
+		// this->traces.addLog("SEND", "RETURNED +0");
 	}
 	
 }
@@ -494,8 +494,10 @@ bool	Response::hasCgi(void)
 }
 
 bool	Response::post_method(Request &request, std::map <std::string, std::string> firstCgiEnv) {
-	if (location->getAcceptUpload())
-		return this->uploadPostMethod(request);
+	if (location->getAcceptUpload()) {
+		if (this->uploadPostMethod(request))
+			this->sending_level = SENDING_END;
+	}
 	if (this->sending_level == GET_REQUESTED_RES) {
 		bool isIndex = getRequestedFile(request.getUri());
 		if (sending_level == SENDING_END)
@@ -516,7 +518,7 @@ bool	Response::post_method(Request &request, std::map <std::string, std::string>
 		if (this->cgi.sendCgiBody(this->socket))
 			this->sending_level = SENDING_END;
 	}
-	else if (this->sending_level == SENDING_END)
+	if (this->sending_level == SENDING_END)
 		return true;
 	return false;
 }
@@ -596,14 +598,33 @@ bool	Response::delete_method(std::string uri) {
 	std::string	target = this->location->getRoot() + uri;
 	this->fileToSend = target;
 
-	std::cout << "target: " + target << std::endl;
+	std::cout << "Delete target: " + target << std::endl;
 
 	if (!isFileExist(target))
 		throw 404;
 	
-	
-	(void)uri;
-	return false;
+	exit(0);
+	check_dir_permission(target);
+
+	struct stat fileInfo;
+
+	if (stat(target.c_str(), &fileInfo) != 0)
+		throw 404;
+
+	if (S_ISREG(fileInfo.st_mode)) {
+		if (unlink(target.c_str()) == -1)
+			throw 500;
+	}
+	else if (S_ISDIR(fileInfo.st_mode)) {
+		if (uri.back() != '/')
+			throw 409;
+
+		remove_dir(target);
+	}
+	this->setStatus(204);
+	this->headers["Content-Length: "] = "0";
+	send_status_line_and_headers();
+	return true;
 }
 
 // ... working on
@@ -634,31 +655,28 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 			std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
 			std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
 			if (!file.is_open())
-				throw 500;
+				throw 404;
 
 			std::stringstream sizestream;
 			struct stat fileInfo;
-			if (stat(this->fileToSend.c_str(), &fileInfo) == 0) 
-				sizestream << fileInfo.st_size;
+			if (stat(this->fileToSend.c_str(), &fileInfo) != 0)
+				throw 404;
 
-			this->traces.addLog("Content-Length: ", sizestream.str());
+			sizestream << fileInfo.st_size;
+			// this->traces.addLog("Content-Length: ", sizestream.str());
 			this->headers["Content-Length: "] = sizestream.str();
 			if (sizestream.str() != "0")
 				this->headers["Content-Type: "] = getContentType(this->fileToSend);
 			// this->headers["Accept-Ranges: "] = "none";
 			// this->headers["Connection: "] = "keep-alive";
 			send_status_line_and_headers();
-			if (sizestream.str() == "0") {
-				this->sending_level = SENDING_END;
-				file.close();
-				return true;
-			}
+			this->sending_level = SENDING_END;
 			file.close();
 		}
 		this->sending_level = SENDING_BODY;
 	}
 	else if (this->sending_level == SENDING_BODY) {
-		this->traces.addLog("SENDING_BODY", "...");
+		// this->traces.addLog("SENDING_BODY", "...");
 		if (this->hasCgi()) {
 			if (this->cgi.sendCgiBody(this->socket))
 				this->sending_level = SENDING_END;
@@ -667,7 +685,7 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 			return this->sendFile(this->fileToSend);
 	}
 	if (this->sending_level == SENDING_END) {
-		this->traces.addLog("SENDING_END", "");
+		// this->traces.addLog("SENDING_END", "");
 		return true;
 	}
 	return false;
@@ -707,7 +725,7 @@ const char	*Response::ResponseFailed::what() const throw() {
 // title: log methods
 
 void    Response::log_members() {
-	this->traces.addLog("[RESPONSE MEMBERS]", "...");
+	// this->traces.addLog("[RESPONSE MEMBERS]", "...");
 	std::stringstream s1;
 	s1 << sending_level;
 
@@ -717,9 +735,9 @@ void    Response::log_members() {
 	std::stringstream s3;
 	s3 << status;
 	
-	this->traces.addLog("--- status ---", s3.str());
-	this->traces.addLog("--- sending_level ---", s1.str());
-	this->traces.addLog("--- response_type ---", s2.str());
+	// this->traces.addLog("--- status ---", s3.str());
+	// this->traces.addLog("--- sending_level ---", s1.str());
+	// this->traces.addLog("--- response_type ---", s2.str());
 	// std::cout << "bodyOffset: " << YELLOW << bodyOffset << RESET << std::endl;
 }
 

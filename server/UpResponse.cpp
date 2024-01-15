@@ -24,7 +24,7 @@ bool    Response::uploadPostMethod(Request &request)
             std::string      name;
 
             name = request.getFilename().substr(request.getFilename().find_last_of("/") + 1);
-            this->fileToUpload = "./" + this->location->getUploadLocation() + "/" + name + "." + getExtension(request.getContentType());
+            this->fileToUpload = this->location->getUploadLocation() + "/" + name + "." + getExtension(request.getContentType());
             this->index++;
         }
         std::ifstream inputfile(request.getFilename().c_str(), std::ios::in);
@@ -45,11 +45,15 @@ bool    Response::uploadPostMethod(Request &request)
         if (this->fileOffset == request.getBodysize())
         {
             this->index = 0;
-            this->status = 201;
             this->fileOffset = 0;
             inputfile.close();
             outputfile.close();
             unlink(request.getFilename().c_str());
+
+            this->status = 201;
+            this->headers["Location: "] = this->fileToUpload;
+            this->headers["Content-Length: "] = "0";
+            send_status_line_and_headers();
             return true;
         }
         inputfile.close();
@@ -84,7 +88,7 @@ bool    Response::uploadPostMethod(Request &request)
             else
                 name = headers.substr(headers.find("name=\"") + 6); 
             name = name.substr(0, name.find("\""));
-            this->fileToUpload = "./" + this->location->getUploadLocation() + "/" + name;
+            this->fileToUpload = this->location->getUploadLocation() + "/" + name;
         }
         std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
         if (!outputfile.is_open())
@@ -113,13 +117,17 @@ bool    Response::uploadPostMethod(Request &request)
         if (line.find(boundary + "--") != std::string::npos)
         {
             this->index = 0;
-            this->status = 201;
             this->fileOffset += line.length() + 1;
-            std::cout << "-->" << request.getBodysize() << std::endl;
-            std::cout << "-->" <<  this->fileOffset << std::endl;
+            // std::cout << "-->" << request.getBodysize() << std::endl;
+            // std::cout << "-->" <<  this->fileOffset << std::endl;
             inputfile.close();
             outputfile.close();
             unlink(request.getFilename().c_str());
+
+            this->status = 201;
+            this->headers["Location: "] = this->fileToUpload;
+            this->headers["Content-Length: "] = "0";
+            send_status_line_and_headers();
             return true;
         }
         this->index = 0;

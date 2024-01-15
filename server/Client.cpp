@@ -22,7 +22,7 @@ Client::Client(int fd, struct sockaddr_in address)
 
 	this->trace.setId(std::to_string(nanoseconds.count()));
 	this->response.getTraces().setId(std::to_string(nanoseconds.count()));
-	this->trace.addLog("CONSTRUCTED", "()");
+	//this->// this->trace.addLog("CONSTRUCTED", "()");
 }
 
 // Client::Client(const Client& C) {
@@ -44,7 +44,7 @@ Client::Client(int fd, struct sockaddr_in address)
 // }
 
 Client::~Client() {
-	this->trace.addLog("DESTRUCTED", "~()");
+	// this->trace.addLog("DESTRUCTED", "~()");
 	// std::cout << BOLDRED << "Client Destructor Called" << RESET << std::endl;
 }
 
@@ -194,7 +194,7 @@ bool	Client::checkLogTime()
 	if (this->response.getSendingLevel() == INITIAL) {
 		this->logtime = time(0) - this->logtime_start;
 		if (this->logtime >= CLIENT_TIMEOUT) {
-			this->getLog().addLog("TIMEOUT", "PASSED");
+			// this->getLog().addLog("TIMEOUT", "PASSED");
 			// std::cout << RED << "TIMEOUT PASSED" << RESET << std::endl;
 			return true;
 		}
@@ -271,7 +271,7 @@ bool		Client::readRequest(std::vector<Location> &locations) {
 		throw RequestFailed();
 	}
 
-	this->getLog().addLog("READING", "...");
+	// this->getLog().addLog("READING", "...");
 	// std::cerr << "buffer: " << RED << buf << RESET << std::endl;
 
 	if (!this->location && this->request.getState() > METHOD) {
@@ -289,7 +289,7 @@ bool		Client::readRequest(std::vector<Location> &locations) {
 	}
 
 	if (isReadEnd) {
-		this->getLog().addLog("REQUEST URI", this->request.getUri());
+		// this->getLog().addLog("REQUEST URI", this->request.getUri());
 		// std::cout << BOLDRED << "[" << this->getFd() << "][URI]: " << this->request.getUri() << RESET << std::endl;
 		// request.printRequest();
 		this->reqHasRead();
@@ -303,7 +303,7 @@ bool		Client::readRequest(std::vector<Location> &locations) {
 bool	Client::createResponse() {
 	if (processing_level == INITIAL)
 	{
-		this->getLog().addLog("INIT RESPONSE", "...");
+		// this->getLog().addLog("INIT RESPONSE", "...");
 		this->response.setLocation(location);
 		if (!location || this->response.getStatus() != 200)
 			this->response.setResponseType(ERROR);
@@ -319,13 +319,13 @@ bool	Client::createResponse() {
 		processing_level = SENDING;
 	}
 	if (processing_level == SENDING) {
-		this->getLog().addLog("RESPONSE SENDING", "...");
-		// this->getLog().addLog("RESPONSE TYPE", this->response.getHttp());
+		// this->getLog().addLog("RESPONSE SENDING", "...");
+		// // this->getLog().addLog("RESPONSE TYPE", this->response.getHttp());
 		this->send_response();
 	}
 	if (processing_level == PROCESSED) {
 		// this->response.log_response();
-		this->getLog().addLog("RESPONSE", "DONE");
+		// this->getLog().addLog("RESPONSE", "DONE");
 		return true;
 	}
 	return false;
@@ -336,7 +336,7 @@ void	Client::send_response()
 	if (this->response.getResponseType() == OK) {
 		try
 		{
-			this->getLog().addLog("SENDING TYPE", "OK");
+			// this->getLog().addLog("SENDING TYPE", "OK");
 			bool isResponseEnd = false;
 			if (this->request.getMethod() == "GET")
 				isResponseEnd = this->response.get_method(this->request.getUri(), this->firstCgiEnv);
@@ -348,18 +348,18 @@ void	Client::send_response()
 		}
 		catch (int error_code)
 		{
-			this->getLog().addLog("ERROR THROWED", "RESPONSE");
+			// this->getLog().addLog("ERROR THROWED", "RESPONSE");
 			this->response.setStatus(error_code);
 			this->response.setResponseType(ERROR);
 		}
 	}
 	if (this->response.getResponseType() == REDIRECT) {
-		this->getLog().addLog("SENDING TYPE", "REDIRECT");
+		// this->getLog().addLog("SENDING TYPE", "REDIRECT");
 		this->response.redirect(this->response.getLocation()->getRedirection());
 		this->processing_level = PROCESSED;
 	}
 	if (this->response.getResponseType() == ERROR) {
-		this->getLog().addLog("SENDING TYPE", "ERROR");
+		// this->getLog().addLog("SENDING TYPE", "ERROR");
 		bool isResponseEnd = this->response.send_response_error();
 		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 	}
@@ -368,17 +368,17 @@ void	Client::send_response()
 void	Client::reqHasRead()
 {
 	// std::cout << "request " << GREEN << "done" << RESET << std::endl;
-	this->getLog().addLog("REQUEST", "DONE");
-	// this->getLog().addLog("Method: ", this->request.getMethod());
-    // this->getLog().addLog("Path: ", this->request.getUri());
-    // this->getLog().addLog("Version: ", this->request.getVersion());
-    // this->getLog().addLog("Headers: ", "");
+	// this->getLog().addLog("REQUEST", "DONE");
+	// // this->getLog().addLog("Method: ", this->request.getMethod());
+    // // this->getLog().addLog("Path: ", this->request.getUri());
+    // // this->getLog().addLog("Version: ", this->request.getVersion());
+    // // this->getLog().addLog("Headers: ", "");
 
 	// std::map<std::string, std::string>::iterator it;
     // for (it = this->request.getHeaders().begin(); it != this->request.getHeaders().end(); it++) {
-	// 	this->getLog().addLog(it->first, it->second);
+	// 	// this->getLog().addLog(it->first, it->second);
     // }
-	// this->getLog().addLog("REQUEST MSG", this->request.);
+	// // this->getLog().addLog("REQUEST MSG", this->request.);
 	// std::cout << BOLDGREEN << "[DONE][" << this->fd << "]: Request" << RESET << std::endl;
 	this->pollfd->events = POLLOUT | POLLHUP;
 	this->logtime_start = time(0);
@@ -427,10 +427,10 @@ void	Client::log_level() {
 }
 
 void	Client::log_members() {
-	this->getLog().addLog("[CLIENT MEMBERS]", "");
+	// this->getLog().addLog("[CLIENT MEMBERS]", "");
 	std::stringstream s;
 	s << processing_level;
-	this->getLog().addLog("-- processing level --", s.str());
+	// this->getLog().addLog("-- processing level --", s.str());
 	this->response.log_members();
 }
 

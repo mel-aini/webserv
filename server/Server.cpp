@@ -80,7 +80,7 @@ void	Server::removeClient(std::vector<struct pollfd> &pollfds, std::vector<Clien
 		if (it2->fd == it->getFd()) {
 			// std::cout << BOLDRED << "[LIFETIME]: " << it->getLifeTime() << "" << RESET << std::endl;
 			// close file descriptor related to this client
-			it->getLog().addLog("DISCONNECTED", "");
+			// it->getLog().addLog("DISCONNECTED", "");
 			// std::cout << BOLDRED << "[DISCONNECTED][" << it->getFd() << "]" << RESET << std::endl;
 			// std::cout << RED << "Client with fd: " << it2->fd << " disconnected" << RESET << std::endl;
 			if (close(it2->fd) == -1) {
@@ -132,13 +132,9 @@ void	Server::findRelatedHost(std::vector<Client>::iterator& it)
 }
 
 bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollfd) {
-	bool eventOccured = false;
-
 	std::vector<Client>::iterator it;
-	if (pollfd->revents)
-		eventOccured = true;
-	
-	if (eventOccured && pollfd->fd == this->socket) {
+
+	if (pollfd->revents && pollfd->fd == this->socket) {
 		this->addClient(pollfds);
 		return true;
 	}
@@ -146,27 +142,18 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 	{
 		it->setPollfd(pollfd);
 		try {
-			if (!eventOccured) {
-				// then: no event occured
-				if (it->checkLogTime()) {
-					this->removeClient(pollfds, it);
-				}
-			}
 			if (pollfd->revents & POLLIN) {
-				it->getLog().addLog("POLLIN EVENT", "");
-				// std::cout << CYAN << "#### POLLIN EVENT ####" << RESET << std::endl;
+				// it->getLog().addLog("POLLIN EVENT", "");
 				bool read_complete = it->readRequest(this->locations);
-				//	todo: transfer client to the right server or keep it
 				if (read_complete && !this->hostsMatch(it))
 					this->findRelatedHost(it);
 			}
 			else if (pollfd->revents & POLLOUT) {
-				it->getLog().addLog("POLLOUT EVENT", "");
-				// std::cout << YELLOW << "#### POLLOUT EVENT ####" << RESET << std::endl;
+				// it->getLog().addLog("POLLOUT EVENT", "");
 				bool send_complete = it->createResponse();
 				if (send_complete) {
 					if (it->getRequest().getHeader("connection") != "keep-alive") {
-						it->getLog().addLog("INFO", "connection: " + it->getRequest().getHeader("connection"));
+						// it->getLog().addLog("INFO", "connection: " + it->getRequest().getHeader("connection"));
 						// std::cout << BOLDYELLOW << "[INFO][" << it->getFd() << "]: connection: " << it->getRequest().getHeader("connection") << RESET << std::endl;
 						this->removeClient(pollfds, it);
 					} else {
@@ -175,14 +162,17 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 				}
 			}
 			else if (pollfd->revents & POLLHUP) {
-				it->getLog().addLog("POLLHUP EVENT", "");
-				// std::cout << RED << "[POLLHUP][" << it->getFd() << "]" << RESET << std::endl;
+				// it->getLog().addLog("POLLHUP EVENT", "");
 				this->removeClient(pollfds, it);
+			}
+			else {
+				if (it->checkLogTime())
+					this->removeClient(pollfds, it);
 			}
 		}
 		catch (const std::exception& e) {
 			// then: an error occured in read or send...
-			it->getLog().addLog("CATCHED EXCEPTION", e.what());
+			// it->getLog().addLog("CATCHED EXCEPTION", e.what());
 			this->removeClient(pollfds, it);
 			std::cout << RED << e.what() << RESET << std::endl;
 		}

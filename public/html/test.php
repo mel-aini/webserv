@@ -1,7 +1,7 @@
 <?php
-if( $_GET["name"] || $_GET["age"] ) {
-   echo "Welcome ". $_GET['name']. "<br />";
-   echo "You are ". $_GET['age']. " years old.";
+if( $_POST["name"] || $_POST["age"] ) {
+   echo "Welcome ". $_POST['name']. "<br />";
+   echo "You are ". $_POST['age']. " years old.";
    
    exit();
 }
