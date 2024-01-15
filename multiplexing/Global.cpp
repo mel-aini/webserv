@@ -1,12 +1,8 @@
 #include "Global.hpp"
 
-Global::Global() : nfds(0)
-{
-}
+Global::Global() : nfds(0) {}
 
-Global::~Global()
-{
-}
+Global::~Global() {}
 
 void	Global::addServer(Server& server)
 {
@@ -28,18 +24,6 @@ void	Global::setServers(std::vector<Server> servers) {
 void	Global::monitorFd(struct pollfd fd) {
 	this->pollfds.push_back(fd);
 	this->nfds++;
-}
-
-void	Global::forgetFd(int fd) {
-	std::vector<struct pollfd>::iterator it;
-
-	for (it = this->pollfds.begin(); it != this->pollfds.end(); it++) {
-		if (it->fd == fd) {
-			this->pollfds.erase(it);
-			this->nfds--;
-			break;
-		}
-	}
 }
 
 int	Global::isAlreadyUsed(std::string host, std::string port, int index)
@@ -108,7 +92,6 @@ void Global::create_servers()
 
         if (getaddrinfo(it->getHost().c_str(), it->getPort().c_str(), &hints, &res) != 0) {
             perror("getaddrinfo");
-			// std::cout << RED << "here" << RESET << std::endl;
             it = servers.erase(it);
 			if (it == servers.end())
 				break;
@@ -131,7 +114,14 @@ void Global::create_servers()
 			continue;
         }
 		
-        fcntl(sockfd, F_SETFL, O_NONBLOCK, FD_CLOEXEC);
+        if (fcntl(sockfd, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1) {
+			perror("fcntl");
+            it = servers.erase(it);
+            if (it == servers.end())
+				break;
+			continue;
+		}
+
         it->setSocket(sockfd);
     
         int optval = 1;
@@ -176,6 +166,7 @@ void Global::create_servers()
 		// assign begin and end iterators of servers to each server
 		it->setServersBegin(this->servers.begin());
 		it->setServersEnd(this->servers.end());
+
         std::cout << "a server is listening on: " << YELLOW << it->getHost() + ":" + it->getPort() << RESET << std::endl;
     }
     if (servers.size() == 0) {

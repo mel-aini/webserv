@@ -100,7 +100,6 @@ class Response {
 		bool                            send_response_error();
         bool                            send_response_index_files(std::string uri);
         void                            send_status_line_and_headers();
-        void                            send_body();
         void                            setResponseType(unsigned int response_type);
         void                            setLocation(Location *location);
         Location                        *getLocation();
@@ -113,12 +112,11 @@ class Response {
         bool                            delete_method(std::string uri);
         void                            check_dir_permission(std::string target);
         void                            remove_dir(std::string target);
-        bool                            getRequestedResource(std::string uri);
         std::pair<std::string, size_t>  getMatchIndex(std::string uri);
         bool                            readAndSendFile(std::string path, size_t size);
         void                            decode_uri(std::string& uri);
         std::string                     getContentType(std::string path);
-        bool                            getRequestedFile(std::string uri);
+        bool                            getRequestedResource(std::string uri);
         bool                            isFileExist(std::string& target);
         bool                            isTarget(std::string& target, struct stat *fileInfo);
         void	                        log();
@@ -135,6 +133,11 @@ class Response {
         bool	                        sendCgiBody(void);
 
         class ResponseFailed : public std::exception {
+			public:
+				const char * what() const throw();
+		};
+
+        class ConnectionClosed : public std::exception {
 			public:
 				const char * what() const throw();
 		};

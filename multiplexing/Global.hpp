@@ -31,7 +31,6 @@ class Global
 
 		void	create_servers();
 		void	monitorFd(struct pollfd fd);
-		void	forgetFd(int fd);
 		void	setServers(std::vector<Server> servers);
 		void	checkAndProcessFd();
 		int		isAlreadyUsed(std::string host, std::string port, int index);

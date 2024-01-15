@@ -12,6 +12,7 @@ public/digitf
 public/fonicy
 public/hightech
 public/omar
+public/storage
 
 # scripts for testing
 con.java
@@ -19,6 +20,7 @@ con.class
 break.sh
 
 # tester
+break.sh
 tester
 cgi_tester
 YoupiBanane

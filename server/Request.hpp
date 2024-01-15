@@ -21,6 +21,7 @@
 # include <iterator>
 # include <sstream>
 # include <fstream>
+# include <sys/time.h>
 # include "../public/Colors.hpp"
 
 enum State {
@@ -93,8 +94,9 @@ class Request
         size_t      getBodysize();
         State       getState() const;
         std::string getHeaderLine(std::string key);
+        std::string GenerateName();
         void        reset();
-		void				log_uri();
+		void		log_uri();
 
         void log();
 
