@@ -3,17 +3,17 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/14 10:38:28 by mel-aini         ###   ########.fr       */
+/*   Updated: 2024/01/15 17:40:01 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Request.hpp"
 #include <unistd.h>
 
-Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("/tmp/" + std::to_string(time(0)))
+Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("/tmp/" + GenerateName())
 {
 }
 
@@ -205,6 +205,19 @@ int Request::validateRequestLine()
         return 0;
     }
     return 1;
+}
+
+std::string Request::GenerateName()
+{
+    struct timeval  tv;
+    long long       ms;
+    std::stringstream ss;
+
+    gettimeofday(&tv, NULL);
+    ms = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
+    ss << ms;
+    std::cout << ss.str() << std::endl;
+    return ss.str();
 }
 
 // int Request::validateHeaderLine()
