@@ -63,17 +63,6 @@ void Global::create_servers()
 
     for (it = servers.begin(); servers.size() != 0 && it != servers.end(); it++)
     {
-		/*
-			title: handle servers with same host and port
-
-			int sockfd = isAddress"host:port" already in use
-			if (sockfd > 0) {
-				then: address already used
-				-> set socket to this server
-				it->setSocket(sockfd);
-				continue;
-			}
-		*/
         int sockfd = this->isAlreadyUsed(it->getHost(), it->getPort(), it - servers.begin());
 		if (sockfd > 0) {
 			it->setSocket(sockfd);

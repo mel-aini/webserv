@@ -5,8 +5,6 @@ Response::Response()
 	status(200), 
 	location(NULL),
 	sending_level(GET_REQUESTED_RES),
-	method_level(FINDRESOURCE),
-	request_case(NO_CASE),
 	response_type(OK),
 	match_index(NO),
 	bodyOffset(0),
@@ -45,50 +43,40 @@ Response::Response()
 	content_type[".php"] = "application/x-httpd-php";
 }
 
-// Response::Response(const Response& R) {
-// 	*this = R;
-// }
+Response::~Response() {}
 
-// Response& Response::operator= (const Response& R) {
-// 	if (this != &R) {
-// 		status = R.status;
-// 		location = R.location;
-// 		sending_level = R.sending_level;
-// 		method_level = R.method_level;
-// 		request_case = R.request_case;
-// 		response_type = R.response_type;
-// 		match_index = R.match_index;
-// 		bodyOffset = R.bodyOffset;
-// 		fileOffset = R.fileOffset;
-// 		index = R.index;
-// 		sendingFile = R.sendingFile;
-// 		fileToUpload = R.fileToUpload;
-// 		status_codes = R.status_codes;
-// 	}
-// 	return *this;
-// }
+// title: Getters
 
-Response::~Response() {
-	// std::cout << BOLDRED << "Response Destructor Called" << RESET << std::endl;
-}
-
-Log&               Response::getTraces() {
+Log&				Response::getTraces() {
 	return this->traces;
 }
 
-void	Response::setBodyFileName(std::string bodyFileName)
-{
-	this->bodyFileName = bodyFileName;
-}
-
-int	Response::getSocket()
+int					Response::getSocket()
 {
 	return (this->socket);
 }
 
-int	Response::getStatus() const {
+int					Response::getStatus() const {
 	return this->status;
 }
+
+unsigned int		Response::getResponseType() const {
+	return this->response_type;
+}
+
+unsigned int	    Response::getSendingLevel() const {
+	return this->sending_level;
+}
+
+Location    		*Response::getLocation() {
+	return this->location;
+}
+
+std::string 		Response::getStatusMessage() {
+	return this->status_codes[this->status];
+}
+
+// title: Setters
 
 void	Response::setStatus(unsigned int status) {
 	this->status = status;
@@ -98,29 +86,18 @@ void	Response::setLocation(Location *location) {
 	this->location = location;
 }
 
-Location    *Response::getLocation() {
-	return this->location;
+void	Response::setBodyFileName(std::string bodyFileName)
+{
+	this->bodyFileName = bodyFileName;
 }
 
-unsigned int	Response::getResponseType() const {
-	return this->response_type;
-}
-
-unsigned int        Response::getSendingLevel() const {
-	return this->sending_level;
-}
-
-void                Response::setSendingLevel(unsigned int level) {
+void    Response::setSendingLevel(unsigned int level) {
 	this->sending_level = level;
 }
 
 void	Response::setResponseType(unsigned int response_type)
 {
 	this->response_type = response_type;
-}
-
-std::string Response::getStatusMessage() {
-	return this->status_codes[this->status];
 }
 
 void	Response::setSocket(int fd) {
@@ -143,7 +120,6 @@ bool	Response::isInErrorPages()
 	return false;
 }
 
-// ... working on
 bool	Response::sendFile(std::string fileName)
 {
 	char buf[4000] = {0};
@@ -302,13 +278,6 @@ void    Response::redirect(const std::string& location)
 	send_status_line_and_headers();
 }
 
-
-void	Response::setError(int status_code) {
-	this->status = status_code;
-	this->response_type = ERROR;
-}
-
-// ... working on
 bool	Response::isFileExist(std::string& target) {
 	if (access(target.c_str(), F_OK) == 0) { // then: exist 
 		if (access(target.c_str(), W_OK) == 0) { // then: has permission
@@ -321,7 +290,6 @@ bool	Response::isFileExist(std::string& target) {
 	return false;
 }
 
-// ... working on
 bool	Response::isTarget(std::string& target,  struct stat *fileInfo) {
 	if (stat(target.c_str(), fileInfo) == 0)
 	{
@@ -354,7 +322,6 @@ void	Response::decode_uri(std::string& uri)
 	}
 }
 
-// ... working on
 bool	Response::getRequestedResource(std::string uri)
 {
 	size_t qsPos = uri.find('?');
@@ -364,9 +331,7 @@ bool	Response::getRequestedResource(std::string uri)
 
 	std::string	target = this->location->getRoot() + uri;
 
-	// std::cout << BOLDRED << "target: " << target << RESET << std::endl;
 	if (!this->isFileExist(target)) {
-		// std::cout << BOLDRED << "Here!!! 1" << RESET << std::endl;
 		throw 404;
 	}
 
@@ -390,10 +355,8 @@ bool	Response::getRequestedResource(std::string uri)
 		for (it = index.begin(); it != index.end(); it++) {
 			std::string target2 = target + *it;
 
-			// std::cout << "new target: " << target2 << std::endl;
 		
 			if (this->isFileExist(target2)) {
-				// std::cout << "Exist" << std::endl;
 				struct stat fileInfo2;
 				if (!this->isTarget(target2, &fileInfo2)) {
 					throw 403;
@@ -405,8 +368,6 @@ bool	Response::getRequestedResource(std::string uri)
 	}
 	return false;
 }
-
-///////////////////////
 
 bool	Response::hasCgi(void)
 {
@@ -515,20 +476,18 @@ bool	Response::delete_method(std::string uri) {
 	std::string	target = this->location->getRoot() + uri;
 	this->fileToSend = target;
 
-	std::cout << "Delete target: " + target << std::endl;
-
 	if (!isFileExist(target))
 		throw 404;
 	
-	exit(0);
-	check_dir_permission(target);
-
 	struct stat fileInfo;
 
 	if (stat(target.c_str(), &fileInfo) != 0)
 		throw 404;
 
 	if (S_ISREG(fileInfo.st_mode)) {
+		if (access(target.c_str(), W_OK) != 0)
+			throw 403;
+
 		if (unlink(target.c_str()) == -1)
 			throw 500;
 	}
@@ -536,6 +495,7 @@ bool	Response::delete_method(std::string uri) {
 		if (uri.back() != '/')
 			throw 409;
 
+		check_dir_permission(target);
 		remove_dir(target);
 	}
 	this->setStatus(204);
@@ -544,7 +504,6 @@ bool	Response::delete_method(std::string uri) {
 	return true;
 }
 
-// ... working on
 bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv) {
 	if (this->sending_level == GET_REQUESTED_RES) {
 		bool isNoIndex = getRequestedResource(uri);
@@ -553,15 +512,16 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 
 		if (isNoIndex)
 			this->sending_level = SENDING_HEADERS;
+
 		if (!isNoIndex) {
 			// then: autoIndex
 			if (!this->location->getAutoIndex())
 				throw 403;
-			this->send_response_index_files(uri);
+			send_response_index_files(uri);
 			this->sending_level = SENDING_END;
 		}
 	}
-	else if (this->sending_level == SENDING_HEADERS) {
+	if (this->sending_level == SENDING_HEADERS) {
 		if (this->hasCgi())
 		{
 			this->cgi.executeCgi(this->fileToSend ,this->location->getCgiExec()[0], this->bodyFileName, firstCgiEnv, GET);
@@ -569,37 +529,35 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 		}
 		else
 		{
-			std::cout << "file to send: " << "[" + this->fileToSend + "]" << std::endl;
 			std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
 			if (!file.is_open())
 				throw 404;
 
 			std::stringstream sizestream;
 			struct stat fileInfo;
-			if (stat(this->fileToSend.c_str(), &fileInfo) != 0)
+			if (stat(this->fileToSend.c_str(), &fileInfo) != 0) {
+				file.close();
 				throw 404;
+			}
 
 			sizestream << fileInfo.st_size;
-			// this->traces.addLog("Content-Length: ", sizestream.str());
 			this->headers["Content-Length: "] = sizestream.str();
 			if (sizestream.str() != "0")
 				this->headers["Content-Type: "] = getContentType(this->fileToSend);
-			// this->headers["Accept-Ranges: "] = "none";
-			// this->headers["Connection: "] = "keep-alive";
+
 			send_status_line_and_headers();
-			this->sending_level = SENDING_END;
 			file.close();
 		}
 		this->sending_level = SENDING_BODY;
 	}
 	else if (this->sending_level == SENDING_BODY) {
-		// this->traces.addLog("SENDING_BODY", "...");
 		if (this->hasCgi()) {
 			if (this->cgi.sendCgiBody(this->socket))
 				this->sending_level = SENDING_END;
 		}
-		else
+		else {
 			return this->sendFile(this->fileToSend);
+		}
 	}
 	return this->sending_level == SENDING_END;
 }
@@ -616,8 +574,6 @@ void	Response::reset() {
 	this->status = 200;
 	this->message = this->status_codes[status];
 	this->sending_level = GET_REQUESTED_RES;
-	this->method_level = FINDRESOURCE;
-	this->request_case = NO_CASE;
 	this->response_type = OK;
 	this->match_index = NO;
 	this->headers.clear();
@@ -642,7 +598,6 @@ const char	*Response::ConnectionClosed::what() const throw() {
 // title: log methods
 
 void    Response::log_members() {
-	// this->traces.addLog("[RESPONSE MEMBERS]", "...");
 	std::stringstream s1;
 	s1 << sending_level;
 
@@ -651,11 +606,6 @@ void    Response::log_members() {
 
 	std::stringstream s3;
 	s3 << status;
-	
-	// this->traces.addLog("--- status ---", s3.str());
-	// this->traces.addLog("--- sending_level ---", s1.str());
-	// this->traces.addLog("--- response_type ---", s2.str());
-	// std::cout << "bodyOffset: " << YELLOW << bodyOffset << RESET << std::endl;
 }
 
 void    Response::log_res_type()
@@ -692,46 +642,6 @@ void    Response::log_res_level()
 			break;
 	}
 	std::cout << RESET;
-}
-
-void	Response::log()
-{
-	if (this->sending_level == SENDING_HEADERS) {
-		std::cout << CYAN << "sending_level = SENDING_HEADERS" << RESET << std::endl;
-	}
-	else if (this->sending_level == SENDING_BODY) {
-		std::cout << CYAN << "sending_level = SENDING_BODY" << RESET << std::endl;
-	}
-	else if (this->sending_level == SENDING_END) {
-		std::cout << CYAN << "sending_level = SENDING_END" << RESET << std::endl;
-	}
-	if (this->method_level == FINDRESOURCE) {
-		std::cout << CYAN << "method_level = FINDRESOURCE" << RESET << std::endl;
-	}
-	else if (this->method_level == DATA_SENDING) {
-		std::cout << CYAN << "method_level = DATA_SENDING" << RESET << std::endl;
-	}
-	else if (this->method_level == DATA_SEND) {
-		std::cout << CYAN << "method_level = DATA_SEND" << RESET << std::endl;
-	}
-	if (this->request_case == OTHER_CASE) {
-		std::cout << CYAN << "request_case = OTHER_CASE" << RESET << std::endl;
-	}
-	else if (this->request_case == DIR_CASE) {
-		std::cout << CYAN << "request_case = DIR_CASE" << RESET << std::endl;
-	}
-	else if (this->request_case == FILE_CASE) {
-		std::cout << CYAN << "request_case = FILE_CASE" << RESET << std::endl;
-	}
-	else if (this->request_case == NO_CASE) {
-		std::cout << CYAN << "request_case = NO_CASE" << RESET << std::endl;
-	}
-	if (this->match_index == YES) {
-		std::cout << CYAN << "match_index = YES" << RESET << std::endl;
-	}
-	else if (this->match_index == NO) {
-		std::cout << CYAN << "match_index = NO"  << RESET << std::endl;
-	}
 }
 
 void    Response::log_response() {

@@ -23,19 +23,6 @@ enum sending_level{
     SENDING_END,
 };
 
-enum method_level{
-    FINDRESOURCE,
-    DATA_SENDING,
-    DATA_SEND,
-};
-
-enum request_case{
-    OTHER_CASE,
-    DIR_CASE,
-    FILE_CASE,
-    NO_CASE,
-};
-
 enum match_index{
     YES,
     NO,
@@ -55,8 +42,6 @@ class Response {
         std::map<std::string, std::string>  headers;
         Location                            *location;
         unsigned int                        sending_level;
-        unsigned int                        method_level;
-        unsigned int                        request_case;
         unsigned int                        response_type;
         unsigned int                        match_index;
         size_t                              bodyOffset;
@@ -76,61 +61,49 @@ class Response {
 
     public:
         Response();
-        // Response(const Response& R);
-		// Response& operator= (const Response& R);
         ~Response();
 
-        // title: getters
-        Log&                getTraces();
+        // title: Getters
+        Log&                            getTraces();
+        int                             getStatus() const;
+        int                             getSocket();
+        void                            setStatus(unsigned int status);
+        std::string                     getStatusMessage();
+        unsigned int                    getResponseType() const;
+        unsigned int                    getSendingLevel() const;
+        Location                        *getLocation();
 
-        void                setTraces(Log *traces);
-        const std::string&  getBody() const;
-        int                 getStatus() const;
-        int                 getSocket();
-        void                setStatus(unsigned int status);
-        std::string         getStatusMessage();
-        unsigned int        getResponseType() const;
-        unsigned int        getSendingLevel() const;
-        void                setSocket(int fd);
-        void                setError(int status_code);
-        void                setSendingLevel(unsigned int level);
-        void                setBodyFileName(std::string bodyFileName);
+        // title: Setters
+        void                            setSocket(int fd);
+        void                            setSendingLevel(unsigned int level);
+        void                            setBodyFileName(std::string bodyFileName);
 
+        // title: Methods
+        bool                            getRequestedResource(std::string uri);
 		bool                            send_response_error();
         bool                            send_response_index_files(std::string uri);
         void                            send_status_line_and_headers();
         void                            setResponseType(unsigned int response_type);
         void                            setLocation(Location *location);
-        Location                        *getLocation();
         bool                            isInErrorPages();
         void                            redirect(const std::string& location);
-        void                            reset();
         bool                            sendFile(std::string fileName);
         bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv);
         bool                            post_method(Request &request, std::map <std::string, std::string> _headers);
+        bool                            uploadPostMethod(Request &request);
         bool                            delete_method(std::string uri);
         void                            check_dir_permission(std::string target);
         void                            remove_dir(std::string target);
-        std::pair<std::string, size_t>  getMatchIndex(std::string uri);
-        bool                            readAndSendFile(std::string path, size_t size);
         void                            decode_uri(std::string& uri);
         std::string                     getContentType(std::string path);
-        bool                            getRequestedResource(std::string uri);
         bool                            isFileExist(std::string& target);
         bool                            isTarget(std::string& target, struct stat *fileInfo);
-        void	                        log();
-        void                            log_res_type();
-        void                            log_res_level();
-        void                            log_members();
-        void                            log_response();
-        bool                            uploadPostMethod(Request &request);
         std::string                     getExtension(std::string filename);
         bool                            hasCgi(void);
-        char**				            getCgiEnv(int method_type, std::string uri, std::map <std::string, std::string> firstCgiEnv);
-        void                            executeCgi(std::string uri, std::map <std::string, std::string> firstCgiEnv, int method_type);
-        bool	                        sendCgiHeader(void);
-        bool	                        sendCgiBody(void);
+        void                            reset();
+        
 
+        // title: exceptions
         class ResponseFailed : public std::exception {
 			public:
 				const char * what() const throw();
@@ -140,5 +113,12 @@ class Response {
 			public:
 				const char * what() const throw();
 		};
+
+
+        // title: log
+        void                            log_res_type();
+        void                            log_res_level();
+        void                            log_members();
+        void                            log_response();
 };
 //4096 page memery
