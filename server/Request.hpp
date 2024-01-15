@@ -82,6 +82,7 @@ class Request
         int         validateRequestLine();
         int         validateHeaderLine();
         int         thereIsBoundary();
+        int         getReadingMethod();
 
         std::string getHeader(std::string key);
         int         getStatus();

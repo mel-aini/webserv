@@ -6,7 +6,7 @@
 /*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/15 20:12:39 by hel-mamo         ###   ########.fr       */
+/*   Updated: 2024/01/15 20:41:50 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -235,35 +235,8 @@ int Request::validateHeaderLine()
     return 0;
 }
 
-int Request::readHeaders()
+int Request::getReadingMethod()
 {
-    if (this->_request.find("\r\n\r\n") == std::string::npos)
-        return 1;
-    std::string headers = this->_request.substr(0, this->_request.find("\r\n\r\n"));
-    std::stringstream ss(headers);
-    std::string line;
-    while (std::getline(ss, line, '\n'))
-    {
-        if (line == "\r")
-            break;
-        std::string key;
-        std::string value;
-        std::stringstream ss2(line);
-        std::getline(ss2, key, ':');
-        if (ss2.peek() == ' ')// skip the space after the :
-            ss2.seekg(1, ss2.cur);
-        std::getline(ss2, value, '\r');
-        std::cout << BLUE << value << RESET << std::endl;
-        std::transform(key.begin(), key.end(), key.begin(), ::tolower);
-        this->currentHeaderKey = key;
-        this->currentHeaderValue = trimSpacesAndTabs(value);
-        if (!validateHeaderLine())
-        {
-            this->status = 400;
-            return 0;
-        }
-        this->_headers[this->currentHeaderKey] = this->currentHeaderValue;
-    }
     if (!this->isHostExists())
     {
         this->status = 400;
@@ -300,6 +273,40 @@ int Request::readHeaders()
         this->status = 400;
         return 0;
     }
+    return 1;
+}
+
+int Request::readHeaders()
+{
+    if (this->_request.find("\r\n\r\n") == std::string::npos)
+        return 1;
+    std::string headers = this->_request.substr(0, this->_request.find("\r\n\r\n"));
+    std::stringstream ss(headers);
+    std::string line;
+    while (std::getline(ss, line, '\n'))
+    {
+        if (line == "\r")
+            break;
+        std::string key;
+        std::string value;
+        std::stringstream ss2(line);
+        std::getline(ss2, key, ':');
+        if (ss2.peek() == ' ')// skip the space after the :
+            ss2.seekg(1, ss2.cur);
+        std::getline(ss2, value, '\r');
+        std::cout << BLUE << value << RESET << std::endl;
+        std::transform(key.begin(), key.end(), key.begin(), ::tolower);
+        this->currentHeaderKey = key;
+        this->currentHeaderValue = trimSpacesAndTabs(value);
+        if (!validateHeaderLine())
+        {
+            this->status = 400;
+            return 0;
+        }
+        this->_headers[this->currentHeaderKey] = this->currentHeaderValue;
+    }
+    if (!this->getReadingMethod())
+        return 0;
     printRequest();
     return 1;
 }
