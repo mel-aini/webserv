@@ -306,6 +306,7 @@ void	Client::resHasSent()
 void	Client::reset()
 {
 	this->pollfd->events = POLLIN | POLLHUP;
+	this->firstCgiEnv.clear();
 	this->processing_level = INITIAL;
 	this->location = NULL;
 	this->logtime = 0;

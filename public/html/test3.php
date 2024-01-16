@@ -1,15 +1,19 @@
 <?php
-	// Process form submission to add a new task
-	if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 		$newTask = trim($_POST['task']);
-		if (!empty($newTask)) {
-			// Append the new task to the file
-			file_put_contents('tasks.txt', $newTask . PHP_EOL, FILE_APPEND);
+		$tasks = file_exists('tasks.txt') ? file('tasks.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : array();
+        if (!empty($newTask) && !in_array($newTask, $tasks)) {
+			// Append the new task to the file only if it doesn't already exist
+            file_put_contents('tasks.txt', $newTask . PHP_EOL, FILE_APPEND);
+            header('Location: index3.php');
+            exit();
+        }
+		else
+		{
 			header('Location: index3.php');
 			exit();
 		}
-	}
-
+    }
 	// Process task deletion
 	if (isset($_GET['delete'])) {
 		$taskToDelete = urldecode($_GET['delete']);
