@@ -21,6 +21,7 @@ Response::Response()
 	status_codes[403] = "Forbidden";
 	status_codes[404] = "Not Found";
 	status_codes[405] = "Method Not Allowed";
+	status_codes[409] = "Conflict";
 	status_codes[411] = "Length Required";
 	status_codes[413] = "Payload Too Large";
 	status_codes[414] = "URI Too Long";
