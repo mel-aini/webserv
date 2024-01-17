@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <fcntl.h>
+#include <sys/time.h>
 
 enum METHOD {
 	GET,
@@ -28,10 +29,11 @@ class Cgi
 	public:
 		Cgi(void);
 
-		char**	getCgiEnv(std::string fileToSend, std::map <std::string, std::string> firstCgiEnv);
-		void	executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type);
-		bool	sendCgiHeader(int socket);
-		bool	sendCgiBody(int socket);
+		char**		getCgiEnv(std::string fileToSend, std::map <std::string, std::string> firstCgiEnv);
+		void		executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type);
+		bool		sendCgiHeader(int socket);
+		bool		sendCgiBody(int socket);
+		std::string	GenerateName();
 		class ResponseFailed : public std::exception {
 			public:
 				const char * what() const throw();
