@@ -92,6 +92,8 @@ class Response {
         bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv);
         bool                            post_method(Request &request, std::map <std::string, std::string> _headers);
         bool                            uploadPostMethod(Request &request);
+        bool                            normalUpload(Request &request);
+        bool                            uploadWithBoundary(Request &request);
         bool                            delete_method(std::string uri);
         void                            check_dir_permission(std::string target);
         void                            remove_dir(std::string target);
