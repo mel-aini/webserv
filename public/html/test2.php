@@ -19,7 +19,6 @@
         $green = mt_rand(0, 255);
         $blue = mt_rand(0, 255);
 
-        // Format the RGB values into a CSS color string
         $color = "rgb($red, $green, $blue)";
 
         return $color;
