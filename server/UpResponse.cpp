@@ -41,6 +41,8 @@ bool    Response::uploadPostMethod(Request &request)
         inputfile.seekg(this->fileOffset);
         inputfile.read(buffer, 10000);
         outputfile.write(buffer, inputfile.gcount());
+        if (outputfile.fail())
+            throw 507;
         this->fileOffset += inputfile.gcount();
         if (this->fileOffset == request.getBodysize())
         {
@@ -105,6 +107,8 @@ bool    Response::uploadPostMethod(Request &request)
             if (line.find(boundary) != std::string::npos || i > 1000)
                 break ;
             outputfile << line + "\n";
+            if (outputfile.fail())
+                throw 507;
             this->fileOffset += line.length() + 1;
             i++;
         }

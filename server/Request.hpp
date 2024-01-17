@@ -65,7 +65,9 @@ class Request
         Request(Request const &src);
         Request     &operator=(Request const &rhs);
         bool        parseRequest(char *buffer, int size, int fd);
+        bool        isAssci(std::string str);
         int         parseMethod();
+        long        toLong(std::string str);
         void        printRequest();
         size_t      getContentLenght();
         std::string getTransferEncoding();
@@ -80,6 +82,7 @@ class Request
         int         validateRequestLine();
         int         validateHeaderLine();
         int         thereIsBoundary();
+        int         getReadingMethod();
 
         std::string getHeader(std::string key);
         int         getStatus();
@@ -107,6 +110,7 @@ class Request
 };
 
 void            skipSlash(std::string & str);
+int	            isNum(std::string str);
 std::string     trimSpacesAndTabs(std::string str);
 
 #endif

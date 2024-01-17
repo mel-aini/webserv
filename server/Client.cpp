@@ -15,13 +15,13 @@ Client::Client(int fd, struct sockaddr_in address)
 	this->logtime_start = time(0);
 	this->response.setSocket(this->fd);
 
-	// std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+	std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
     // Convert the time point to nanoseconds since the epoch
-    // std::chrono::nanoseconds nanoseconds = std::chrono::time_point_cast<std::chrono::nanoseconds>(currentTime).time_since_epoch();
+    std::chrono::nanoseconds nanoseconds = std::chrono::time_point_cast<std::chrono::nanoseconds>(currentTime).time_since_epoch();
 
-	// this->trace.setId(std::to_string(nanoseconds.count()));
-	// this->response.getTraces().setId(std::to_string(nanoseconds.count()));
-	//this->// this->trace.addLog("CONSTRUCTED", "()");
+	this->trace.setId(std::to_string(nanoseconds.count()));
+	this->response.getTraces().setId(std::to_string(nanoseconds.count()));
+	// this->// this->trace.addLog("CONSTRUCTED", "()");
 }
 
 Client::~Client() {}
@@ -200,8 +200,10 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 	char buf[1024] = {0};
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed <= 0) {
+		this->getLog().addLog("READED", "0 | -1");
 		throw RequestFailed();
 	}
+	this->getLog().addLog("READED", "+0");
 
 	if (!this->location && this->request.getState() > METHOD) {
 		if (!findLocation(locations, this->request.getUri())) {
@@ -213,12 +215,13 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 	bool isReadEnd = this->request.parseRequest(buf, readed, this->fd);
 
 	if (isBeyondMaxBodySize()) {
+		this->getLog().addLog("IS BEYOND MAX BODY SIZE", "");
 		this->reqHasRead();
 		return true;
 	}
 
 	if (isReadEnd) {
-		// this->getLog().addLog("REQUEST URI", this->request.getUri());
+		this->getLog().addLog("REQUEST URI", this->request.getUri());
 		// std::cout << BOLDRED << "[" << this->getFd() << "][URI]: " << this->request.getUri() << RESET << std::endl;
 		// request.printRequest();
 		this->reqHasRead();
