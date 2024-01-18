@@ -10,8 +10,8 @@ if (isset($_SESSION['user_id'])) {
 // Check if the form is submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Simulated user credentials (you should validate against a database)
-    $valid_username = 'admin';
-    $valid_password = 'admin';
+    $valid_username = "admin";
+    $valid_password = "admin";
 
     // Get user input
     $username = isset($_POST['username']) ? $_POST['username'] : '';
