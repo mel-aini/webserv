@@ -53,16 +53,23 @@ bool    Response::normalUpload(Request &request)
 
         name = request.getFilename().substr(request.getFilename().find_last_of("/") + 1);
         this->fileToUpload = this->location->getUploadLocation() + "/" + name + "." + getExtension(request.getContentType());
+        std::cout <<  "up: " << this->location->getUploadLocation()   << std::endl;
+        std::cout <<  "hh: " << this->fileToUpload  << std::endl;
+        //exit(0);
         this->index++;
     }
+   
     std::ifstream inputfile(request.getFilename().c_str(), std::ios::in);
-    if (!inputfile.is_open())
+    if (!inputfile.is_open()) {
+        std::cout << "here 1" << std::endl;
         throw 404;
+    }
     
     std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
     if (!outputfile.is_open())
     {
         unlink(request.getFilename().c_str());
+        std::cout << "here 2" << std::endl;
         throw 404;
     }
 

@@ -6,15 +6,16 @@
 /*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/16 12:56:18 by mel-aini         ###   ########.fr       */
+/*   Updated: 2024/01/17 15:50:21 by mel-aini         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Request.hpp"
 #include <unistd.h>
 
-Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("/tmp/" + GenerateName())
+Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0)
 {
+    _filename = "/tmp/" + GenerateName();
 }
 
 Request::~Request() {
@@ -612,6 +613,7 @@ void    Request::reset()
     this->_version = "";
     this->currentHeaderKey = "";
     this->currentHeaderValue = "";
+    this->_filename = "/tmp/" + GenerateName();
 }
 
 void Request::log() {
