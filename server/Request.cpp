@@ -3,18 +3,19 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: ochouikh <ochouikh@student.1337.ma>        +#+  +:+       +#+        */
+/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/18 12:56:38 by ochouikh         ###   ########.fr       */
+/*   Updated: 2024/01/18 13:40:17 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "Request.hpp"
 #include <unistd.h>
 
-Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0) , _filename("/tmp/" + GenerateName())
+Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0)
 {
+    this->_filename = "/tmp/" + GenerateName();
 }
 
 Request::~Request() {
@@ -359,7 +360,11 @@ int Request::readByChunk()
             {
                 file << this->_request.substr(0, this->_lengthState);
                 if (file.fail())
-                    throw 507;
+                {
+                    file.close();
+                    this->status = 507;
+                    return 0;
+                }
                 this->_request = this->_request.substr(this->_lengthState + 2);
                 this->_lengthState = 0;
                 this->_chunkState = CHUNK_SIZE_START;
@@ -372,7 +377,11 @@ int Request::readByChunk()
                 {
                     file << this->_request;
                     if (file.fail())
-                        throw 507;
+                    {
+                        file.close();
+                        this->status = 507;
+                        return 0;
+                    }
                     this->_lengthState -= this->_request.length();
                     this->_request = "";
                     file.close();
@@ -382,7 +391,11 @@ int Request::readByChunk()
                 {
                     file << this->_request;
                     if (file.fail())
-                        throw 507;
+                    {
+                        file.close();
+                        this->status = 507;
+                        return 0;
+                    }
                     this->_lengthState = 0;
                     this->_request = "";
                     file.close();
@@ -402,7 +415,11 @@ int Request::readByContentLength()
     {
         file << this->_request.substr(0, this->_lengthState);
         if (file.fail())
-            throw 507;
+        {
+            file.close();
+            this->status = 507;
+            return 0;
+        }
         this->_request = this->_request.substr(this->_lengthState);
         file.close();
         return 1;
@@ -412,7 +429,11 @@ int Request::readByContentLength()
     {
         file << this->_request;
         if (file.fail())
-            throw 507;
+        {
+            file.close();
+            this->status = 507;
+            return 0;
+        }
         this->_request = "";
         file.close();
         return 1;
@@ -421,7 +442,11 @@ int Request::readByContentLength()
     {
         file << this->_request;
         if (file.fail())
-            throw 507;
+        {
+            file.close();
+            this->status = 507;
+            return 0;
+        }
         this->_request = "";
         file.close();
     }
@@ -442,7 +467,11 @@ int Request::readBoundary()
         this->_bodySize += this->_request.length();
         file << this->_request;
         if (file.fail())
-            throw 507;
+        {
+            file.close();
+            this->status = 507;
+            return 0;
+        }
         this->_request = "";
         file.close();
         return 1;
@@ -458,7 +487,11 @@ int Request::readBoundary()
         this->_bodySize += this->_request.length();
         file << this->_request;
         if (file.fail())
-            throw 507;
+        {
+            file.close();
+            this->status = 507;
+            return 0;
+        }
         this->_request = "";
         file.close();
         this->_state = END;
@@ -485,9 +518,8 @@ int Request::parseMethod()
     return 1;
 }
 
-bool Request::parseRequest(char *buffer, int size, int fd)
+bool Request::parseRequest(char *buffer, int size)
 {
-    (void)fd;
     this->_request += std::string(buffer, size);
 
     if (this->_state == START)
@@ -587,8 +619,8 @@ void    Request::reset()
     this->_chunkState = CHUNK_SIZE_START;
     this->_lengthState = 0;
     this->_bodySize = 0;
-    // this->_filename = "/tmp/" + GenerateName();
     unlink(this->_filename.c_str());
+    this->_filename = "/tmp/" + GenerateName();
     this->_headers.clear();
     this->_uri = "";
     this->_method = "";

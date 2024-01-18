@@ -64,7 +64,7 @@ class Request
         ~Request();
         Request(Request const &src);
         Request     &operator=(Request const &rhs);
-        bool        parseRequest(char *buffer, int size, int fd);
+        bool        parseRequest(char *buffer, int size);
         bool        isAssci(std::string str);
         int         parseMethod();
         long        toLong(std::string str);

@@ -214,7 +214,7 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 		}
 	}
 
-	bool isReadEnd = this->request.parseRequest(buf, readed, this->fd);
+	bool isReadEnd = this->request.parseRequest(buf, readed);
 
 	if (isBeyondMaxBodySize()) {
 		this->reqHasRead();
