@@ -67,7 +67,6 @@ void	Client::setServerInfo(std::string port, std::string host, std::string s_nam
 	this->serverInfo["PORT"] = port;
 	this->serverInfo["HOST"] = host;
 	this->serverInfo["SERVER_NAME"] = s_name;
-	this->response.setBodyFileName(this->request.getFilename());
 }
 
 void	Client::setFirstCgiEnv(void)
@@ -78,7 +77,6 @@ void	Client::setFirstCgiEnv(void)
 	this->firstCgiEnv["SERVER_NAME"] = "SERVER_NAME=" + this->serverInfo["SERVER_NAME"];
 	this->firstCgiEnv["SERVER_PORT"] = "SERVER_PORT=" + this->serverInfo["PORT"];
 	this->firstCgiEnv["SERVER_PROTOCOL"] = "SERVER_PROTOCOL=HTTP/1.1";
-	this->firstCgiEnv["REMOTE_ADDR"] = "REMOTE_ADDR=" + this->serverInfo["HOST"]; // client address
 	std::string httpHost = this->request.getHeader("host");
 	this->firstCgiEnv["HTTP_HOST"] = "HTTP_HOST=" + httpHost.substr(0, httpHost.find(':'));
 	this->firstCgiEnv["HTTP_CONNECTION"] = "HTTP_CONNECTION=" + this->request.getHeader("connection");
@@ -268,7 +266,7 @@ void	Client::send_response()
 			// this->getLog().addLog("SENDING TYPE", "OK");
 			bool isResponseEnd = false;
 			if (this->request.getMethod() == "GET")
-				isResponseEnd = this->response.get_method(this->request.getUri(), this->firstCgiEnv);
+				isResponseEnd = this->response.get_method(this->request.getUri(), this->firstCgiEnv, this->request.getFilename());
 			else if (this->request.getMethod() == "POST")
 				isResponseEnd = this->response.post_method(this->request, this->firstCgiEnv);
 			else if (this->request.getMethod() == "DELETE")

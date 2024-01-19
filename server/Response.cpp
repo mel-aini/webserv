@@ -86,11 +86,6 @@ void	Response::setLocation(Location *location) {
 	this->location = location;
 }
 
-void	Response::setBodyFileName(std::string bodyFileName)
-{
-	this->bodyFileName = bodyFileName;
-}
-
 void    Response::setSendingLevel(unsigned int level) {
 	this->sending_level = level;
 }
@@ -402,7 +397,7 @@ bool	Response::post_method(Request &request, std::map <std::string, std::string>
 	else if (this->sending_level == SENDING_HEADERS) {
 		if (!this->hasCgi())
 			throw (403);
-		this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, this->bodyFileName, firstCgiEnv, POST);
+		this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, request.getFilename(), firstCgiEnv, POST);
 		this->cgi.sendCgiHeader(this->socket);
 		this->sending_level = SENDING_BODY;
 	}
@@ -516,7 +511,7 @@ bool	Response::delete_method(std::string uri) {
 	return true;
 }
 
-bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv) {
+bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, std::string bodyFileName) {
 	if (this->sending_level == GET_REQUESTED_RES) {
 		bool isNoIndex = getRequestedResource(uri);
 		if (sending_level == SENDING_END)
@@ -536,7 +531,7 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 	if (this->sending_level == SENDING_HEADERS) {
 		if (this->hasCgi())
 		{
-			this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, this->bodyFileName, firstCgiEnv, GET);
+			this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, bodyFileName, firstCgiEnv, GET);
 			this->cgi.sendCgiHeader(this->socket);
 		}
 		else

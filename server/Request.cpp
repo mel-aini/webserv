@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: ochouikh <ochouikh@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/18 13:40:17 by hel-mamo         ###   ########.fr       */
+/*   Updated: 2024/01/19 15:26:18 by ochouikh         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -619,7 +619,6 @@ void    Request::reset()
     this->_chunkState = CHUNK_SIZE_START;
     this->_lengthState = 0;
     this->_bodySize = 0;
-    unlink(this->_filename.c_str());
     this->_filename = "/tmp/" + GenerateName();
     this->_headers.clear();
     this->_uri = "";
