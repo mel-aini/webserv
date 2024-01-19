@@ -41,7 +41,7 @@ class SimpleWebApp:
             </ul>
 
             <h2>Add New Book:</h2>
-            <form action="tt.py" method="post">
+            <form action="tt.py" method="get">
                 <label for="title">Title:</label>
                 <input type="text" id="title" name="title" required>
                 <br>
@@ -64,10 +64,12 @@ class SimpleWebApp:
 
     def run(self):
         # Simulate adding a book without user input
-        if "REQUEST_METHOD" in os.environ and os.environ["REQUEST_METHOD"] == "POST":
+        if "REQUEST_METHOD" in os.environ and os.environ["REQUEST_METHOD"] == "GET":
             form = cgi.FieldStorage()
             title = form.getvalue('title', '')
+            print(title)
             author = form.getvalue('author', '')
+            print(author)
             self.add_book(title, author)
 
         html_content = self.render_html()

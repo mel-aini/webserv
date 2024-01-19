@@ -44,8 +44,13 @@ class MyElement extends HTMLElement {
 		this.render();
 	//   this.render();
 	}
-	
 	  // there can be other element methods and properties
 }
 
 customElements.define("my-element", MyElement);
+
+/*
+	title: myReact design
+
+	a 
+*/

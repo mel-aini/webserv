@@ -4,9 +4,21 @@ Cgi::Cgi(void)
 {
 	this->offset = 0;
 	this->cL = -1;
-	this->cgiOutput = "/tmp/" + std::to_string(time(0));
+	this->cgiOutput = "/tmp/" + GenerateName();
 	while (access(this->cgiOutput.c_str(), F_OK) == 0)
-		this->cgiOutput = "/tmp/" + std::to_string(time(0));
+		this->cgiOutput = "/tmp/" + GenerateName();
+}
+
+std::string Cgi::GenerateName()
+{
+    struct timeval  tv;
+    long long       ms;
+    std::stringstream ss;
+
+    gettimeofday(&tv, NULL);
+    ms = (tv.tv_sec) * 1000 + (tv.tv_usec) / 1000;
+    ss << ms;
+    return (ss.str());
 }
 
 char**	Cgi::getCgiEnv(std::string fileToSend, std::map <std::string, std::string> firstCgiEnv)
@@ -43,7 +55,7 @@ void	freeEnv(char **env)
 void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type)
 {
 	while (access(this->cgiOutput.c_str(), F_OK) == 0)
-		this->cgiOutput = "/tmp/" + std::to_string(time(0));
+		this->cgiOutput = "/tmp/" + GenerateName();
 	char **env = this->getCgiEnv(fileToSend, firstCgiEnv);
 	char *arg[3] = {const_cast<char *>(cgiPath.c_str()), const_cast<char *>(fileToSend.c_str()), NULL};
 	pid_t	pid = fork();

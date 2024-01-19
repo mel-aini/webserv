@@ -59,6 +59,7 @@ class Client
 		void				setPollfd(struct pollfd	*pollfd);
 		void				setServerInfo(std::string port, std::string host, std::string s_name);
 		void				setFirstCgiEnv(void);
+		void				setCookies(void);
 
         bool				findLocation(std::vector<Location> &locations, std::string uri);
 		bool				readRequest(std::vector<Location> &locations);

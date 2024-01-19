@@ -105,6 +105,10 @@ void	Client::setFirstCgiEnv(void)
 	}
 }
 
+void	Client::setCookies(void)
+{
+}
+
 void	Client::setPollfd(struct pollfd	*pollfd) {
 	this->pollfd = pollfd;
 }
@@ -212,7 +216,7 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 		}
 	}
 
-	bool isReadEnd = this->request.parseRequest(buf, readed, this->fd);
+	bool isReadEnd = this->request.parseRequest(buf, readed);
 
 	if (isBeyondMaxBodySize()) {
 		this->getLog().addLog("IS BEYOND MAX BODY SIZE", "");
@@ -248,6 +252,7 @@ bool	Client::createResponse() {
 				this->response.setResponseType(ERROR);
 			}
 			this->setFirstCgiEnv();
+			this->setCookies();
 		}
 		processing_level = SENDING;
 	}

@@ -125,7 +125,7 @@ bool    Response::uploadWithBoundary(Request &request)
         if (pos != std::string::npos)
             name = headers.substr(pos + 10);
         else
-            name = headers.substr(headers.find("name=\"") + 6); 
+            name = headers.substr(headers.find("name=\"") + 6);
         name = name.substr(0, name.find("\""));
         this->fileToUpload = this->location->getUploadLocation() + "/" + name;
         if (fileExists(this->fileToUpload))
@@ -135,7 +135,7 @@ bool    Response::uploadWithBoundary(Request &request)
     if (!outputfile.is_open())
     {
         inputfile.close();
-        // unlink(request.getFilename().c_str());
+        unlink(request.getFilename().c_str());
         throw 404;
     }
 
@@ -163,7 +163,7 @@ bool    Response::uploadWithBoundary(Request &request)
         this->fileOffset += line.length() + 1;
         inputfile.close();
         outputfile.close();
-        // unlink(request.getFilename().c_str());
+        unlink(request.getFilename().c_str());
 
         this->status = 201;
         this->headers["Location: "] = this->fileToUpload;

@@ -50,8 +50,6 @@ std::string	parseOneStrArg(Tokens::iterator &it, bool & hasData, std::string nam
 			{
 				data = it->second;
 				skipSlash(data);
-				if (data[0] == '/')
-					data.erase(0, 1);
 				it += 1;
 			}
 			else

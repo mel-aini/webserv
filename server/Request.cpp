@@ -6,7 +6,7 @@
 /*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/17 15:50:21 by mel-aini         ###   ########.fr       */
+/*   Updated: 2024/01/18 18:16:57 by mel-aini         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -15,7 +15,7 @@
 
 Request::Request() : status(200), _bodySize(0), _state(START), _chunkState(CHUNK_SIZE_START), _lengthState(0)
 {
-    _filename = "/tmp/" + GenerateName();
+    this->_filename = "/tmp/" + GenerateName();
 }
 
 Request::~Request() {
@@ -359,11 +359,12 @@ int Request::readByChunk()
             if (this->_lengthState < this->_request.length())
             {
                 file << this->_request.substr(0, this->_lengthState);
-                if (file.fail()) {
+                if (file.fail())
+                {
+                    file.close();
                     this->status = 507;
                     return 0;
                 }
-
                 this->_request = this->_request.substr(this->_lengthState + 2);
                 this->_lengthState = 0;
                 this->_chunkState = CHUNK_SIZE_START;
@@ -375,7 +376,9 @@ int Request::readByChunk()
                 if (this->_lengthState > this->_request.length())
                 {
                     file << this->_request;
-                    if (file.fail()) {
+                    if (file.fail())
+                    {
+                        file.close();
                         this->status = 507;
                         return 0;
                     }
@@ -387,7 +390,9 @@ int Request::readByChunk()
                 else if (this->_lengthState == this->_request.length())
                 {
                     file << this->_request;
-                    if (file.fail()) {
+                    if (file.fail())
+                    {
+                        file.close();
                         this->status = 507;
                         return 0;
                     }
@@ -409,7 +414,9 @@ int Request::readByContentLength()
     if (this->_request.length() > this->_lengthState)
     {
         file << this->_request.substr(0, this->_lengthState);
-        if (file.fail()) {
+        if (file.fail())
+        {
+            file.close();
             this->status = 507;
             return 0;
         }
@@ -421,7 +428,9 @@ int Request::readByContentLength()
     if (this->_lengthState > 0)
     {
         file << this->_request;
-        if (file.fail()) {
+        if (file.fail())
+        {
+            file.close();
             this->status = 507;
             return 0;
         }
@@ -432,7 +441,9 @@ int Request::readByContentLength()
     else if (this->_lengthState == 0)
     {
         file << this->_request;
-        if (file.fail()) {
+        if (file.fail())
+        {
+            file.close();
             this->status = 507;
             return 0;
         }
@@ -455,7 +466,9 @@ int Request::readBoundary()
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
         this->_bodySize += this->_request.length();
         file << this->_request;
-        if (file.fail()) {
+        if (file.fail())
+        {
+            file.close();
             this->status = 507;
             return 0;
         }
@@ -473,7 +486,9 @@ int Request::readBoundary()
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
         this->_bodySize += this->_request.length();
         file << this->_request;
-        if (file.fail()) {
+        if (file.fail())
+        {
+            file.close();
             this->status = 507;
             return 0;
         }
@@ -503,9 +518,8 @@ int Request::parseMethod()
     return 1;
 }
 
-bool Request::parseRequest(char *buffer, int size, int fd)
+bool Request::parseRequest(char *buffer, int size)
 {
-    (void)fd;
     this->_request += std::string(buffer, size);
 
     if (this->_state == START)
@@ -605,7 +619,8 @@ void    Request::reset()
     this->_chunkState = CHUNK_SIZE_START;
     this->_lengthState = 0;
     this->_bodySize = 0;
-    // this->_filename = "";
+    unlink(this->_filename.c_str());
+    this->_filename = "/tmp/" + GenerateName();
     this->_headers.clear();
     this->_uri = "";
     this->_method = "";
