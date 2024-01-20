@@ -109,8 +109,10 @@ void	Server::addClient(std::vector<struct pollfd> &pollfds) {
 
 	try {
 		int clientSocket = accept(this->socket, (struct sockaddr *)&clientAddress, &s_size);
-		if (clientSocket == -1)
+		if (clientSocket == -1) {
+			std::cout << RED << "[ERROR] : CAN'T ACCEPT CONNECTION" << RESET << std::endl;
 			throw ClientFailed();
+		}
 		
 		if (fcntl(clientSocket, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1) {
 			close(clientSocket);
@@ -202,7 +204,9 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 			else if (pollfd->revents & POLLOUT) {
 				bool send_complete = it->createResponse();
 				if (send_complete) {
+					std::cout << YELLOW << "[INFO] : connection: " << it->getRequest().getHeader("connection") << RESET << std::endl;
 					if (it->getRequest().getHeader("connection") != "keep-alive") {
+						std::cout << YELLOW << "[INFO] : CLIENT REMOVED" << RESET << std::endl;
 						this->removeClient(pollfds, it);
 					} else {
 						it->resHasSent();

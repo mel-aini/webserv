@@ -240,6 +240,7 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 bool	Client::createResponse() {
 	if (processing_level == INITIAL)
 	{
+		std::cout << CYAN << "[INFO]: INIT RESPONSE" << RESET << std::endl; 
 		// this->getLog().addLog("INIT RESPONSE", "...");
 		this->response.setLocation(location);
 		if (!location || this->response.getStatus() != 200)

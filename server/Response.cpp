@@ -127,8 +127,7 @@ bool	Response::sendFile(std::string fileName)
 
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
-		std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
-		throw 404;
+		throw ConnectionClosed();
 	}
 
 	file.seekg(this->bodyOffset, std::ios::beg);
@@ -137,13 +136,13 @@ bool	Response::sendFile(std::string fileName)
 	int bytesRead = file.gcount();
 	int s = send(this->socket, buf, bytesRead, 0);
 	if (s <= 0) {
-		// this->traces.addLog("SEND", "RETURNED -1");
+		file.close();
 		throw ConnectionClosed();
 	}
 
 	bodyOffset += s;
 
-	if (file.eof() || s == 0) {
+	if (file.eof()) {
 		this->sending_level = SENDING_END;
 		file.close();
 		return true;
@@ -595,7 +594,6 @@ void	Response::reset() {
 	this->bodyOffset = 0;
 	this->sendingFile = false;
 	this->fileToSend = "";
-	// this->traces = NULL;
 }
 
 // title: exceptions
