@@ -55,7 +55,7 @@ class Response {
         std::map<std::string, std::string>  content_type;
         std::string                         fileToSend;
         std::string                         fileToUpload;
-        std::string                         bodyFileName;
+        // std::string                         bodyFileName;
         Cgi                                 cgi;
         Log                                 traces;
         std::pair<std::string, std::string> matchCgi;
@@ -77,7 +77,6 @@ class Response {
         // title: Setters
         void                            setSocket(int fd);
         void                            setSendingLevel(unsigned int level);
-        void                            setBodyFileName(std::string bodyFileName);
 
         // title: Methods
         bool                            getRequestedResource(std::string uri);
@@ -89,7 +88,7 @@ class Response {
         bool                            isInErrorPages();
         void                            redirect(const std::string& location);
         bool                            sendFile(std::string fileName);
-        bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv);
+        bool                            get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, std::string bodyFileName);
         bool                            post_method(Request &request, std::map <std::string, std::string> _headers);
         bool                            uploadPostMethod(Request &request);
         bool                            normalUpload(Request &request);

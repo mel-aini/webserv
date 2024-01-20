@@ -26,18 +26,18 @@ char**	Cgi::getCgiEnv(std::string fileToSend, std::map <std::string, std::string
 	std::map<std::string, std::string>::iterator it = firstCgiEnv.begin();
 	size_t	size = firstCgiEnv.size() + 2;
 	char	**env = new char*[size];
-	std::cout << size << std::endl;
+	// std::cout << size << std::endl;
 	size_t i = 0;
 	for (; it != firstCgiEnv.end(); it++)
 	{
-		std::cout << it->second << "         " << i << std::endl;
+		// std::cout << it->second << "         " << i << std::endl;
 		env[i] = strdup(it->second.c_str());
 		i++;
 	}
 
 	std::string	variable;
 	variable = "SCRIPT_FILENAME=" + fileToSend;
-	std::cout << variable << "                 " << i << std::endl;
+	// std::cout << variable << "                 " << i << std::endl;
 	env[i++] = strdup(variable.c_str());
 	env[i] = NULL;
 	return (env);
@@ -54,6 +54,7 @@ void	freeEnv(char **env)
 
 void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type)
 {
+	// std::cout << RED << bodyFileName << RESET << std::endl;
 	while (access(this->cgiOutput.c_str(), F_OK) == 0)
 		this->cgiOutput = "/tmp/" + GenerateName();
 	char **env = this->getCgiEnv(fileToSend, firstCgiEnv);

@@ -87,11 +87,6 @@ void	Response::setLocation(Location *location) {
 	this->location = location;
 }
 
-void	Response::setBodyFileName(std::string bodyFileName)
-{
-	this->bodyFileName = bodyFileName;
-}
-
 void    Response::setSendingLevel(unsigned int level) {
 	this->sending_level = level;
 }
@@ -127,6 +122,7 @@ bool	Response::sendFile(std::string fileName)
 
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
+		// std::cout << BOLDRED << "[ERROR] : !FILE.IS_OPEN()" << RESET << std::endl;
 		throw ConnectionClosed();
 	}
 
@@ -137,6 +133,7 @@ bool	Response::sendFile(std::string fileName)
 	int s = send(this->socket, buf, bytesRead, 0);
 	if (s <= 0) {
 		file.close();
+		// std::cout << BOLDRED << "[ERROR] : SEND <= 0" << RESET << std::endl;
 		throw ConnectionClosed();
 	}
 
@@ -214,7 +211,6 @@ bool	Response::send_response_index_files(std::string uri)
 
 	std::string	target = this->location->getRoot() + uri;
 
-	std::cout << BOLDRED << "---- target: " << target << std::endl;
 	DIR *dir = opendir(target.c_str());
 	if (!dir)
 		throw 404;
@@ -315,7 +311,7 @@ void	Response::decode_uri(std::string& uri)
 			std::stringstream ss(hexChar);
 			int c;
 			ss >> std::hex >> c;
-			std::cout << l << std::endl;
+			// std::cout << l << std::endl;
 			if (c != 0)
 			    uri = uri.substr(0, l) + static_cast<char>(c) + uri.substr(l + 3);
 		}
@@ -402,7 +398,7 @@ bool	Response::post_method(Request &request, std::map <std::string, std::string>
 	else if (this->sending_level == SENDING_HEADERS) {
 		if (!this->hasCgi())
 			throw (403);
-		this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, this->bodyFileName, firstCgiEnv, POST);
+		this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, request.getFilename(), firstCgiEnv, POST);
 		this->cgi.sendCgiHeader(this->socket);
 		this->sending_level = SENDING_BODY;
 	}
@@ -418,11 +414,9 @@ void	Response::check_dir_permission(std::string target) {
 		throw 403;
 	}
 
-	std::cout << BOLDRED << "before: " + target << RESET << std::endl;
 	DIR *dir = opendir(target.c_str());
 	if (!dir)
 		throw 404;
-	std::cout << BOLDRED << "after" << RESET << std::endl;
 	std::string oldTarget = target;
 	struct dirent *dirContent;
 	struct stat fileInfo;
@@ -446,6 +440,7 @@ void	Response::check_dir_permission(std::string target) {
 			throw 404;
 		}
 	}
+	closedir(dir);
 }
 
 void	Response::remove_dir(std::string target) {
@@ -465,18 +460,24 @@ void	Response::remove_dir(std::string target) {
 		std::string newTarget = oldTarget + "/" + dirstring;
 		if (stat(newTarget.c_str(), &fileInfo) == 0) {
 			if (S_ISREG(fileInfo.st_mode)) {
-				if (unlink(newTarget.c_str()) == -1)
+				if (unlink(newTarget.c_str()) == -1) {
+					closedir(dir);
 					throw 500;
+				}
 			}
 			else if (S_ISDIR(fileInfo.st_mode)) {
 				remove_dir(newTarget);
 			}
 		} else {
+			closedir(dir);
 			throw 404;
 		}
 	}
-	if (rmdir(target.c_str()) == -1)
+	if (rmdir(target.c_str()) == -1) {
+		closedir(dir);
 		throw 500;
+	}
+	closedir(dir);
 }
 
 bool	Response::delete_method(std::string uri) {
@@ -516,7 +517,7 @@ bool	Response::delete_method(std::string uri) {
 	return true;
 }
 
-bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv) {
+bool	Response::get_method(std::string uri, std::map <std::string, std::string> firstCgiEnv, std::string bodyFileName) {
 	if (this->sending_level == GET_REQUESTED_RES) {
 		bool isNoIndex = getRequestedResource(uri);
 		if (sending_level == SENDING_END)
@@ -536,7 +537,7 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 	if (this->sending_level == SENDING_HEADERS) {
 		if (this->hasCgi())
 		{
-			this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, this->bodyFileName, firstCgiEnv, GET);
+			this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, bodyFileName, firstCgiEnv, GET);
 			this->cgi.sendCgiHeader(this->socket);
 		}
 		else
@@ -554,10 +555,14 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 
 			sizestream << fileInfo.st_size;
 			this->headers["Content-Length: "] = sizestream.str();
-			if (sizestream.str() != "0")
+			if (fileInfo.st_size != 0)
 				this->headers["Content-Type: "] = getContentType(this->fileToSend);
 
 			send_status_line_and_headers();
+			if (fileInfo.st_size == 0) {
+				this->sending_level = SENDING_END;
+				return true;
+			}
 			file.close();
 		}
 		this->sending_level = SENDING_BODY;
@@ -656,7 +661,7 @@ void    Response::log_res_level()
 }
 
 void    Response::log_response() {
-	std::cout << BOLDGREEN << "[DONE][" << this->socket << "]: http response: # " << RESET;
+	// std::cout << BOLDGREEN << "[DONE][" << this->socket << "]: http response: # " << RESET;
 	std::cout << "HTTP/1.1 " << this->status << " " + this->status_codes[this->status] << " | ";
 
 	std::string headers;

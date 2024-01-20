@@ -110,7 +110,7 @@ void	Server::addClient(std::vector<struct pollfd> &pollfds) {
 	try {
 		int clientSocket = accept(this->socket, (struct sockaddr *)&clientAddress, &s_size);
 		if (clientSocket == -1) {
-			std::cout << RED << "[ERROR] : CAN'T ACCEPT CONNECTION" << RESET << std::endl;
+			// std::cout << RED << "[ERROR] : CAN'T ACCEPT CONNECTION" << RESET << std::endl;
 			throw ClientFailed();
 		}
 		
@@ -197,16 +197,18 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 		it->setPollfd(pollfd);
 		try {
 			if (pollfd->revents & POLLIN) {
+				// std::cout << CYAN << "[INFO] : POLLIN EVENT" << RESET << std::endl;
 				bool read_complete = it->readRequest(this->locations);
 				if (read_complete && !this->hostsMatch(it))
 					this->findRelatedHost(it);
 			}
 			else if (pollfd->revents & POLLOUT) {
+				// std::cout << CYAN << "[INFO] : POLLOUT EVENT" << RESET << std::endl;
 				bool send_complete = it->createResponse();
 				if (send_complete) {
-					std::cout << YELLOW << "[INFO] : connection: " << it->getRequest().getHeader("connection") << RESET << std::endl;
+					// std::cout << YELLOW << "[INFO] : connection: " << it->getRequest().getHeader("connection") << RESET << std::endl;
 					if (it->getRequest().getHeader("connection") != "keep-alive") {
-						std::cout << YELLOW << "[INFO] : CLIENT REMOVED" << RESET << std::endl;
+						// std::cout << YELLOW << "[INFO] : CLIENT REMOVED" << RESET << std::endl;
 						this->removeClient(pollfds, it);
 					} else {
 						it->resHasSent();
@@ -214,6 +216,7 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 				}
 			}
 			else if (pollfd->revents & POLLHUP) {
+				// std::cout << CYAN << "[INFO] : POLLHUP EVENT" << RESET << std::endl;
 				this->removeClient(pollfds, it);
 			}
 			else {

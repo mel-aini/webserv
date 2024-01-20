@@ -1,15 +1,3 @@
-/* ************************************************************************** */
-/*                                                                            */
-/*                                                        :::      ::::::::   */
-/*   Request.cpp                                        :+:      :+:    :+:   */
-/*                                                    +:+ +:+         +:+     */
-/*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
-/*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/18 18:16:57 by mel-aini         ###   ########.fr       */
-/*                                                                            */
-/* ************************************************************************** */
-
 #include "Request.hpp"
 #include <unistd.h>
 
@@ -619,7 +607,6 @@ void    Request::reset()
     this->_chunkState = CHUNK_SIZE_START;
     this->_lengthState = 0;
     this->_bodySize = 0;
-    unlink(this->_filename.c_str());
     this->_filename = "/tmp/" + GenerateName();
     this->_headers.clear();
     this->_uri = "";

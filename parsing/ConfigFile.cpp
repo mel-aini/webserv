@@ -58,7 +58,8 @@ std::string	parseOneStrArg(Tokens::iterator &it, bool & hasData, std::string nam
 	}
 	else if (it->first == WORD && (it + 1)->first == END_OF_LINE)
 	{
-		if (isAlnum(it->second))
+		std::string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=";
+		if (it->second.find_first_not_of(allowed) == std::string::npos)
 		{
 			data = it->second;
 			it += 1;
