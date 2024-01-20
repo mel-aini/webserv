@@ -1,3 +1,15 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   Request.cpp                                        :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
+/*   Updated: 2024/01/20 13:08:02 by mel-aini         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
 #include "Request.hpp"
 #include <unistd.h>
 
@@ -283,7 +295,7 @@ int Request::readHeaders()
         if (ss2.peek() == ' ')// skip the space after the :
             ss2.seekg(1, ss2.cur);
         std::getline(ss2, value, '\r');
-        // std::cout << BLUE << value << RESET << std::endl;
+        std::cout << BLUE << value << RESET << std::endl;
         std::transform(key.begin(), key.end(), key.begin(), ::tolower);
         this->currentHeaderKey = key;
         this->currentHeaderValue = trimSpacesAndTabs(value);
@@ -296,7 +308,7 @@ int Request::readHeaders()
     }
     if (!this->getReadingMethod())
         return 0;
-    // printRequest();
+    printRequest();
     return 1;
 }
 

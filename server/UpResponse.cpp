@@ -67,6 +67,7 @@ bool    Response::normalUpload(Request &request)
     std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
     if (!outputfile.is_open())
     {
+        inputfile.close();
         unlink(request.getFilename().c_str());
         throw 404;
     }
@@ -75,7 +76,11 @@ bool    Response::normalUpload(Request &request)
     inputfile.read(buffer, 10000);
     outputfile.write(buffer, inputfile.gcount());
     if (outputfile.fail())
+    {
+        inputfile.close();
+        outputfile.close();
         throw 507;
+    }
     this->fileOffset += inputfile.gcount();
     if (this->fileOffset == request.getBodysize())
     {
@@ -144,7 +149,11 @@ bool    Response::uploadWithBoundary(Request &request)
             break ;
         outputfile << line + "\n";
         if (outputfile.fail())
+        {
+            inputfile.close();
+            outputfile.close();
             throw 507;
+        }
         this->fileOffset += line.length() + 1;
         i++;
     }
