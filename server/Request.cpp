@@ -6,7 +6,7 @@
 /*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/20 16:22:43 by hel-mamo         ###   ########.fr       */
+/*   Updated: 2024/01/21 19:50:47 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -277,10 +277,10 @@ int Request::getReadingMethod()
     return 1;
 }
 
-int Request::readHeaders()
+bool    Request::readHeaders()
 {
     if (this->_request.find("\r\n\r\n") == std::string::npos)
-        return 1;
+        return true;
     std::string headers = this->_request.substr(0, this->_request.find("\r\n\r\n"));
     std::stringstream ss(headers);
     std::string line;
@@ -301,13 +301,13 @@ int Request::readHeaders()
         if (!validateHeaderLine())
         {
             this->status = 400;
-            return 0;
+            return false;
         }
         this->_headers[this->currentHeaderKey] = this->currentHeaderValue;
     }
     if (!this->getReadingMethod())
-        return 0;
-    return 1;
+        return false;
+    return true;
 }
 
 int Request::readByChunk()
@@ -537,8 +537,13 @@ bool Request::parseRequest(char *buffer, int size)
     {
         if (readHeaders())
         {
-            if (!this->_request.length())
+            if (!this->_request.length() && this->_lengthState)
                 return false;
+            else if (this->_lengthState == 0)
+            {
+                this->_state = END;
+                return true;
+            }
         }
         else
             return true;
