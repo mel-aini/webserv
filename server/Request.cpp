@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/22 10:31:39 by mel-aini         ###   ########.fr       */
+/*   Updated: 2024/01/22 10:43:02 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -543,8 +543,9 @@ bool Request::parseRequest(char *buffer, int size)
         {
             if (!this->_request.length() && this->_lengthState)
                 return false;
-            else if (this->_lengthState == 0)
+            else if (!this->_lengthState && this->_state == CONTENT_LENGTH)
             {
+                this->status = 400;
                 this->_state = END;
                 return true;
             }
