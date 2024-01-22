@@ -77,7 +77,7 @@ class Request
         bool        isHostExists();
         int         readByChunk();
         int         readByContentLength();
-        int         readHeaders();
+        bool        readHeaders();
         int         readBoundary();
         int         validateRequestLine();
         int         validateHeaderLine();
