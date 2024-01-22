@@ -6,7 +6,7 @@
 /*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/22 10:56:41 by hel-mamo         ###   ########.fr       */
+/*   Updated: 2024/01/22 13:00:01 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -627,7 +627,6 @@ void    Request::reset()
     this->_chunkState = CHUNK_SIZE_START;
     this->_lengthState = 0;
     this->_bodySize = 0;
-    this->_filename = "/tmp/" + GenerateName();
     this->_headers.clear();
     this->_uri = "";
     this->_method = "";
