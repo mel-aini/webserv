@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
+/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/22 10:31:39 by mel-aini         ###   ########.fr       */
+/*   Updated: 2024/01/22 13:00:01 by hel-mamo         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -271,6 +271,12 @@ int Request::getReadingMethod()
     {
         this->_state = CONTENT_LENGTH;
         this->_lengthState = this->getContentLenght();
+        if (this->_lengthState == 0)
+        {
+            this->status = 400;
+            this->_state = END;
+            return 0;
+        }
         this->_bodySize = this->_lengthState; 
     }
     else
@@ -541,13 +547,8 @@ bool Request::parseRequest(char *buffer, int size)
     {
         if (readHeaders())
         {
-            if (!this->_request.length() && this->_lengthState)
+            if (!this->_request.length())
                 return false;
-            else if (this->_lengthState == 0)
-            {
-                this->_state = END;
-                return true;
-            }
         }
         else
             return true;
@@ -626,7 +627,6 @@ void    Request::reset()
     this->_chunkState = CHUNK_SIZE_START;
     this->_lengthState = 0;
     this->_bodySize = 0;
-    this->_filename = "/tmp/" + GenerateName();
     this->_headers.clear();
     this->_uri = "";
     this->_method = "";
