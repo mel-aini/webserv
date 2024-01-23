@@ -370,7 +370,8 @@ bool	Response::hasCgi(void)
 	std::vector<std::pair<std::string, std::string> >::iterator it = cgiExec.begin();
 	for (; it != cgiExec.end(); it++)
 	{
-		if (it->second == this->fileToSend.substr(this->fileToSend.rfind('.')))
+		size_t ptPos = this->fileToSend.rfind('.');
+		if (ptPos != std::string::npos && it->second == this->fileToSend.substr(ptPos))
 		{
 			this->matchCgi = *it;
 			return (true);

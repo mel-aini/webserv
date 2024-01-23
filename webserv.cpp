@@ -40,11 +40,6 @@ int main(int ac, char* av[])
             perror("poll");
             continue;
         }
-        else if (fds == 0) {
-            // then: no event occurs in that specified time
-            // std::cout << "no event occurs in that specified time" << std::endl;
-            continue;
-        }
         try  {
             global.checkAndProcessFd();
         }
