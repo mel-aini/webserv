@@ -54,7 +54,6 @@ void	freeEnv(char **env)
 
 void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type)
 {
-	std::cout << RED << bodyFileName << RESET << std::endl;
 	while (access(this->cgiOutput.c_str(), F_OK) == 0)
 		this->cgiOutput = "/tmp/" + GenerateName();
 	char **env = this->getCgiEnv(fileToSend, firstCgiEnv);

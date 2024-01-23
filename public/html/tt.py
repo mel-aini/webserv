@@ -67,9 +67,7 @@ class SimpleWebApp:
         if "REQUEST_METHOD" in os.environ and os.environ["REQUEST_METHOD"] == "GET":
             form = cgi.FieldStorage()
             title = form.getvalue('title', '')
-            print(title)
             author = form.getvalue('author', '')
-            print(author)
             self.add_book(title, author)
 
         html_content = self.render_html()
