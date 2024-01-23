@@ -112,7 +112,7 @@ void Global::create_servers()
 		}
 
         it->setSocket(sockfd);
-    
+
         int optval = 1;
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) == -1) {
             perror("setsockopt");

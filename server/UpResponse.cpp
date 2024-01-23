@@ -58,12 +58,14 @@ bool    Response::normalUpload(Request &request)
    
     std::ifstream inputfile(request.getFilename().c_str(), std::ios::in);
     if (!inputfile.is_open()) {
+        std::cout << request.getFilename() << std::endl;
         throw 404;
     }
     
     std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
     if (!outputfile.is_open())
     {
+        std::cout << this->fileToUpload<< std::endl;
         inputfile.close();
         unlink(request.getFilename().c_str());
         throw 404;

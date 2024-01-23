@@ -128,11 +128,10 @@ bool	Client::methodIsAllowed(std::vector<std::string> &allowMethods, std::string
 
 bool	Client::checkLogTime()
 {
-	if (this->response.getSendingLevel() == INITIAL) {
-		this->logtime = time(0) - this->logtime_start;
-		if (this->logtime >= CLIENT_TIMEOUT) {
-			return true;
-		}
+	this->logtime = time(0) - this->logtime_start;
+	if (this->logtime >= CLIENT_TIMEOUT) {
+		std::cout << "client timeout" << std::endl;
+		return true;
 	}
 	return false;
 }
@@ -197,7 +196,7 @@ bool    Client::isBeyondMaxBodySize() {
 }
 
 bool	Client::readRequest(std::vector<Location> &locations) {
-	this->logtime = 0;
+	this->logtime_start = time(0);
 
 	char buf[1024] = {0};
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
@@ -228,6 +227,7 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 		// this->getLog().addLog("REQUEST URI", this->request.getUri());
 		// std::cout << BOLDRED << "[" << this->getFd() << "][URI]: " << this->request.getUri() << RESET << std::endl;
 		// request.printRequest();
+		std::cout << "req red -> status : " << this->request.getStatus() << std::endl;
 		this->reqHasRead();
 		if (!this->location)
 			findLocation(locations, this->request.getUri());
@@ -238,6 +238,7 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 }
 
 bool	Client::createResponse() {
+	this->logtime_start = time(0);
 	if (processing_level == INITIAL)
 	{
 		// std::cout << CYAN << "[INFO] : INIT RESPONSE" << RESET << std::endl; 

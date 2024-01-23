@@ -118,7 +118,7 @@ void	Server::addClient(std::vector<struct pollfd> &pollfds) {
 			close(clientSocket);
 			throw ClientFailed();
 		}
-
+		std::cout << YELLOW << "[NEW] : CONNECTION" << RESET << std::endl;
 		Client newClient(clientSocket, clientAddress);
 		newClient.setServerInfo(this->port, this->host, this->serverName);
 		this->clients.push_back(newClient);
@@ -197,13 +197,13 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 		it->setPollfd(pollfd);
 		try {
 			if (pollfd->revents & POLLIN) {
-				std::cout << CYAN << "[INFO] : POLLIN EVENT" << RESET << std::endl;
+				// std::cout << CYAN << "[INFO] : POLLIN EVENT" << RESET << std::endl;
 				bool read_complete = it->readRequest(this->locations);
 				if (read_complete && !this->hostsMatch(it))
 					this->findRelatedHost(it);
 			}
 			else if (pollfd->revents & POLLOUT) {
-				std::cout << CYAN << "[INFO] : POLLOUT EVENT" << RESET << std::endl;
+				// std::cout << CYAN << "[INFO] : POLLOUT EVENT" << RESET << std::endl;
 				bool send_complete = it->createResponse();
 				if (send_complete) {
 					// std::cout << YELLOW << "[INFO] : connection: " << it->getRequest().getHeader("connection") << RESET << std::endl;
@@ -216,7 +216,7 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 				}
 			}
 			else if (pollfd->revents & POLLHUP) {
-				std::cout << CYAN << "[INFO] : POLLHUP EVENT" << RESET << std::endl;
+				// std::cout << CYAN << "[INFO] : POLLHUP EVENT" << RESET << std::endl;
 				this->removeClient(pollfds, it);
 			}
 			else {
