@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" href="style.css">
+	<title>Document</title>
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+</head>
+<body>
+	<!-- welcome section -->
+	<section class="welcome">
+		<div>
+			<h1>WEBSERV</h1>
+			<span>vBeta</span>
+		</div>
+		<p>Lorem ipsum dolor, sit amet consectetur adipisicing elit.</p>
+	</section>
+	<!-- test upload -->
+	<section class="try-catch">
+		<h1 class="keyword try">try <span class="bracket">{</span></h1>
+		<!-- content -->
+		<div class="content">
+			<!-- Static websites -->
+			<div class="scope">
+				<h1 class="open">Static websites {</h1>
+				<div class="scope-content">
+					<span class="expand material-symbols-outlined">expand_more</span>
+					<div>
+						<div class="comment-state">
+							<span class="comment">/*</span>
+							<span class="comment">*/</span>
+						</div>
+						<ul>
+							<li>website 1</li>
+							<li>website 2</li>
+							<li>website 3</li>
+						</ul>
+						<span class="comment end">*/</span>
+					</div>
+				</div>
+				<h1 class="close">}</h1>
+			</div>
+			<!-- UPLOAD -->
+			<div class="scope upload active">
+				<h1 class="open">Upload {</h1>
+					<div class="scope-content">
+					<span class="expand material-symbols-outlined">expand_more</span>
+					<div>
+						<div class="comment-state">
+							<span class="comment">/*</span>
+							<span class="comment">*/</span>
+						</div>
+						<ul>
+							<form action="/" method="post" enctype="multipart/form-data">
+								<input type="file" name="sa" id="si">
+								<button type="submit">
+									<span class="material-symbols-outlined">cloud_upload</span>
+								</button>
+							</form>
+						</ul>
+						<span class="comment end">*/</span>
+					</div>
+				</div>
+				<h1 class="close">}</h1>
+			</div>
+			<!-- UPLOAD -->
+			<!-- CGI -->
+			<div class="scope">
+				<h1 class="open">Multi CGI {</h1>
+				<div class="scope-content">
+					<span class="expand material-symbols-outlined">expand_more</span>
+					<div>
+						<div class="comment-state">
+							<span class="comment">/*</span>
+							<span class="comment">*/</span>
+						</div>
+						<ul>
+							<li><a href="../../cgi/scripts/login.php">login</a></li>
+							<li><a href="../../cgi/scripts/rand_color.php">rand_color</a></li>
+							<li><a href="../../cgi/scripts/tasks_index.php">tasks_index</a></li>
+							<li><a href="../../cgi/scripts/bookshelf.py">bookshelf</a></li>
+						</ul>
+						<span class="comment end">*/</span>
+					</div>
+				</div>
+				<h1 class="close">}</h1>
+			</div>
+		</div>
+		<!-- content -->
+		<h1 class="bracket">}</h1>
+		<h1 class="keyword catch">catch 
+			<span class="braces">(</span><span class="dots">...</span><span class="braces">)</span>
+			<span class="bracket">{</span>
+		</h1>
+		<div class="content">
+			<h2 class="message">http.<span class="send">send</span><span class="braces">(418,</span>
+				<span class="string">“I’m a teapot”</span><span class="braces">);</span>
+			</h2>
+		</div>
+		<h1 class="bracket">}</h1>
+	</section>
+	<!-- <section class="upload">
+		<h1>UPLOAD</h1>
+		<form action="/" method="post" enctype="multipart/form-data">
+			<input type="file" name="sa" id="si">
+			<button type="submit">upload</button>
+		</form>
+	</section> -->
+	<!-- test multiple cgi -->
+
+	<!-- <section class="multi-cgi">
+		<h1>MULTI-CGI</h1>
+			<ul>
+				<li><a href="../../cgi/scripts/login.php">login</a></li>
+				<li><a href="../../cgi/scripts/rand_color.php">rand_color</a></li>
+				<li><a href="../../cgi/scripts/tasks_index.php">tasks_index</a></li>
+				<li><a href="../../cgi/scripts/bookshelf.py">bookshelf</a></li>
+			</ul>
+	</section> -->
+	<script src="main.js"></script>
+</body>
+</html>

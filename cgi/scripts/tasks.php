@@ -5,12 +5,12 @@
         if (!empty($newTask) && !in_array($newTask, $tasks)) {
 			// Append the new task to the file only if it doesn't already exist
             file_put_contents('tasks.txt', $newTask . PHP_EOL, FILE_APPEND);
-            header('Location: index3.php');
+            header('Location: tasks_index.php');
             exit();
         }
 		else
 		{
-			header('Location: index3.php');
+			header('Location: tasks_index.php');
 			exit();
 		}
     }
@@ -21,7 +21,7 @@
 		// Remove the task from the file
 		$tasks = array_diff($tasks, array($taskToDelete));
 		file_put_contents('tasks.txt', implode(PHP_EOL, $tasks));
-		header('Location: index3.php');
+		header('Location: tasks_index.php');
 		exit();
 	}
 ?>
