@@ -228,6 +228,7 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 		// this->getLog().addLog("REQUEST URI", this->request.getUri());
 		// std::cout << BOLDRED << "[" << this->getFd() << "][URI]: " << this->request.getUri() << RESET << std::endl;
 		// request.printRequest();
+		std::cout << "req red -> status : " << this->request.getStatus() << std::endl;
 		this->reqHasRead();
 		if (!this->location)
 			findLocation(locations, this->request.getUri());

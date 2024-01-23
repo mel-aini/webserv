@@ -158,6 +158,7 @@ bool	Response::send_response_error()
 		std::stringstream sizestream;
 		if (this->location && this->isInErrorPages())
 		{
+			std::cout << "is in error pages" << std::endl;
 			std::string fileName = this->location->root + "/" + errPage;
 			std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 			if (file.is_open()) {
@@ -169,6 +170,8 @@ bool	Response::send_response_error()
 			}
 		}
 		if (!this->sendingFile) {
+			std::cout << "is not in error pages" << std::endl;
+			std::cout << this->status << std::endl;
 			std::string message = this->getStatusMessage();
 			HtmlTemplate htmlErrorPage(this->status, message);
 			sizestream << htmlErrorPage.getHtml().size();
@@ -179,12 +182,10 @@ bool	Response::send_response_error()
 		send_status_line_and_headers();
 		this->sending_level = SENDING_BODY;
 	}
-	if (this->sending_level == SENDING_BODY)
+	else if (this->sending_level == SENDING_BODY)
 	{
 		if (this->sendingFile) {
-			if (this->sendFile(this->location->root + "/" + this->errPage))
-				return true;
-			return false;
+			return this->sendFile(this->location->root + "/" + this->errPage);
 		}
 		else {
 			std::string message = this->getStatusMessage();
@@ -193,15 +194,13 @@ bool	Response::send_response_error()
 			const std::string& response = htmlErrorPage.getHtml();
 
 			const char *buf = response.c_str();
-			if (send(this->socket, buf, response.size(), 0) == -1)
-				throw ResponseFailed();
+			if (send(this->socket, buf, response.size(), 0) <= 0)
+				throw ConnectionClosed();
 
 			this->sending_level = SENDING_END;
 		}
 	}
-	else if (this->sending_level == SENDING_END)
-		return true;
-	return false;
+	return this->sending_level == SENDING_END;
 }
 
 bool	Response::send_response_index_files(std::string uri)
@@ -258,12 +257,10 @@ void	Response::send_status_line_and_headers()
 	}
 
 	std::string response = status_line + headers + "\r\n\r\n";
-
+	std::cout << response << std::endl;
 	const char *buf = response.c_str();
-	int s = send(this->socket, buf, response.size(), 0);
-	
-	if (s <= 0)
-		throw ConnectionClosed();
+	if (send(this->socket, buf, response.size(), 0) <= 0)
+		throw ConnectionClosed();	
 }
 
 void    Response::redirect(const std::string& location)
