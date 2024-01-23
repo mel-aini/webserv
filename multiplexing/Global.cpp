@@ -73,9 +73,10 @@ void Global::create_servers()
 			it->setServersEnd(this->servers.end());
 			continue;
 		}
+    
 		struct addrinfo hints, *res;
 
-        memset(&hints, 0, sizeof(hints));
+        std::memset(&hints, 0, sizeof(hints));
         hints.ai_family = AF_INET;
         hints.ai_socktype = SOCK_STREAM;
 
@@ -88,7 +89,6 @@ void Global::create_servers()
         }
         if (!res) {
             it = servers.erase(it);
-            std::cout << "getaddrinfo: failed" << std::endl;
 			if (it == servers.end())
 				break;
 			continue;

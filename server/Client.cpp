@@ -15,13 +15,13 @@ Client::Client(int fd, struct sockaddr_in address)
 	this->logtime_start = time(0);
 	this->response.setSocket(this->fd);
 
-	// std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
+	std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
     // Convert the time point to nanoseconds since the epoch
-    // std::chrono::nanoseconds nanoseconds = std::chrono::time_point_cast<std::chrono::nanoseconds>(currentTime).time_since_epoch();
+    std::chrono::nanoseconds nanoseconds = std::chrono::time_point_cast<std::chrono::nanoseconds>(currentTime).time_since_epoch();
 
-	// this->trace.setId(std::to_string(nanoseconds.count()));
-	// this->response.getTraces().setId(std::to_string(nanoseconds.count()));
-	//this->// this->trace.addLog("CONSTRUCTED", "()");
+	this->trace.setId(std::to_string(nanoseconds.count()));
+	this->response.getTraces().setId(std::to_string(nanoseconds.count()));
+	// this->// this->trace.addLog("CONSTRUCTED", "()");
 }
 
 Client::~Client() {}
@@ -149,7 +149,7 @@ bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
 	std::string tmp = (qsPos != std::string::npos) ? uri.substr(0, qsPos) : uri;
 
 	if (tmp.empty() || tmp[0] != '/') {
-		this->response.setStatus(400);
+		this->request.setStatus(400);
 		this->location = NULL;
 		return false;
 	}
@@ -159,7 +159,7 @@ bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
 	if (tmp[tmp.length() - 1] == '/')
 	{
 		if (tmp[tmp.length() - 2] == '/') {
-			this->response.setStatus(400);
+			this->request.setStatus(400);
 			this->location = NULL;
 			return false;
 		}
@@ -189,7 +189,7 @@ bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
 
 bool    Client::isBeyondMaxBodySize() {
 	if (location && this->request.getBodysize() > (location->clientMaxBodySize * MEGABYTE)) {
-		this->response.setStatus(413);
+		this->request.setStatus(413);
 		this->response.setResponseType(ERROR);
 		return true;
 	}
@@ -202,8 +202,10 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 	char buf[1024] = {0};
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed <= 0) {
+		// this->getLog().addLog("READED", "0 | -1");
 		throw RequestFailed();
 	}
+	// this->getLog().addLog("READED", "+0");
 
 	if (!this->location && this->request.getState() > METHOD) {
 		if (!findLocation(locations, this->request.getUri())) {
@@ -213,8 +215,11 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 	}
 
 	bool isReadEnd = this->request.parseRequest(buf, readed);
+	std::cout << "status: " << this->request.getStatus() << std::endl;
+	std::cout << BOLDRED << std::boolalpha << isReadEnd << RESET << std::endl;
 
-	if (isBeyondMaxBodySize()) {
+	if (this->request.getStatus() != 200 || isBeyondMaxBodySize()) {
+		// this->getLog().addLog("IS BEYOND MAX BODY SIZE", "");
 		this->reqHasRead();
 		return true;
 	}
@@ -235,10 +240,13 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 bool	Client::createResponse() {
 	if (processing_level == INITIAL)
 	{
+		// std::cout << CYAN << "[INFO] : INIT RESPONSE" << RESET << std::endl; 
 		// this->getLog().addLog("INIT RESPONSE", "...");
 		this->response.setLocation(location);
-		if (!location || this->response.getStatus() != 200)
+		if (!location || this->request.getStatus() != 200) {
+			this->response.setStatus(this->request.getStatus());
 			this->response.setResponseType(ERROR);
+		}
 		else {
 			if (!location->getRedirection().empty()) {
 				this->response.setResponseType(REDIRECT);
@@ -280,12 +288,12 @@ void	Client::send_response()
 			this->response.setResponseType(ERROR);
 		}
 	}
-	if (this->response.getResponseType() == REDIRECT) {
+	else if (this->response.getResponseType() == REDIRECT) {
 		// this->getLog().addLog("SENDING TYPE", "REDIRECT");
 		this->response.redirect(this->response.getLocation()->getRedirection());
 		this->processing_level = PROCESSED;
 	}
-	if (this->response.getResponseType() == ERROR) {
+	else if (this->response.getResponseType() == ERROR) {
 		// this->getLog().addLog("SENDING TYPE", "ERROR");
 		bool isResponseEnd = this->response.send_response_error();
 		this->processing_level = isResponseEnd ? PROCESSED : SENDING;

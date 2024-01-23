@@ -77,7 +77,7 @@ class Request
         bool        isHostExists();
         int         readByChunk();
         int         readByContentLength();
-        int         readHeaders();
+        bool        readHeaders();
         int         readBoundary();
         int         validateRequestLine();
         int         validateHeaderLine();
@@ -98,6 +98,7 @@ class Request
         State       getState() const;
         std::string getHeaderLine(std::string key);
         std::string GenerateName();
+        void        setStatus(int status);
         void        reset();
 		void		log_uri();
 

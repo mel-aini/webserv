@@ -20,7 +20,6 @@ using std::endl;
 void handleSignal(int signal) {
     if (signal == SIGPIPE) {
         std::cerr << BOLDRED << "Caught SIGPIPE signal" << RESET << std::endl;
-        // Handle the broken pipe signal here
     }
 }
 
@@ -30,8 +29,6 @@ int main(int ac, char* av[])
     global.setServers(parser(ac, av));
     global.create_servers();
 
-    // size_t  serverLifeTime = 0;
-	// size_t  serverLifeTime_start = time(0);
 
     while (true)
     {

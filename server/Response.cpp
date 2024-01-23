@@ -21,6 +21,7 @@ Response::Response()
 	status_codes[403] = "Forbidden";
 	status_codes[404] = "Not Found";
 	status_codes[405] = "Method Not Allowed";
+	status_codes[409] = "Conflict";
 	status_codes[411] = "Length Required";
 	status_codes[413] = "Payload Too Large";
 	status_codes[414] = "URI Too Long";
@@ -121,8 +122,8 @@ bool	Response::sendFile(std::string fileName)
 
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
-		std::cerr << BOLDRED << "Error: Unable to open infile" << RESET << std::endl;
-		throw 404;
+		// std::cout << BOLDRED << "[ERROR] : !FILE.IS_OPEN()" << RESET << std::endl;
+		throw ConnectionClosed();
 	}
 
 	file.seekg(this->bodyOffset, std::ios::beg);
@@ -131,13 +132,14 @@ bool	Response::sendFile(std::string fileName)
 	int bytesRead = file.gcount();
 	int s = send(this->socket, buf, bytesRead, 0);
 	if (s <= 0) {
-		// this->traces.addLog("SEND", "RETURNED -1");
+		file.close();
+		// std::cout << BOLDRED << "[ERROR] : SEND <= 0" << RESET << std::endl;
 		throw ConnectionClosed();
 	}
 
 	bodyOffset += s;
 
-	if (file.eof() || s == 0) {
+	if (file.eof()) {
 		this->sending_level = SENDING_END;
 		file.close();
 		return true;
@@ -209,7 +211,6 @@ bool	Response::send_response_index_files(std::string uri)
 
 	std::string	target = this->location->getRoot() + uri;
 
-	std::cout << BOLDRED << "---- target: " << target << std::endl;
 	DIR *dir = opendir(target.c_str());
 	if (!dir)
 		throw 404;
@@ -310,7 +311,7 @@ void	Response::decode_uri(std::string& uri)
 			std::stringstream ss(hexChar);
 			int c;
 			ss >> std::hex >> c;
-			std::cout << l << std::endl;
+			// std::cout << l << std::endl;
 			if (c != 0)
 			    uri = uri.substr(0, l) + static_cast<char>(c) + uri.substr(l + 3);
 		}
@@ -413,11 +414,9 @@ void	Response::check_dir_permission(std::string target) {
 		throw 403;
 	}
 
-	std::cout << BOLDRED << "before: " + target << RESET << std::endl;
 	DIR *dir = opendir(target.c_str());
 	if (!dir)
 		throw 404;
-	std::cout << BOLDRED << "after" << RESET << std::endl;
 	std::string oldTarget = target;
 	struct dirent *dirContent;
 	struct stat fileInfo;
@@ -441,6 +440,7 @@ void	Response::check_dir_permission(std::string target) {
 			throw 404;
 		}
 	}
+	closedir(dir);
 }
 
 void	Response::remove_dir(std::string target) {
@@ -460,18 +460,24 @@ void	Response::remove_dir(std::string target) {
 		std::string newTarget = oldTarget + "/" + dirstring;
 		if (stat(newTarget.c_str(), &fileInfo) == 0) {
 			if (S_ISREG(fileInfo.st_mode)) {
-				if (unlink(newTarget.c_str()) == -1)
+				if (unlink(newTarget.c_str()) == -1) {
+					closedir(dir);
 					throw 500;
+				}
 			}
 			else if (S_ISDIR(fileInfo.st_mode)) {
 				remove_dir(newTarget);
 			}
 		} else {
+			closedir(dir);
 			throw 404;
 		}
 	}
-	if (rmdir(target.c_str()) == -1)
+	if (rmdir(target.c_str()) == -1) {
+		closedir(dir);
 		throw 500;
+	}
+	closedir(dir);
 }
 
 bool	Response::delete_method(std::string uri) {
@@ -549,10 +555,14 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 
 			sizestream << fileInfo.st_size;
 			this->headers["Content-Length: "] = sizestream.str();
-			if (sizestream.str() != "0")
+			if (fileInfo.st_size != 0)
 				this->headers["Content-Type: "] = getContentType(this->fileToSend);
 
 			send_status_line_and_headers();
+			if (fileInfo.st_size == 0) {
+				this->sending_level = SENDING_END;
+				return true;
+			}
 			file.close();
 		}
 		this->sending_level = SENDING_BODY;
@@ -589,7 +599,6 @@ void	Response::reset() {
 	this->bodyOffset = 0;
 	this->sendingFile = false;
 	this->fileToSend = "";
-	// this->traces = NULL;
 }
 
 // title: exceptions
@@ -652,7 +661,7 @@ void    Response::log_res_level()
 }
 
 void    Response::log_response() {
-	std::cout << BOLDGREEN << "[DONE][" << this->socket << "]: http response: # " << RESET;
+	// std::cout << BOLDGREEN << "[DONE][" << this->socket << "]: http response: # " << RESET;
 	std::cout << "HTTP/1.1 " << this->status << " " + this->status_codes[this->status] << " | ";
 
 	std::string headers;
