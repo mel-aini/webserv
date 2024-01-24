@@ -26,18 +26,15 @@ char**	Cgi::getCgiEnv(std::string fileToSend, std::map <std::string, std::string
 	std::map<std::string, std::string>::iterator it = firstCgiEnv.begin();
 	size_t	size = firstCgiEnv.size() + 2;
 	char	**env = new char*[size];
-	// std::cout << size << std::endl;
 	size_t i = 0;
 	for (; it != firstCgiEnv.end(); it++)
 	{
-		// std::cout << it->second << "         " << i << std::endl;
 		env[i] = strdup(it->second.c_str());
 		i++;
 	}
 
 	std::string	variable;
 	variable = "SCRIPT_FILENAME=" + fileToSend;
-	// std::cout << variable << "                 " << i << std::endl;
 	env[i++] = strdup(variable.c_str());
 	env[i] = NULL;
 	return (env);
@@ -130,7 +127,6 @@ bool	Cgi::sendCgiHeader(int socket)
 		header = "";
 		this->offset = 0;
 	}
-	// std::cout << RED << this->offset << RESET << std::endl;
 	result.seekg(this->offset, std::ios::beg);
 	if (status.empty())
 		status = "HTTP/1.1 200 OK \r\n";
