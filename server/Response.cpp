@@ -221,13 +221,15 @@ bool	Response::sendFile(std::string fileName)
 bool	Response::send_response_error()
 {
 	// std::cout << MAGENTA << "Here!" << RESET << std::endl;
-	if (this->sending_level == GET_REQUESTED_RES)
+	if (this->sending_level == GET_REQUESTED_RES) {
+		std::cout << "[ERROR]: " << status << std::endl;
 		this->sending_level = SENDING_HEADERS;
+	}
 	if (this->sending_level == SENDING_HEADERS)
 	{
 		if (this->location && this->isInErrorPages())
 		{
-			std::cout << "is in error pages" << std::endl;
+			// std::cout << "is in error pages" << std::endl;
 			std::string fileName = this->location->getRoot() + "/" + errPage;
 			std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 			if (file.is_open()) {
@@ -248,7 +250,7 @@ bool	Response::send_response_error()
 			}
 		}
 		if (!this->sendingFile) {
-			std::cout << "not exist in error pages" << std::endl;
+			// std::cout << "not exist in error pages" << std::endl;
 			std::string message = this->getStatusMessage();
 			HtmlTemplate htmlErrorPage(this->status, message);
 			std::stringstream sizestream;
@@ -334,7 +336,7 @@ void	Response::send_status_line_and_headers()
 	}
 
 	std::string response = status_line + headers + "\r\n\r\n";
-	std::cout << response << std::endl;
+	// std::cout << response << std::endl;
 	const char *buf = response.c_str();
 	if (send(this->socket, buf, response.size(), 0) <= 0)
 		throw ConnectionClosed();	

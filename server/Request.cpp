@@ -6,7 +6,7 @@
 /*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/24 10:16:10 by mel-aini         ###   ########.fr       */
+/*   Updated: 2024/01/24 11:04:18 by mel-aini         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -462,7 +462,8 @@ int Request::readByContentLength()
         }
         this->_request = this->_request.substr(this->_lengthState);
         file.close();
-        return 1;
+        this->_state = END;
+        return 0;
     }
     this->_lengthState -= this->_request.length();
     if (this->_lengthState > 0)

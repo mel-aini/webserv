@@ -14,14 +14,6 @@ Client::Client(int fd, struct sockaddr_in address)
 	this->logtime = 0;
 	this->logtime_start = time(0);
 	this->response.setSocket(this->fd);
-
-	std::chrono::high_resolution_clock::time_point currentTime = std::chrono::high_resolution_clock::now();
-    // Convert the time point to nanoseconds since the epoch
-    std::chrono::nanoseconds nanoseconds = std::chrono::time_point_cast<std::chrono::nanoseconds>(currentTime).time_since_epoch();
-
-	this->trace.setId(std::to_string(nanoseconds.count()));
-	this->response.getTraces().setId(std::to_string(nanoseconds.count()));
-	// this->// this->trace.addLog("CONSTRUCTED", "()");
 }
 
 Client::~Client() {}
@@ -214,8 +206,6 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 	}
 
 	bool isReadEnd = this->request.parseRequest(buf, readed);
-	std::cout << "status: " << this->request.getStatus() << std::endl;
-	std::cout << BOLDRED << std::boolalpha << isReadEnd << RESET << std::endl;
 
 	if (this->request.getStatus() != 200 || isBeyondMaxBodySize()) {
 		// this->getLog().addLog("IS BEYOND MAX BODY SIZE", "");
@@ -227,7 +217,6 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 		// this->getLog().addLog("REQUEST URI", this->request.getUri());
 		// std::cout << BOLDRED << "[" << this->getFd() << "][URI]: " << this->request.getUri() << RESET << std::endl;
 		// request.printRequest();
-		std::cout << "req red -> status : " << this->request.getStatus() << std::endl;
 		this->reqHasRead();
 		if (!this->location)
 			findLocation(locations, this->request.getUri());
@@ -241,7 +230,7 @@ bool	Client::createResponse() {
 	this->logtime_start = time(0);
 	if (processing_level == INITIAL)
 	{
-		// std::cout << CYAN << "[INFO] : INIT RESPONSE" << RESET << std::endl; 
+		std::cout << CYAN << "[INFO] : INIT RESPONSE" << RESET << std::endl; 
 		// this->getLog().addLog("INIT RESPONSE", "...");
 		this->response.setLocation(location);
 		if (!location || this->request.getStatus() != 200) {
@@ -261,6 +250,7 @@ bool	Client::createResponse() {
 		processing_level = SENDING;
 	}
 	if (processing_level == SENDING) {
+		std::cout << CYAN << "[INFO] : RESPONSE SENDING" << RESET << std::endl; 
 		// this->getLog().addLog("RESPONSE SENDING", "...");
 		this->send_response();
 	}
@@ -272,6 +262,7 @@ void	Client::send_response()
 	if (this->response.getResponseType() == OK) {
 		try
 		{
+			std::cout << CYAN << "[INFO] : RESPONSE OK" << RESET << std::endl; 
 			// this->getLog().addLog("SENDING TYPE", "OK");
 			bool isResponseEnd = false;
 			if (this->request.getMethod() == "GET")
@@ -291,10 +282,12 @@ void	Client::send_response()
 	}
 	else if (this->response.getResponseType() == REDIRECT) {
 		// this->getLog().addLog("SENDING TYPE", "REDIRECT");
+		std::cout << CYAN << "[INFO] : RESPONSE REDIRECT" << RESET << std::endl; 
 		this->response.redirect(this->response.getLocation()->getRedirection());
 		this->processing_level = PROCESSED;
 	}
 	else if (this->response.getResponseType() == ERROR) {
+		std::cout << CYAN << "[INFO] : RESPONSE ERROR" << RESET << std::endl; 
 		// this->getLog().addLog("SENDING TYPE", "ERROR");
 		bool isResponseEnd = this->response.send_response_error();
 		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
