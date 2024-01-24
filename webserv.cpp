@@ -19,7 +19,7 @@ using std::endl;
 
 void handleSignal(int signal) {
     if (signal == SIGPIPE) {
-        std::cerr << BOLDRED << "Caught SIGPIPE signal" << RESET << std::endl;
+        std::cerr << BOLDRED << "[ERROR] : SIGPIPE CAUGHT" << RESET << std::endl;
     }
 }
 
@@ -46,6 +46,5 @@ int main(int ac, char* av[])
         catch(const std::exception& e) {
             std::cerr << RED << "in main: " << e.what() << RESET << std::endl;
         }
-        // serverLifeTime = time(0) - serverLifeTime_start;
     }
 }

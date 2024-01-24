@@ -122,7 +122,7 @@ bool	Client::checkLogTime()
 {
 	this->logtime = time(0) - this->logtime_start;
 	if (this->logtime >= CLIENT_TIMEOUT) {
-		std::cout << "client timeout" << std::endl;
+		std::cout << BOLDYELLOW << "[INFO] : " << BOLDRED << "CLIENT TIMEOUT" << std::endl;
 		return true;
 	}
 	return false;
@@ -230,7 +230,6 @@ bool	Client::createResponse() {
 	this->logtime_start = time(0);
 	if (processing_level == INITIAL)
 	{
-		std::cout << CYAN << "[INFO] : INIT RESPONSE" << RESET << std::endl; 
 		// this->getLog().addLog("INIT RESPONSE", "...");
 		this->response.setLocation(location);
 		if (!location || this->request.getStatus() != 200) {
@@ -250,8 +249,6 @@ bool	Client::createResponse() {
 		processing_level = SENDING;
 	}
 	if (processing_level == SENDING) {
-		std::cout << CYAN << "[INFO] : RESPONSE SENDING" << RESET << std::endl; 
-		// this->getLog().addLog("RESPONSE SENDING", "...");
 		this->send_response();
 	}
 	return processing_level == PROCESSED;
@@ -262,8 +259,6 @@ void	Client::send_response()
 	if (this->response.getResponseType() == OK) {
 		try
 		{
-			std::cout << CYAN << "[INFO] : RESPONSE OK" << RESET << std::endl; 
-			// this->getLog().addLog("SENDING TYPE", "OK");
 			bool isResponseEnd = false;
 			if (this->request.getMethod() == "GET")
 				isResponseEnd = this->response.get_method(this->request.getUri(), this->firstCgiEnv, this->request.getFilename());
@@ -281,14 +276,10 @@ void	Client::send_response()
 		}
 	}
 	else if (this->response.getResponseType() == REDIRECT) {
-		// this->getLog().addLog("SENDING TYPE", "REDIRECT");
-		std::cout << CYAN << "[INFO] : RESPONSE REDIRECT" << RESET << std::endl; 
 		this->response.redirect(this->response.getLocation()->getRedirection());
 		this->processing_level = PROCESSED;
 	}
 	else if (this->response.getResponseType() == ERROR) {
-		std::cout << CYAN << "[INFO] : RESPONSE ERROR" << RESET << std::endl; 
-		// this->getLog().addLog("SENDING TYPE", "ERROR");
 		bool isResponseEnd = this->response.send_response_error();
 		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 	}
@@ -296,6 +287,7 @@ void	Client::send_response()
 
 void	Client::reqHasRead()
 {
+	std::cout << BOLDYELLOW << "[INFO] : NEW REQUEST" << RESET << std::endl;
 	this->pollfd->events = POLLOUT | POLLHUP;
 	this->logtime_start = time(0);
 }

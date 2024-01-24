@@ -401,7 +401,6 @@ bool	Response::getRequestedResource(std::string uri)
 		uri.erase(0, 1);
 
 	std::string	target = this->location->getRoot() + uri;
-	std::cout << target << std::endl;
 	if (!this->isFileExist(target)) {
 		throw 404;
 	}
