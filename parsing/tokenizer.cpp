@@ -71,13 +71,7 @@ Tokens	tokenizer(char *file)
 			else
 				printError("invalid config file");
 		}
-		// if (tokens[tokens.size() - 1].first == WORD)
-		// {
-			tokens.push_back(tokenizeWords(END_OF_LINE, "eol"));
-		// }
+		tokens.push_back(tokenizeWords(END_OF_LINE, "eol"));
 	}
-	// cout << tokens.size() << endl;
-	// for (Tokens::iterator it = tokens.begin(); it != tokens.end(); it++)
-	// 	cout << it->first << " >>> " << it->second << endl;
 	return (tokens);
 }

@@ -163,36 +163,7 @@ std::vector<std::string>&	Location::getAllowMethods(void)
 	return (this->allowMethods);
 }
 
-std::ostream & operator<<(std::ostream & out, const Location & obj)
+size_t	Location::getClientMaxBodySize(void)
 {
-	out << " path: " << obj.path
-		<< " root: " << obj.root;
-
-	std::vector<const std::string>::iterator it1 = obj.index.begin();
-	for (; it1 != obj.index.end(); it1++)
-		out << " index: " << *it1;
-
-	out << " clientMaxBodySize: " << obj.clientMaxBodySize;
-
-	std::vector<const std::string>::iterator it3 = obj.allowMethods.begin();
-	for (; it3 != obj.allowMethods.end(); it3++)
-		out << "\nallowMethods:\n" << *it3 << std::endl;
-
-	out << " redirection: " << obj.redirection << " autoIndex: " << obj.autoIndex;
-
-	// std::vector<const std::string>::iterator it4 = obj.cgiExec.begin();
-	// for (; it4 != obj.cgiExec.end(); it4++)
-	// 	out << "\ncgiExec:\n" << *it4 << std::endl;
-
-	out << " acceptUpload: " << obj.acceptUpload << " uploadLocation: " << obj.uploadLocation << std::endl;
-
-	size_t i = 0;
-	for (; i < obj.errorPages.size(); i++)
-	{
-		out << "\nerrorPage :\n" << "path: " << obj.errorPages[i].first << std::endl;
-		size_t j = 0;
-		for (; j < obj.errorPages[i].second.size(); j++)
-			out << "code: " << obj.errorPages[i].second[j] << std::endl;
-	}
-	return (out);
+	return (this->clientMaxBodySize);
 }

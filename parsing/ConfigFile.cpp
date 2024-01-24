@@ -82,6 +82,8 @@ std::pair<std::string, std::string>	parseListen(Tokens::iterator &it, Tokens &to
 	if (hasListen)
 		printError("server " + toStr(num) + ":" + " duplicated listen");
 	it += 1;
+	if (it->first == END_OF_LINE)
+		printError("server " + toStr(num) + ":" + " listen: invalid argument");
 	for (; it != tokens.end(); it++)
 	{
 		if (it->first == WORD && isNum(it->second))
@@ -158,7 +160,7 @@ std::pair<std::string, std::vector<int> >	parseErrorPage(Tokens::iterator &it, T
 
 	it += 1;
 	std::pair<std::string, std::vector<int> >	tmpErrorPage;
-	if (isPath(it->second) && !hasFile)
+	if (!isNum(it->second) && isPath(it->second) && !hasFile)
 	{
 		hasFile = 1;
 		skipSlash(it->second);
