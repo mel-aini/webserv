@@ -18,17 +18,19 @@ class Location
 		bool													acceptUpload;
 		std::string												uploadLocation;
 		std::vector<std::pair<std::string, std::vector<int> > >	errorPages;
+		unsigned int											cgiTimeout;
 
 	public:
 		Location(void);
 		Location(std::string path, std::string root, std::vector<std::string> index, 
 			int clientMaxBodySize, std::vector<std::string> allowMethods, std::string redirection, bool autoIndex,
 				std::pair<std::string, std::string> cgiExec, bool acceptUpload,
-					std::string uploadLocation);
+					std::string uploadLocation, unsigned int cgiTimeout);
 		~Location(void);
 
 		const std::string& getRedirection() const;
 
+		void	setcgiTimeOut(unsigned int cgiTimeout);
 		void	setPath(std::string path);
 		void	setRoot(std::string root);
 		void	setIndex(std::vector<std::string> index);
@@ -41,6 +43,7 @@ class Location
 		void	setUploadLocation(std::string uploadLocation);
 		void	setErrorPages(std::pair<std::string, std::vector<int> > errorPage, std::string num);
 
+		unsigned int	getcgiTimeOut(void);
 		size_t	getClientMaxBodySize(void);
 		std::vector<std::pair<std::string, std::vector<int> > >	getErrorPages(void);
 		std::string	getPath(void);

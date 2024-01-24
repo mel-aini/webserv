@@ -61,6 +61,8 @@ Tokens	tokenizer(char *file)
 				tokens.push_back(tokenizeWords(ACCEPT_UPLOAD, "accept_upload"));
 			else if (data == "upload_location")
 				tokens.push_back(tokenizeWords(UPLOAD_LOCATION, "upload_location"));
+			else if (data == "cgi_timeout")
+				tokens.push_back(tokenizeWords(CGI_TIMEOUT, "cgi_timeout"));
 			else if (data == "#")
 			{
 				while (ss >> data);

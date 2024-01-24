@@ -9,7 +9,7 @@ Location	defLocation()
 	allowMethods.push_back("POST");
 	allowMethods.push_back("DELETE");
 	std::pair<std::string, std::string>	cgiExec;
-	return (Location("/", "public/html", index, 50, allowMethods, "", true, cgiExec, true, "public/storage"));
+	return (Location("/", "public/html", index, 50, allowMethods, "", true, cgiExec, true, "public/storage", 0));
 }
 
 std::string	parseOneStrArg(Tokens::iterator &it, bool & hasData, std::string name, int num)
@@ -226,6 +226,27 @@ int	parseClientMaxBodySize(Tokens::iterator &it, bool &hasClientMaxBodySize, int
 	return (clientMaxBodySize);
 }
 
+int	parseCgiTimeout(Tokens::iterator &it, bool &hasCgiTimeout, int num)
+{
+	int	cgiTimeout = 0;
+
+	if (hasCgiTimeout)
+		printError("location " + toStr(num) + ":" + " duplicated cgi_timeout");
+	if ((it + 1)->first == WORD && (it + 2)->first == END_OF_LINE)
+	{
+		it += 1;
+		if (isNum(it->second))
+			cgiTimeout = toInt(it->second);
+		else
+			printError("location " + toStr(num) + ":" + " cgi_timeout: numeric argument required");
+		it += 1;
+	}
+	else
+		printError("location " + toStr(num) + ":" + " cgi_timeout: invalid argument");
+	hasCgiTimeout = 1;
+	return (cgiTimeout);
+}
+
 bool	parseBool(Tokens::iterator &it, bool &hasData, std::string name, int num)
 {
 	bool	data = false;
@@ -356,6 +377,7 @@ Location	initializeLocation()
 	location.setAllowMethods(allowMethods);
 	location.setAutoIndex(false);
 	location.setAcceptUpload(false);
+	location.setcgiTimeOut(0);
 	return (location);
 }
 
@@ -503,6 +525,8 @@ std::vector<Server>	parser(int ac, char* av[])
 							tmpLocation.setAcceptUpload(parseBool(it, check.hasAcceptUpload, "accept_upload", locationNum));
 						else if (it->first == UPLOAD_LOCATION)
 							tmpLocation.setUploadLocation(parseOneStrArg(it, check.hasUploadLocation, "upload_location", locationNum));
+						else if (it->first == CGI_TIMEOUT)
+							tmpLocation.setcgiTimeOut(parseCgiTimeout(it, check.hasCgiTimeout, locationNum));
 						else if (it->first == CLOSE_BRACKET)
 						{
 							it += 1;

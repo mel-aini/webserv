@@ -2,11 +2,17 @@
 
 Cgi::Cgi(void)
 {
+	this->readyToSend = 0;
 	this->offset = 0;
 	this->cL = -1;
 	this->cgiOutput = "/tmp/" + GenerateName();
 	while (access(this->cgiOutput.c_str(), F_OK) == 0)
 		this->cgiOutput = "/tmp/" + GenerateName();
+}
+
+int	Cgi::getReadyToSend(void)
+{
+	return (this->readyToSend);
 }
 
 std::string Cgi::GenerateName()
@@ -40,26 +46,34 @@ char**	Cgi::getCgiEnv(std::string fileToSend, std::map <std::string, std::string
 	return (env);
 }
 
-void	freeEnv(char **env)
-{
-	size_t i = 0;
+// void	freeEnv(char **env)
+// {
+// 	size_t i = 0;
 
-	while (env[i])
-		delete (env[i++]);
-	delete [] (env);
+// 	while (env[i])
+// 		delete (env[i++]);
+// 	delete [] (env);
+// }
+
+void	alarm_handler(int signum) {
+	if (signum == SIGALRM)
+		std::exit(SIGALRM);
 }
 
-void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type)
+void	Cgi::executeCgi(int timeout, std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type)
 {
 	while (access(this->cgiOutput.c_str(), F_OK) == 0)
 		this->cgiOutput = "/tmp/" + GenerateName();
-	char **env = this->getCgiEnv(fileToSend, firstCgiEnv);
 	char *arg[3] = {const_cast<char *>(cgiPath.c_str()), const_cast<char *>(fileToSend.c_str()), NULL};
-	pid_t	pid = fork();
-	if (pid == -1)
+	this->pid1 = fork();
+	if (this->pid1 == -1)
 		throw 502;
-	if (pid == 0)
+	if (this->pid1 == 0)
 	{
+		if (signal(SIGALRM, alarm_handler) == SIG_ERR)
+			throw (502);
+		alarm(timeout);
+		char **env = this->getCgiEnv(fileToSend, firstCgiEnv);
 		int fdes = open(this->cgiOutput.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
 		if (fdes == -1)
 			throw 502;
@@ -78,8 +92,26 @@ void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bo
 		execve(arg[0], arg, env);
 		throw 502;
 	}
-	wait(0);
-	freeEnv(env);
+	// freeEnv(env);
+}
+
+bool	Cgi::checkTimeOut(void)
+{
+	int st;
+	int res = waitpid(this->pid1, &st, WNOHANG);
+	if (res == -1)
+		throw (500);
+	else if (res > 0)
+	{
+		if (WIFSIGNALED(st) && WTERMSIG(st) == SIGALRM)
+			throw (504);
+		else if (WIFEXITED(st) && WEXITSTATUS(st) != 0){
+			throw (502);}
+		else
+			this->readyToSend = 1;
+		return (true);
+	}
+	return (false);
 }
 
 bool	Cgi::sendCgiHeader(int socket)
@@ -174,6 +206,7 @@ bool	Cgi::sendCgiBody(int socket)
 			result.close();
 			this->offset = 0;
 			this->cL = -1;
+			this->readyToSend = 0;
 			return true;
 		}
 		result.close();
@@ -202,6 +235,7 @@ bool	Cgi::sendCgiBody(int socket)
 			result.close();
 			this->offset = 0;
 			this->cL = -1;
+			this->readyToSend = 0;
 			return true;
 		}
 	}

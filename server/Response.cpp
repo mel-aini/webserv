@@ -30,6 +30,7 @@ Response::Response()
 	status_codes[502] = "Bad Gateway";
 	status_codes[505] = "HTTP Version Not Supported";
 	status_codes[415] = "Unsupported Media Type";
+	status_codes[504] = "Gateway Timeout";
 
 	content_type[".mp3"] = "audio/mpeg";
 	content_type[".mp4"] = "video/mp4";
@@ -467,13 +468,18 @@ bool	Response::post_method(Request &request, std::map <std::string, std::string>
 			return true;
 		if (!isIndex)
 			throw (403);
-		else
+		else if (this->hasCgi())
+		{
+			this->cgi.executeCgi(this->location->getcgiTimeOut(), this->fileToSend ,this->matchCgi.first, request.getFilename(), firstCgiEnv, POST);
 			this->sending_level = SENDING_HEADERS;
+		}
 	}
 	else if (this->sending_level == SENDING_HEADERS) {
+		if (!this->cgi.getReadyToSend() && this->hasCgi())
+			if (!this->cgi.checkTimeOut())
+				return (false);
 		if (!this->hasCgi())
 			throw (403);
-		this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, request.getFilename(), firstCgiEnv, POST);
 		this->cgi.sendCgiHeader(this->socket);
 		this->sending_level = SENDING_BODY;
 	}
@@ -599,7 +605,11 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 			return true;
 
 		if (isNoIndex)
+		{
 			this->sending_level = SENDING_HEADERS;
+			if (this->hasCgi())
+				this->cgi.executeCgi(this->location->getcgiTimeOut(), this->fileToSend ,this->matchCgi.first, bodyFileName, firstCgiEnv, GET);
+		}
 
 		if (!isNoIndex) {
 			// then: autoIndex
@@ -610,12 +620,12 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 		}
 	}
 	if (this->sending_level == SENDING_HEADERS) {
-		if (this->hasCgi())
-		{
-			this->cgi.executeCgi(this->fileToSend ,this->matchCgi.first, bodyFileName, firstCgiEnv, GET);
+		if (!this->cgi.getReadyToSend() && this->hasCgi())
+			if (!this->cgi.checkTimeOut())
+				return (false);
+		if (this->cgi.getReadyToSend())
 			this->cgi.sendCgiHeader(this->socket);
-		}
-		else
+		else if (!this->hasCgi())
 		{
 			std::ifstream file(this->fileToSend.c_str(), std::ios::binary | std::ios::in);
 			if (!file.is_open())
@@ -643,11 +653,11 @@ bool	Response::get_method(std::string uri, std::map <std::string, std::string> f
 		this->sending_level = SENDING_BODY;
 	}
 	else if (this->sending_level == SENDING_BODY) {
-		if (this->hasCgi()) {
+		if (this->cgi.getReadyToSend()) {
 			if (this->cgi.sendCgiBody(this->socket))
 				this->sending_level = SENDING_END;
 		}
-		else {
+		else if (!this->hasCgi()) {
 			return this->sendFile(this->fileToSend);
 		}
 	}
