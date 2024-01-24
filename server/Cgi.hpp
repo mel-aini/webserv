@@ -13,6 +13,7 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include <signal.h>
 
 enum METHOD {
 	GET,
@@ -25,15 +26,19 @@ class Cgi
 		std::string	cgiOutput;
 		size_t		offset;
 		long long	cL;
+		int			readyToSend;
+		pid_t		pid1;
 
 	public:
 		Cgi(void);
 
 		char**		getCgiEnv(std::string fileToSend, std::map <std::string, std::string> firstCgiEnv);
-		void		executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type);
+		void		executeCgi(int timeout, std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type);
 		bool		sendCgiHeader(int socket);
 		bool		sendCgiBody(int socket);
 		std::string	GenerateName();
+		int			getReadyToSend(void);
+		bool		checkTimeOut(void);
 		class ResponseFailed : public std::exception {
 			public:
 				const char * what() const throw();

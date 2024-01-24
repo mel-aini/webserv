@@ -7,7 +7,7 @@ Location::Location()
 Location::Location(std::string path, std::string root, std::vector<std::string> index,
 int clientMaxBodySize, std::vector<std::string> allowMethods, std::string redirection, bool autoIndex,
 std::pair<std::string, std::string> cgiExec, bool acceptUpload,
-std::string uploadLocation)
+std::string uploadLocation, unsigned int cgiTimeout)
 {
 		this->path = path;
 		this->root = root;
@@ -19,6 +19,7 @@ std::string uploadLocation)
 		this->cgiExec.push_back(cgiExec);
 		this->acceptUpload = acceptUpload;
 		this->uploadLocation = uploadLocation;
+		this->cgiTimeout = cgiTimeout;
 }
 
 Location::~Location()
@@ -27,6 +28,16 @@ Location::~Location()
 
 const std::string& Location::getRedirection() const {
 	return this->redirection;
+}
+
+void	Location::setcgiTimeOut(unsigned int cgiTimeout)
+{
+	this->cgiTimeout = cgiTimeout;
+}
+
+unsigned int	Location::getcgiTimeOut(void)
+{
+	return (this->cgiTimeout);
 }
 
 void	Location::setPath(std::string path)

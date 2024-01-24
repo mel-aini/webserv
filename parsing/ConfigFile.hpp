@@ -27,6 +27,7 @@ enum {
 	ACCEPT_UPLOAD,
 	UPLOAD_LOCATION,
 	WORD,
+	CGI_TIMEOUT,
 	END_OF_LINE,
 	END_OF_BRACKET
 };
@@ -42,6 +43,7 @@ typedef struct s_ckeckDup
 	bool	hasAutoIndex;
 	bool	hasAcceptUpload;
 	bool	hasUploadLocation;
+	bool	hasCgiTimeout;
 }			t_checkDup;
 
 typedef std::vector<std::pair<int, std::string> >	Tokens;
