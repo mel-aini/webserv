@@ -63,7 +63,7 @@ void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bo
 		int fdes = open(this->cgiOutput.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
 		if (fdes == -1)
 			throw 502;
-		if (dup2(fdes, 1) == -1)
+		if (dup2(fdes, 1) == -1 || dup2(fdes, 2) == -1)
 			throw 502;
 		close(fdes);
 		if (method_type == POST)
