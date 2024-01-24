@@ -66,6 +66,7 @@ class Request
         Request     &operator=(Request const &rhs);
         bool        parseRequest(char *buffer, int size);
         bool        isAssci(std::string str);
+        bool        validVersion(std::string version);
         int         parseMethod();
         long        toLong(std::string str);
         void        printRequest();

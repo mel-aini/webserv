@@ -4,7 +4,7 @@ import json
 
 class SimpleWebApp:
     def __init__(self):
-        self.books_file_path = "public/html/books.json"
+        self.books_file_path = "cgi/scripts/books.json"
         self.load_books()
 
     def load_books(self):
@@ -41,7 +41,7 @@ class SimpleWebApp:
             </ul>
 
             <h2>Add New Book:</h2>
-            <form action="tt.py" method="get">
+            <form action="bookshelf.py" method="get">
                 <label for="title">Title:</label>
                 <input type="text" id="title" name="title" required>
                 <br>

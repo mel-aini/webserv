@@ -1,35 +1,38 @@
 NAME = webserv
 
-HEADERS = multiplexing/Global.hpp server/Server.hpp server/Client.hpp server/Location.hpp server/Request.hpp server/Response.hpp server/Cgi.hpp public/Colors.hpp \
-		parsing/ConfigFile.hpp server/HtmlTemplate.hpp server/Log.hpp
+HEADERS = $(wildcard */*.hpp) $(wildcard *.hpp)
 
-SRC = webserv.cpp server/Location.cpp server/Server.cpp server/UpResponse.cpp parsing/ConfigFile.cpp server/Request.cpp server/Response.cpp server/Cgi.cpp multiplexing/Global.cpp \
-		server/Client.cpp server/HtmlTemplate.cpp parsing/parserUtils.cpp parsing/tokenizer.cpp server/Log.cpp
+SRC = $(wildcard */*.cpp) $(wildcard *.cpp)
 
-OBJ = $(SRC:.cpp=.o)
+OBJ_DIR = obj
+OBJ = $(addprefix $(OBJ_DIR)/, $(SRC:.cpp=.o))
 
-FLAGS = -Wall -Wextra -Werror -g -std=c++98 #-fsanitize=address
+FLAGS = -Wall -Wextra -Werror -g -std=c++98
 
-all : $(NAME)
+all: $(NAME)
 
 $(NAME) : $(OBJ)
 	@c++ $(FLAGS) $(OBJ) -o $@
+	@echo "\033[32m$@ created\033[0m"
 
-%.o : %.cpp $(HEADERS)
+$(OBJ_DIR)/%.o: %.cpp $(HEADERS)
+	@mkdir -p $(dir $@)
 	@c++ $(FLAGS) -c $< -o $@
 
-clean :
-	@rm -rf $(OBJ)
+clean:
+	@rm -rf $(OBJ_DIR)
+	@echo "\033[31m$(OBJ_DIR) deleted\033[0m"
 
-fclean : clean
+fclean: clean
 	@rm -rf $(NAME)
+	@echo "\033[31m$(NAME) deleted\033[0m"
 
-re : fclean all
+re: fclean all
 
-run : cleanTraces
+run: cleanTraces
 	@./$(NAME) webser.conf
 
 cleanTraces:
 	@rm -rf Traces/*
 
-.PHONY : clean fclean re run
+.PHONY: all clean fclean re run cleanTraces

@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/22 13:00:01 by hel-mamo         ###   ########.fr       */
+/*   Updated: 2024/01/24 10:16:10 by mel-aini         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -185,6 +185,31 @@ int Request::thereIsBoundary()
     return 0;
 }
 
+bool Request::validVersion(std::string version)
+{
+    if (version.length() != 8)
+    {
+        this->status = 400;
+        return false;
+    }
+    if (std::string(version, 0, 5) != "HTTP/")
+    {
+        this->status = 400;
+        return false;
+    }
+    if (std::isdigit(version[5]) == 0 || version[6] != '.' || std::isdigit(version[7]) == 0)
+    {
+        this->status = 400;
+        return false;
+    }
+    if (version[5] != '1' || version[7] != '1')
+    {
+        this->status = 505;
+        return false;
+    }
+    return true;
+}
+
 int Request::validateRequestLine()
 {
     std::string allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~:/?#[]@!$&'()*+,;=";
@@ -195,12 +220,7 @@ int Request::validateRequestLine()
         this->status = 400;
         return 0;
     }
-    if (this->_uri.find_first_not_of(allowed) != std::string::npos)
-    {
-        this->status = 400;
-        return 0;
-    }
-    if (this->_uri[0] != '/' || this->_version != "HTTP/1.1")
+    if (this->_uri.find_first_not_of(allowed) != std::string::npos || this->_uri[0] != '/')
     {
         this->status = 400;
         return 0;
@@ -210,6 +230,8 @@ int Request::validateRequestLine()
         this->status = 414;
         return 0;
     }
+    if (!validVersion(this->_version))
+        return 0;
     return 1;
 }
 
@@ -364,6 +386,11 @@ int Request::readByChunk()
             if (this->_request.find("\r\n") == std::string::npos)
                 return 1;
             std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+            if (file.is_open() == false)
+            {
+                this->status = 404;
+                return 0;
+            }
             if (this->_lengthState < this->_request.length())
             {
                 file << this->_request.substr(0, this->_lengthState);
@@ -419,6 +446,11 @@ int Request::readByChunk()
 int Request::readByContentLength()
 {
     std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+    if (file.is_open() == false)
+    {
+        this->status = 404;
+        return 0;
+    }
     if (this->_request.length() > this->_lengthState)
     {
         file << this->_request.substr(0, this->_lengthState);
@@ -472,6 +504,11 @@ int Request::readBoundary()
     if (pos == std::string::npos)
     {
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+        if (file.is_open() == false)
+        {
+            this->status = 404;
+            return 0;
+        }
         this->_bodySize += this->_request.length();
         file << this->_request;
         if (file.fail())
@@ -492,6 +529,11 @@ int Request::readBoundary()
             return 0;
         }
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+        if (file.is_open() == false)
+        {
+            this->status = 404;
+            return 0;
+        }
         this->_bodySize += this->_request.length();
         file << this->_request;
         if (file.fail())

@@ -176,6 +176,8 @@ bool	Response::isInErrorPages()
 		for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
 			if (this->status == (unsigned int)*it2) {
 				this->errPage = it->first;
+				if (access(it->first.c_str(), F_OK | R_OK) != 0)
+					return false;
 				return true;
 			}
 		}
@@ -222,7 +224,6 @@ bool	Response::send_response_error()
 		this->sending_level = SENDING_HEADERS;
 	if (this->sending_level == SENDING_HEADERS)
 	{
-		std::stringstream sizestream;
 		if (this->location && this->isInErrorPages())
 		{
 			std::cout << "is in error pages" << std::endl;
@@ -230,22 +231,30 @@ bool	Response::send_response_error()
 			std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 			if (file.is_open()) {
 				struct stat fileInfo;
-				if (stat(fileName.c_str(), &fileInfo) == 0) {
+				if (stat(fileName.c_str(), &fileInfo) == 0)
+				{
+					std::stringstream sizestream;
 					sizestream << fileInfo.st_size;
-					this->sendingFile = true;
+					try {
+						this->headers["Content-Type: "] = getContentType(this->location->getRoot() + "/" + this->errPage);
+						this->headers["Content-Length: "] = sizestream.str();
+						this->sendingFile = true;
+					} catch (int err) {
+						(void)err;
+					}
 				}
+				file.close();
 			}
 		}
 		if (!this->sendingFile) {
-			std::cout << "is not in error pages" << std::endl;
-			std::cout << this->status << std::endl;
+			std::cout << "not exist in error pages" << std::endl;
 			std::string message = this->getStatusMessage();
 			HtmlTemplate htmlErrorPage(this->status, message);
+			std::stringstream sizestream;
 			sizestream << htmlErrorPage.getHtml().size();
+			this->headers["Content-Type: "] = "text/html";
+			this->headers["Content-Length: "] = sizestream.str();
 		}
-		this->headers["Content-Type: "] = "text/html";
-		this->headers["Content-Length: "] = sizestream.str();
-
 		send_status_line_and_headers();
 		this->sending_level = SENDING_BODY;
 	}
@@ -390,7 +399,7 @@ bool	Response::getRequestedResource(std::string uri)
 		uri.erase(0, 1);
 
 	std::string	target = this->location->getRoot() + uri;
-
+	std::cout << target << std::endl;
 	if (!this->isFileExist(target)) {
 		throw 404;
 	}

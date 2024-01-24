@@ -9,7 +9,7 @@
     <h1>To-Do List</h1>
 
     <!-- Form to add new tasks -->
-    <form action="test3.php" method="post">
+    <form action="tasks.php" method="post">
         <label for="task">Add a new task:</label>
         <input type="text" id="task" name="task" required>
         <button type="submit">Add Task</button>
@@ -23,7 +23,7 @@
         $tasks = file_exists('tasks.txt') ? file('tasks.txt', FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) : array();
 
         foreach ($tasks as $task) {
-            echo "<li>$task <a href='test3.php?delete=" . urlencode($task) . "'>Delete</a></li>";
+            echo "<li>$task <a href='tasks.php?delete=" . urlencode($task) . "'>Delete</a></li>";
         }
         ?>
     </ul>
