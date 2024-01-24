@@ -26,18 +26,15 @@ char**	Cgi::getCgiEnv(std::string fileToSend, std::map <std::string, std::string
 	std::map<std::string, std::string>::iterator it = firstCgiEnv.begin();
 	size_t	size = firstCgiEnv.size() + 2;
 	char	**env = new char*[size];
-	// std::cout << size << std::endl;
 	size_t i = 0;
 	for (; it != firstCgiEnv.end(); it++)
 	{
-		// std::cout << it->second << "         " << i << std::endl;
 		env[i] = strdup(it->second.c_str());
 		i++;
 	}
 
 	std::string	variable;
 	variable = "SCRIPT_FILENAME=" + fileToSend;
-	// std::cout << variable << "                 " << i << std::endl;
 	env[i++] = strdup(variable.c_str());
 	env[i] = NULL;
 	return (env);
@@ -54,7 +51,6 @@ void	freeEnv(char **env)
 
 void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bodyFileName, std::map <std::string, std::string> firstCgiEnv, int method_type)
 {
-	// std::cout << RED << bodyFileName << RESET << std::endl;
 	while (access(this->cgiOutput.c_str(), F_OK) == 0)
 		this->cgiOutput = "/tmp/" + GenerateName();
 	char **env = this->getCgiEnv(fileToSend, firstCgiEnv);
@@ -66,19 +62,17 @@ void	Cgi::executeCgi(std::string fileToSend, std::string cgiPath, std::string bo
 	{
 		int fdes = open(this->cgiOutput.c_str(), O_CREAT | O_RDWR | O_TRUNC, 0666);
 		if (fdes == -1)
-		{
 			throw 502;
-		}
-		dup2(fdes, 1);
+		if (dup2(fdes, 1) == -1 || dup2(fdes, 2) == -1)
+			throw 502;
 		close(fdes);
 		if (method_type == POST)
 		{
 			int fd = open(bodyFileName.c_str(), O_RDONLY);
 			if (fd == -1)
-			{
 				throw (502);
-			}
-			dup2(fd, 0);
+			if (dup2(fd, 0) == -1)
+				throw (502);
 			close(fd);
 		}
 		execve(arg[0], arg, env);
@@ -133,7 +127,6 @@ bool	Cgi::sendCgiHeader(int socket)
 		header = "";
 		this->offset = 0;
 	}
-	// std::cout << RED << this->offset << RESET << std::endl;
 	result.seekg(this->offset, std::ios::beg);
 	if (status.empty())
 		status = "HTTP/1.1 200 OK \r\n";

@@ -64,8 +64,10 @@ void	Server::setSocket(int socket) {
 
 void	Server::setListen(std::pair<std::string, std::string> listen)
 {
-	this->port = listen.first;
-	this->host = listen.second;
+	if (!listen.first.empty())
+		this->port = listen.first;
+	if (!listen.second.empty())
+		this->host = listen.second;
 }
 
 void	Server::setServerName(std::string serverName)

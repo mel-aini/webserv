@@ -179,7 +179,7 @@ bool	Client::findLocation(std::vector<Location> &locations, std::string uri)
 }
 
 bool    Client::isBeyondMaxBodySize() {
-	if (location && this->request.getBodysize() > (location->clientMaxBodySize * MEGABYTE)) {
+	if (location && this->request.getBodysize() > (location->getClientMaxBodySize() * MEGABYTE)) {
 		this->request.setStatus(413);
 		this->response.setResponseType(ERROR);
 		return true;
