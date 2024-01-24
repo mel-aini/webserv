@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   Request.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: hel-mamo <hel-mamo@student.42.fr>          +#+  +:+       +#+        */
+/*   By: mel-aini <mel-aini@student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/12/23 11:54:49 by hel-mamo          #+#    #+#             */
-/*   Updated: 2024/01/23 19:05:08 by hel-mamo         ###   ########.fr       */
+/*   Updated: 2024/01/24 10:16:10 by mel-aini         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -386,6 +386,11 @@ int Request::readByChunk()
             if (this->_request.find("\r\n") == std::string::npos)
                 return 1;
             std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+            if (file.is_open() == false)
+            {
+                this->status = 404;
+                return 0;
+            }
             if (this->_lengthState < this->_request.length())
             {
                 file << this->_request.substr(0, this->_lengthState);
@@ -441,6 +446,11 @@ int Request::readByChunk()
 int Request::readByContentLength()
 {
     std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+    if (file.is_open() == false)
+    {
+        this->status = 404;
+        return 0;
+    }
     if (this->_request.length() > this->_lengthState)
     {
         file << this->_request.substr(0, this->_lengthState);
@@ -494,6 +504,11 @@ int Request::readBoundary()
     if (pos == std::string::npos)
     {
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+        if (file.is_open() == false)
+        {
+            this->status = 404;
+            return 0;
+        }
         this->_bodySize += this->_request.length();
         file << this->_request;
         if (file.fail())
@@ -514,6 +529,11 @@ int Request::readBoundary()
             return 0;
         }
         std::ofstream file(this->_filename, std::ios::out | std::ios::app);
+        if (file.is_open() == false)
+        {
+            this->status = 404;
+            return 0;
+        }
         this->_bodySize += this->_request.length();
         file << this->_request;
         if (file.fail())
