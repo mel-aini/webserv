@@ -131,6 +131,7 @@ void	Location::setErrorPages(std::pair<std::string, std::vector<int> > errorPage
 			}
 		}
 	}
+
 	this->errorPages.push_back(errorPage);
 }
 

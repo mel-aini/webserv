@@ -170,14 +170,12 @@ void	Response::setSocket(int fd) {
 
 bool	Response::isInErrorPages()
 {
-	std::vector<std::pair<std::string, std::vector<int> > >::iterator	it;
-
-	for (it = location->getErrorPages().begin(); it != location->getErrorPages().end(); it++) {
-		std::vector<int>::iterator it2;
-		for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
-			if (this->status == (unsigned int)*it2) {
-				this->errPage = it->first;
-				if (access(it->first.c_str(), F_OK | R_OK) != 0)
+	for (size_t j = 0; j < location->getErrorPages().size(); j++) {
+		for (size_t i = 0; i < location->getErrorPages()[j].second.size(); i++) {
+			if (this->status == (unsigned int)location->getErrorPages()[j].second[i]) {
+				this->errPage = location->getErrorPages()[j].first;
+				std::string file = this->location->getRoot() + "/" + this->errPage;
+				if (access(file.c_str(), F_OK | R_OK) != 0)
 					return false;
 				return true;
 			}
