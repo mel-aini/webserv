@@ -170,8 +170,11 @@ void	Response::setSocket(int fd) {
 
 bool	Response::isInErrorPages()
 {
+	if (!location)
+		return false;
+	
 	std::vector<std::pair<std::string, std::vector<int> > >::iterator	it;
-
+	
 	for (it = location->getErrorPages().begin(); it != location->getErrorPages().end(); it++) {
 		std::vector<int>::iterator it2;
 		for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {

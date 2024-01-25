@@ -8,7 +8,8 @@ Client::Client(int fd, struct sockaddr_in address)
 	request(),
 	response(),
 	processing_level(INITIAL),
-	location(NULL)
+	location(NULL),
+	need_transfer(true)
 {
 	// set timout
 	this->logtime = 0;
@@ -50,6 +51,10 @@ Request				Client::getRequest() const {
 
 struct 				sockaddr_in Client::getAddress() const {
 	return this->address;
+}
+
+bool	Client::getNeedTransfer() const {
+	return this->need_transfer;
 }
 
 // title: setters
@@ -103,6 +108,9 @@ void	Client::setPollfd(struct pollfd	*pollfd) {
 	this->pollfd = pollfd;
 }
 
+void	Client::setNeedTransfer(bool state) {
+	this->need_transfer = state;
+}
 
 // title: methods
 
@@ -193,10 +201,8 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 	char buf[1024] = {0};
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed <= 0) {
-		// this->getLog().addLog("READED", "0 | -1");
 		throw RequestFailed();
 	}
-	// this->getLog().addLog("READED", "+0");
 
 	if (!this->location && this->request.getState() > METHOD) {
 		if (!findLocation(locations, this->request.getUri())) {
@@ -208,15 +214,11 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 	bool isReadEnd = this->request.parseRequest(buf, readed);
 
 	if (this->request.getStatus() != 200 || isBeyondMaxBodySize()) {
-		// this->getLog().addLog("IS BEYOND MAX BODY SIZE", "");
 		this->reqHasRead();
 		return true;
 	}
 
 	if (isReadEnd) {
-		// this->getLog().addLog("REQUEST URI", this->request.getUri());
-		// std::cout << BOLDRED << "[" << this->getFd() << "][URI]: " << this->request.getUri() << RESET << std::endl;
-		// request.printRequest();
 		this->reqHasRead();
 		if (!this->location)
 			findLocation(locations, this->request.getUri());

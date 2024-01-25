@@ -168,17 +168,25 @@ bool	Server::hostsMatch(std::vector<Client>::iterator& it)
 
 void	Server::transferClient(std::vector<Client>::iterator& it)
 {
+	// it->
 	this->clients.push_back(*it);
 }
 
 void	Server::findRelatedHost(std::vector<Client>::iterator& it)
 {
+	if (this->hostsMatch(it)) {
+		it->setNeedTransfer(false);
+		return;
+	}
+
 	std::vector<Server>::iterator server = this->getServersBegin();
 	std::vector<Server>::iterator end = this->getServersEnd();
 
 	for (; server != end; server++) {
 		if (this->getPort() == server->getPort() && this->getHost() == server->getHost()) {
 			if (server->hostsMatch(it)) {
+				it->findLocation(server->locations, it->getRequest().getUri());
+				it->setNeedTransfer(false);
 				server->transferClient(it);
 				size_t index = std::distance(this->clients.begin(), it);
 				this->clients.erase(this->clients.begin() + index);
@@ -200,8 +208,8 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 		it->setPollfd(pollfd);
 		try {
 			if (pollfd->revents & POLLIN) {
-				bool read_complete = it->readRequest(this->locations);
-				if (read_complete && !this->hostsMatch(it))
+				it->readRequest(this->locations);
+				if (it->getNeedTransfer())
 					this->findRelatedHost(it);
 			}
 			else if (pollfd->revents & POLLOUT) {

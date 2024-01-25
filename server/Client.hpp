@@ -39,6 +39,7 @@ class Client
 		std::map<std::string, std::string>	serverInfo;
 		std::map<std::string, std::string>	firstCgiEnv;
 		Location							*location;
+		bool								need_transfer;
 
 	public:
 		Client(int fd, struct sockaddr_in address);
@@ -54,13 +55,15 @@ class Client
 		Response			getResponse() const;
 		int					getProcessing_level() const;
 		Location			*getLocation() const;
-
+		bool				getNeedTransfer() const;
+	
 		// title: setters
 		void				setPollfd(struct pollfd	*pollfd);
 		void				setServerInfo(std::string port, std::string host, std::string s_name);
 		void				setFirstCgiEnv(void);
 		void				setCookies(void);
-
+		void				setNeedTransfer(bool state);
+	
         bool				findLocation(std::vector<Location> &locations, std::string uri);
 		bool				readRequest(std::vector<Location> &locations);
 		bool				createResponse();
