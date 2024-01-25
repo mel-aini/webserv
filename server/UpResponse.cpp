@@ -50,9 +50,14 @@ bool    Response::normalUpload(Request &request)
     if (this->index == 0)
     {    
         std::string      name;
+        std::string      extension;
 
         name = request.getFilename().substr(request.getFilename().find_last_of("/") + 1);
-        this->fileToUpload = this->location->getUploadLocation() + "/" + name + "." + getExtension(request.getContentType());
+        extension = getExtension(request.getContentType());
+        if (extension != "")
+            this->fileToUpload = this->location->getUploadLocation() + "/" + name + "." + extension;
+        else
+            this->fileToUpload = this->location->getUploadLocation() + "/" + name;
         this->index++;
     }
    
