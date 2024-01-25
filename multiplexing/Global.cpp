@@ -30,16 +30,23 @@ int	Global::isAlreadyUsed(std::string host, std::string port, int index)
 {
 	std::vector<Server>::iterator it;
 	std::vector<Server>::iterator begin;
-	
+	int retSocket = -1;
 	begin = this->servers.begin();
 	for (it = begin; it != this->servers.end() && it - begin < index; it++) {
 		if (it->getPort() == port) {
 			if (it->getHost() == host)
-				return it->getSocket();
+				retSocket = it->getSocket();
 			else if (it->getHost() == "localhost" && host == "127.0.0.1")
-				return it->getSocket();
+				retSocket = it->getSocket();
 			else if (it->getHost() == "127.0.0.1" && host == "localhost")
-				return it->getSocket();
+				retSocket = it->getSocket();
+			break;
+		}
+	}
+	std::vector<struct pollfd>::iterator it2 = this->pollfds.begin();
+	for (; it2 != this->pollfds.end(); it2++) {
+		if (it2->fd == retSocket) {
+			return retSocket;
 		}
 	}
 	return -1;
@@ -73,7 +80,6 @@ void Global::create_servers()
 			it->setServersEnd(this->servers.end());
 			continue;
 		}
-    
 		struct addrinfo hints, *res;
 
         std::memset(&hints, 0, sizeof(hints));
@@ -105,6 +111,7 @@ void Global::create_servers()
 		
         if (fcntl(sockfd, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1) {
 			perror("fcntl");
+			close(sockfd);
             it = servers.erase(it);
             if (it == servers.end())
 				break;
@@ -158,7 +165,7 @@ void Global::create_servers()
 
         std::cout << "a server is listening on: " << YELLOW << it->getHost() + ":" + it->getPort() << RESET << std::endl;
     }
-    if (servers.size() == 0) {
+    if (pollfds.size() == 0) {
         std::cerr << "No Server has created" << std::endl;
         std::exit(EXIT_FAILURE);
     }

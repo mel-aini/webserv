@@ -170,17 +170,12 @@ void	Response::setSocket(int fd) {
 
 bool	Response::isInErrorPages()
 {
-	if (!location)
-		return false;
-	
-	std::vector<std::pair<std::string, std::vector<int> > >::iterator	it;
-	
-	for (it = location->getErrorPages().begin(); it != location->getErrorPages().end(); it++) {
-		std::vector<int>::iterator it2;
-		for (it2 = it->second.begin(); it2 != it->second.end(); it2++) {
-			if (this->status == (unsigned int)*it2) {
-				this->errPage = it->first;
-				if (access(it->first.c_str(), F_OK | R_OK) != 0)
+	for (size_t j = 0; j < location->getErrorPages().size(); j++) {
+		for (size_t i = 0; i < location->getErrorPages()[j].second.size(); i++) {
+			if (this->status == (unsigned int)location->getErrorPages()[j].second[i]) {
+				this->errPage = location->getErrorPages()[j].first;
+				std::string file = this->location->getRoot() + "/" + this->errPage;
+				if (access(file.c_str(), F_OK | R_OK) != 0)
 					return false;
 				return true;
 			}
@@ -195,7 +190,6 @@ bool	Response::sendFile(std::string fileName)
 
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
-		// std::cout << BOLDRED << "[ERROR] : !FILE.IS_OPEN()" << RESET << std::endl;
 		throw ConnectionClosed();
 	}
 
@@ -206,7 +200,6 @@ bool	Response::sendFile(std::string fileName)
 	int s = send(this->socket, buf, bytesRead, 0);
 	if (s <= 0) {
 		file.close();
-		// std::cout << BOLDRED << "[ERROR] : SEND <= 0" << RESET << std::endl;
 		throw ConnectionClosed();
 	}
 
@@ -225,7 +218,6 @@ bool	Response::send_response_error()
 {
 	// std::cout << MAGENTA << "Here!" << RESET << std::endl;
 	if (this->sending_level == GET_REQUESTED_RES) {
-		std::cout << "[ERROR]: " << status << std::endl;
 		this->sending_level = SENDING_HEADERS;
 	}
 	if (this->sending_level == SENDING_HEADERS)

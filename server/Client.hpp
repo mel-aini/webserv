@@ -15,7 +15,7 @@
 #include "Log.hpp"
 #include <chrono>
 
-#define CLIENT_TIMEOUT 5
+#define CLIENT_TIMEOUT 60
 #define MEGABYTE 1048576
 
 enum proccess_response {

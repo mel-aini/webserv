@@ -310,6 +310,7 @@ void	Client::reset()
 	this->location = NULL;
 	this->logtime = 0;
 	this->logtime_start = time(0);
+	this->need_transfer = true;
 }
 
 // title : log methods

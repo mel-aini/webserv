@@ -9,7 +9,7 @@ Location	defLocation()
 	allowMethods.push_back("POST");
 	allowMethods.push_back("DELETE");
 	std::pair<std::string, std::string>	cgiExec;
-	return (Location("/", "public/html", index, 50, allowMethods, "", true, cgiExec, true, "public/storage", 0));
+	return (Location("/", "public/", index, 50, allowMethods, "", true, cgiExec, true, "public/storage", 0));
 }
 
 std::string	parseOneStrArg(Tokens::iterator &it, bool & hasData, std::string name, int num)

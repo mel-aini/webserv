@@ -112,7 +112,6 @@ void	Server::addClient(std::vector<struct pollfd> &pollfds) {
 	try {
 		int clientSocket = accept(this->socket, (struct sockaddr *)&clientAddress, &s_size);
 		if (clientSocket == -1) {
-			// std::cout << RED << "[ERROR] : CAN'T ACCEPT CONNECTION" << RESET << std::endl;
 			throw ClientFailed();
 		}
 		
@@ -174,8 +173,10 @@ void	Server::transferClient(std::vector<Client>::iterator& it)
 
 void	Server::findRelatedHost(std::vector<Client>::iterator& it)
 {
+	// std::cout << BOLDCYAN << "[DEBUG] : FINDING RELATED HOST" << RESET << std::endl;
 	if (this->hostsMatch(it)) {
 		it->setNeedTransfer(false);
+		// std::cout << BOLDCYAN << "[DEBUG] : MATCH WITH CURRENT HOST" << RESET << std::endl;
 		return;
 	}
 
@@ -185,7 +186,10 @@ void	Server::findRelatedHost(std::vector<Client>::iterator& it)
 	for (; server != end; server++) {
 		if (this->getPort() == server->getPort() && this->getHost() == server->getHost()) {
 			if (server->hostsMatch(it)) {
+				// std::cout << BOLDCYAN << "[DEBUG] : ANOTHER HOST FOUND" << RESET << std::endl;
+				// std::cout << "before transfer: " << it->getLocation()->getRoot() << std::endl;
 				it->findLocation(server->locations, it->getRequest().getUri());
+				// std::cout << "after transfer: " << it->getLocation()->getRoot() << std::endl;
 				it->setNeedTransfer(false);
 				server->transferClient(it);
 				size_t index = std::distance(this->clients.begin(), it);
@@ -215,9 +219,9 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 			else if (pollfd->revents & POLLOUT) {
 				bool send_complete = it->createResponse();
 				if (send_complete) {
-					// std::cout << YELLOW << "[INFO] : connection: " << it->getRequest().getHeader("connection") << RESET << std::endl;
+					std::cout << YELLOW << "[INFO] : connection: " << it->getRequest().getHeader("connection") << RESET << std::endl;
 					if (it->getRequest().getHeader("connection") != "keep-alive") {
-						// std::cout << YELLOW << "[INFO] : CLIENT REMOVED" << RESET << std::endl;
+						std::cout << YELLOW << "[INFO] : CLIENT REMOVED" << RESET << std::endl;
 						this->removeClient(pollfds, it);
 					} else {
 						it->resHasSent();
@@ -225,6 +229,7 @@ bool Server::processFd(std::vector<struct pollfd> &pollfds, struct pollfd *pollf
 				}
 			}
 			else if (pollfd->revents & POLLHUP) {
+				std::cout << YELLOW << "[INFO] : POLLHUP" << RESET << std::endl;
 				this->removeClient(pollfds, it);
 			}
 			else {
