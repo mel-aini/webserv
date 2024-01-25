@@ -75,7 +75,7 @@ void	Client::setFirstCgiEnv(void)
 	this->firstCgiEnv["HTTP_ACCEPT"] = "HTTP_ACCEPT=" + this->request.getHeader("accept");
 	this->firstCgiEnv["HTTP_USER_AGENT"] = "HTTP_USER_AGENT=" + this->request.getHeader("user-agent");
 	this->firstCgiEnv["HTTP_COOKIE"] = "HTTP_COOKIE=" + this->request.getHeader("cookie");
-	this->firstCgiEnv["REDIRECT_STATUS"] = "REDIRECT_STATUS=0";
+	this->firstCgiEnv["REDIRECT_STATUS"] = "REDIRECT_STATUS=200";
 	this->firstCgiEnv["REQUEST_URI"] = "REQUEST_URI=" + uri;
 	this->firstCgiEnv["DOCUMENT_ROOT"] = "DOCUMENT_ROOT=" + this->location->getRoot();
 	this->firstCgiEnv["PATH_INFO"] = "PATH_INFO=" + uri;
