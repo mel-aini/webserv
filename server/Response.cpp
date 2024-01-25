@@ -190,7 +190,6 @@ bool	Response::sendFile(std::string fileName)
 
 	std::ifstream file(fileName.c_str(), std::ios::binary | std::ios::in);
 	if (!file.is_open()) {
-		// std::cout << BOLDRED << "[ERROR] : !FILE.IS_OPEN()" << RESET << std::endl;
 		throw ConnectionClosed();
 	}
 
@@ -201,7 +200,6 @@ bool	Response::sendFile(std::string fileName)
 	int s = send(this->socket, buf, bytesRead, 0);
 	if (s <= 0) {
 		file.close();
-		// std::cout << BOLDRED << "[ERROR] : SEND <= 0" << RESET << std::endl;
 		throw ConnectionClosed();
 	}
 
@@ -220,7 +218,6 @@ bool	Response::send_response_error()
 {
 	// std::cout << MAGENTA << "Here!" << RESET << std::endl;
 	if (this->sending_level == GET_REQUESTED_RES) {
-		std::cout << "[ERROR]: " << status << std::endl;
 		this->sending_level = SENDING_HEADERS;
 	}
 	if (this->sending_level == SENDING_HEADERS)
@@ -400,7 +397,6 @@ bool	Response::getRequestedResource(std::string uri)
 		uri.erase(0, 1);
 
 	std::string	target = this->location->getRoot() + uri;
-	std::cout << target << std::endl;
 	if (!this->isFileExist(target)) {
 		throw 404;
 	}

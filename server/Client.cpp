@@ -8,7 +8,8 @@ Client::Client(int fd, struct sockaddr_in address)
 	request(),
 	response(),
 	processing_level(INITIAL),
-	location(NULL)
+	location(NULL),
+	need_transfer(true)
 {
 	// set timout
 	this->logtime = 0;
@@ -50,6 +51,10 @@ Request				Client::getRequest() const {
 
 struct 				sockaddr_in Client::getAddress() const {
 	return this->address;
+}
+
+bool	Client::getNeedTransfer() const {
+	return this->need_transfer;
 }
 
 // title: setters
@@ -103,6 +108,9 @@ void	Client::setPollfd(struct pollfd	*pollfd) {
 	this->pollfd = pollfd;
 }
 
+void	Client::setNeedTransfer(bool state) {
+	this->need_transfer = state;
+}
 
 // title: methods
 
@@ -122,7 +130,7 @@ bool	Client::checkLogTime()
 {
 	this->logtime = time(0) - this->logtime_start;
 	if (this->logtime >= CLIENT_TIMEOUT) {
-		std::cout << "client timeout" << std::endl;
+		std::cout << BOLDYELLOW << "[INFO] : " << BOLDRED << "CLIENT TIMEOUT" << std::endl;
 		return true;
 	}
 	return false;
@@ -193,10 +201,8 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 	char buf[1024] = {0};
 	int readed = recv(this->fd, buf, sizeof(buf), 0);
 	if (readed <= 0) {
-		// this->getLog().addLog("READED", "0 | -1");
 		throw RequestFailed();
 	}
-	// this->getLog().addLog("READED", "+0");
 
 	if (!this->location && this->request.getState() > METHOD) {
 		if (!findLocation(locations, this->request.getUri())) {
@@ -208,15 +214,11 @@ bool	Client::readRequest(std::vector<Location> &locations) {
 	bool isReadEnd = this->request.parseRequest(buf, readed);
 
 	if (this->request.getStatus() != 200 || isBeyondMaxBodySize()) {
-		// this->getLog().addLog("IS BEYOND MAX BODY SIZE", "");
 		this->reqHasRead();
 		return true;
 	}
 
 	if (isReadEnd) {
-		// this->getLog().addLog("REQUEST URI", this->request.getUri());
-		// std::cout << BOLDRED << "[" << this->getFd() << "][URI]: " << this->request.getUri() << RESET << std::endl;
-		// request.printRequest();
 		this->reqHasRead();
 		if (!this->location)
 			findLocation(locations, this->request.getUri());
@@ -230,7 +232,6 @@ bool	Client::createResponse() {
 	this->logtime_start = time(0);
 	if (processing_level == INITIAL)
 	{
-		std::cout << CYAN << "[INFO] : INIT RESPONSE" << RESET << std::endl; 
 		// this->getLog().addLog("INIT RESPONSE", "...");
 		this->response.setLocation(location);
 		if (!location || this->request.getStatus() != 200) {
@@ -250,8 +251,6 @@ bool	Client::createResponse() {
 		processing_level = SENDING;
 	}
 	if (processing_level == SENDING) {
-		std::cout << CYAN << "[INFO] : RESPONSE SENDING" << RESET << std::endl; 
-		// this->getLog().addLog("RESPONSE SENDING", "...");
 		this->send_response();
 	}
 	return processing_level == PROCESSED;
@@ -262,8 +261,6 @@ void	Client::send_response()
 	if (this->response.getResponseType() == OK) {
 		try
 		{
-			std::cout << CYAN << "[INFO] : RESPONSE OK" << RESET << std::endl; 
-			// this->getLog().addLog("SENDING TYPE", "OK");
 			bool isResponseEnd = false;
 			if (this->request.getMethod() == "GET")
 				isResponseEnd = this->response.get_method(this->request.getUri(), this->firstCgiEnv, this->request.getFilename());
@@ -281,14 +278,10 @@ void	Client::send_response()
 		}
 	}
 	else if (this->response.getResponseType() == REDIRECT) {
-		// this->getLog().addLog("SENDING TYPE", "REDIRECT");
-		std::cout << CYAN << "[INFO] : RESPONSE REDIRECT" << RESET << std::endl; 
 		this->response.redirect(this->response.getLocation()->getRedirection());
 		this->processing_level = PROCESSED;
 	}
 	else if (this->response.getResponseType() == ERROR) {
-		std::cout << CYAN << "[INFO] : RESPONSE ERROR" << RESET << std::endl; 
-		// this->getLog().addLog("SENDING TYPE", "ERROR");
 		bool isResponseEnd = this->response.send_response_error();
 		this->processing_level = isResponseEnd ? PROCESSED : SENDING;
 	}
@@ -296,6 +289,7 @@ void	Client::send_response()
 
 void	Client::reqHasRead()
 {
+	std::cout << BOLDYELLOW << "[INFO] : NEW REQUEST" << RESET << std::endl;
 	this->pollfd->events = POLLOUT | POLLHUP;
 	this->logtime_start = time(0);
 }
@@ -316,6 +310,7 @@ void	Client::reset()
 	this->location = NULL;
 	this->logtime = 0;
 	this->logtime_start = time(0);
+	this->need_transfer = true;
 }
 
 // title : log methods

@@ -19,7 +19,7 @@ using std::endl;
 
 void handleSignal(int signal) {
     if (signal == SIGPIPE) {
-        std::cerr << BOLDRED << "Caught SIGPIPE signal" << RESET << std::endl;
+        std::cerr << BOLDRED << "[ERROR] : SIGPIPE CAUGHT" << RESET << std::endl;
     }
 }
 
@@ -35,7 +35,7 @@ int main(int ac, char* av[])
         // std::cout << "server life time: " << BOLDRED << serverLifeTime << RESET << std::endl;
         signal(SIGPIPE, handleSignal);
 
-        int fds = poll(global.getPollfds().data(), global.getPollfds().size(), 30000);
+        int fds = poll(global.getPollfds().data(), global.getPollfds().size(), 60000);
         if (fds == -1) {
             perror("poll");
             continue;
@@ -44,8 +44,7 @@ int main(int ac, char* av[])
             global.checkAndProcessFd();
         }
         catch(const std::exception& e) {
-            std::cerr << RED << "in main: " << e.what() << RESET << std::endl;
+            std::cerr << RED << e.what() << RESET << std::endl;
         }
-        // serverLifeTime = time(0) - serverLifeTime_start;
     }
 }

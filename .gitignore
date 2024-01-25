@@ -5,6 +5,7 @@
 */*.o
 webserv
 a.out
+obj
 
 # web pages
 public/carvilla
