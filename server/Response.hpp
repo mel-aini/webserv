@@ -34,6 +34,12 @@ enum response_state {
     REDIRECT,
 };
 
+enum boundary_state {
+    START_BOUNDARY,
+    HEADER_BOUNDARY,
+    MIDDLE_BOUNDARY,
+};
+
 class Response {
     private:
         unsigned int                        status;
@@ -55,7 +61,8 @@ class Response {
         std::map<std::string, std::string>  content_type;
         std::string                         fileToSend;
         std::string                         fileToUpload;
-        // std::string                         bodyFileName;
+        boundary_state                      boundaryState;
+        std::string                         bodyReaded;
         Cgi                                 cgi;
         Log                                 traces;
         std::pair<std::string, std::string> matchCgi;

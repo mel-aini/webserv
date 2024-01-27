@@ -170,3 +170,9 @@ void Global::create_servers()
         std::exit(EXIT_FAILURE);
     }
 }
+
+void handleSignal(int signal) {
+    if (signal == SIGPIPE) {
+        std::cerr << BOLDRED << "[ERROR] : SIGPIPE CAUGHT" << RESET << std::endl;
+    }
+}

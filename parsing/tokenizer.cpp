@@ -15,7 +15,7 @@ Tokens	tokenizer(char *file)
 	std::string	tmp;
 	std::ifstream	infile(file);
 	if (!infile.is_open())
-		printError("config file is not exist");
+		printError("config file not exist");
 	std::string	data;
 	std::stringstream	ss;
 

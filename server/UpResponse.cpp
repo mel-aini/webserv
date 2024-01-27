@@ -108,83 +108,100 @@ bool    Response::normalUpload(Request &request)
 bool    Response::uploadWithBoundary(Request &request)
 {
     std::string boundary = "--" + request.getBoundary();
-    std::string line;
-    std::fstream inputfile(request.getFilename().c_str(), std::ios::in);
-    if (!inputfile.is_open())
-        throw 404;
+    //std::string endBoundary = boundary + "--\r\n";
+    if (this->index == 0) {
+        char        buffer[10000];
+        std::fstream inputfile(request.getFilename().c_str(), std::ios::in);
+        if (!inputfile.is_open())
+            throw 404;
+        inputfile.seekg(this->fileOffset);
+        inputfile.read(buffer, 10000);
+        this->fileOffset += inputfile.gcount();
+        this->bodyReaded += std::string(buffer, inputfile.gcount());
+        this->index++;
+    }
 
-    inputfile.seekg(this->fileOffset);
-    if (this->index == 0)
-    {
-        std::getline(inputfile, line);
-        this->fileOffset += line.length() + 1;
-        line += "\n";
+    if (this->boundaryState == START_BOUNDARY) {
+        size_t  pos = this->bodyReaded.find(boundary);
+        if (pos != std::string::npos) {
+            this->boundaryState = HEADER_BOUNDARY;
+            this->bodyReaded = this->bodyReaded.substr(pos + boundary.length() + 2);
+        }
+    }
+
+    if (this->boundaryState == HEADER_BOUNDARY) {
         std::string headers;
-        while (std::getline(inputfile, line))
-        {
-            if (line == "\r")
-                break;
-            headers += line + "\n";
-        }
-        this->fileOffset += headers.length() + 2;
-        std::string name;
-        size_t      pos = headers.find("filename=\"");
+        size_t  pos = this->bodyReaded.find("\r\n\r\n");
         if (pos != std::string::npos)
-            name = headers.substr(pos + 10);
-        else
-            name = headers.substr(headers.find("name=\"") + 6);
-        name = name.substr(0, name.find("\""));
-        this->fileToUpload = this->location->getUploadLocation() + "/" + name;
-        if (fileExists(this->fileToUpload))
-            this->fileToUpload = generateNewFileName(this->fileToUpload);
-    }
-    std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
-    if (!outputfile.is_open())
-    {
-        inputfile.close();
-        unlink(request.getFilename().c_str());
-        throw 404;
-    }
-
-    int i = 0;
-    while (std::getline(inputfile, line))
-    {
-        if (line.find(boundary) != std::string::npos || i > 1000)
-            break ;
-        outputfile << line + "\n";
-        if (outputfile.fail())
         {
-            inputfile.close();
-            outputfile.close();
-            throw 507;
+            headers = this->bodyReaded.substr(0, pos);
+            this->bodyReaded = this->bodyReaded.substr(pos + 4);
+            std::string name;
+            size_t      posf = headers.find("filename=\"");
+            if (posf != std::string::npos)
+                name = headers.substr(posf + 10);
+            else
+                name = headers.substr(headers.find("name=\"") + 6);
+            name = name.substr(0, name.find("\""));
+            this->fileToUpload = this->location->getUploadLocation() + "/" + name;
+            if (fileExists(this->fileToUpload))
+                this->fileToUpload = generateNewFileName(this->fileToUpload);
+            this->boundaryState = MIDDLE_BOUNDARY;
         }
-        this->fileOffset += line.length() + 1;
-        i++;
     }
-    if (i > 1000)
-    {
-        inputfile.close();
-        outputfile.close();
-        this->index = 1;
-        return false;
-    }
-    if (line.find(boundary + "--") != std::string::npos)
-    {
-        this->index = 0;
-        this->fileOffset += line.length() + 1;
-        inputfile.close();
-        outputfile.close();
-        unlink(request.getFilename().c_str());
 
-        this->status = 201;
-        this->headers["Location: "] = this->fileToUpload;
-        this->headers["Content-Length: "] = "0";
-        send_status_line_and_headers();
-        return true;
+    if (this->boundaryState == MIDDLE_BOUNDARY) {
+        std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
+        if (!outputfile.is_open())
+        {
+            outputfile.close();
+            throw 404;
+        }
+        size_t  pos = this->bodyReaded.find(boundary);
+        if (pos != std::string::npos) {
+            std::string body = this->bodyReaded.substr(0, pos - 2);
+            this->bodyReaded = this->bodyReaded.substr(pos + boundary.length());
+            if (this->bodyReaded == "--\r\n")
+            {
+                outputfile << body;
+                if (outputfile.fail())
+                {
+                    outputfile.close();
+                    throw 507;
+                }
+                this->bodyReaded = "";
+                this->index = 0;
+                outputfile.close();
+                this->status = 201;
+                this->headers["Location: "] = this->fileToUpload;
+                this->headers["Content-Length: "] = "0";
+                send_status_line_and_headers();
+                return true;
+            }
+            outputfile << body;
+            if (outputfile.fail())
+            {
+                outputfile.close();
+                throw 507;
+            }
+            this->boundaryState = HEADER_BOUNDARY;
+            this->index = 0;
+            outputfile.close();
+            return (uploadWithBoundary(request));
+        }
+        else
+        {
+            outputfile << this->bodyReaded;
+            if (outputfile.fail())
+            {
+                outputfile.close();
+                throw 507;
+            }
+            this->bodyReaded = "";
+            this->index = 0;
+        }
+        outputfile.close();
     }
-    this->index = 0;
-    inputfile.close();
-    outputfile.close();
     return false;
 }
 
