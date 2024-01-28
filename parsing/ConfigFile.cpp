@@ -327,8 +327,6 @@ std::pair<std::string, std::string>	parseCgiExec(Tokens::iterator &it, int num)
 {
 	std::pair<std::string, std::string>	cgiExec;
 
-	// if (hasCgiExec)
-	// 	printError("location " + toStr(num) + ":" + " duplicated cgi_exec");
 	if ((it + 1)->first == WORD && (it + 2)->first == WORD && (it + 3)->first == END_OF_LINE)
 	{
 		it += 1;
@@ -344,21 +342,6 @@ std::pair<std::string, std::string>	parseCgiExec(Tokens::iterator &it, int num)
 	else
 		printError("location " + toStr(num) + ":" + "cgi_exec: argument must be \'path of the program\' then \'extension\'");
 	return (cgiExec);
-}
-
-std::pair<std::string, std::vector<int> >	defErrorPage()
-{
-	std::pair<std::string, std::vector<int> >	defErrorPage;
-	std::vector<int>	tmpCodes;
-
-	tmpCodes.push_back(400);
-	tmpCodes.push_back(401);
-	tmpCodes.push_back(402);
-	tmpCodes.push_back(403);
-	tmpCodes.push_back(404);
-	defErrorPage.first = "err.html";
-	defErrorPage.second = tmpCodes;
-	return (defErrorPage);
 }
 
 Location	initializeLocation()
@@ -538,8 +521,6 @@ std::vector<Server>	parser(int ac, char* av[])
 					}
 					if (!check.locationHasCloseBracket)
 						printError("location " + toStr(locationNum) + " : close bracket required");
-					if (tmpLocation.getErrorPages().size() == 0)
-						tmpLocation.setErrorPages(defErrorPage(), toStr(locationNum));
 					tmpServer.setLocations(tmpLocation, toStr(serverNum));
 				}
 				else if (it->first == CLOSE_BRACKET)

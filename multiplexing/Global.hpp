@@ -36,3 +36,4 @@ class Global
 		int		isAlreadyUsed(std::string host, std::string port, int index);
 };
 
+void handleSignal(int signal);
