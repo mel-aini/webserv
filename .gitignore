@@ -7,14 +7,6 @@ webserv
 a.out
 obj
 
-# web pages
-public/carvilla
-public/digitf
-public/fonicy
-public/hightech
-public/omar
-public/storage
-
 # scripts for testing
 con.java
 con.class
