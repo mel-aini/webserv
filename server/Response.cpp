@@ -11,7 +11,8 @@ Response::Response()
 	fileOffset(0),
 	index(0),
 	sendingFile(false),
-	fileToUpload("")
+	fileToUpload(""),
+	boundaryState(START_BOUNDARY)
 {
 	status_codes[200] = "OK";
 	status_codes[201] = "Created";
