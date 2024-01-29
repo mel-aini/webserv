@@ -179,7 +179,7 @@ bool	Cgi::sendCgiHeader(int socket)
 
 	result.close();
 	const char *buf = header.c_str();
-	if (send(socket, buf, header.length(), 0) == -1)
+	if (send(socket, buf, header.length(), 0) <= 0)
 		throw ResponseFailed();
 	return (true);
 }
@@ -199,7 +199,7 @@ bool	Cgi::sendCgiBody(int socket)
 		result.read(buf, sizeof(buf));
 		int bytesRead = result.gcount();
 		int s = send(socket, buf, bytesRead, 0);
-		if (s == -1)
+		if (s <= 0)
 			throw ResponseFailed();
 		this->offset += s;
 		if (result.eof()) {
@@ -219,7 +219,7 @@ bool	Cgi::sendCgiBody(int socket)
 			result.read(buf, sizeof(buf));
 			int bytesRead = result.gcount();
 			int s = send(socket, buf, bytesRead, 0);
-			if (s == -1)
+			if (s <= 0)
 				throw ResponseFailed();
 			this->offset += s;
 			result.close();
@@ -230,7 +230,7 @@ bool	Cgi::sendCgiBody(int socket)
 			result.read(buf, this->cL);
 			int bytesRead = result.gcount();
 			int s = send(socket, buf, bytesRead, 0);
-			if (s == -1)
+			if (s <= 0)
 				throw ResponseFailed();
 			result.close();
 			this->offset = 0;

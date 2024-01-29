@@ -1,0 +1,31 @@
+.vscode
+*/.vscode
+.DS_Store
+*/.DS_Store
+*/*.o
+webserv
+a.out
+obj
+
+# scripts for testing
+con.java
+con.class
+break.sh
+
+# tester
+break.sh
+tester
+cgi_tester
+YoupiBanane
+
+key
+test
+test_backup
+
+go.class
+go.java
+reder.class
+reder.java
+stop.sh
+
+Traces

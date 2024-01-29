@@ -63,16 +63,13 @@ bool    Response::normalUpload(Request &request)
    
     std::ifstream inputfile(request.getFilename().c_str(), std::ios::in);
     if (!inputfile.is_open()) {
-        std::cout << request.getFilename() << std::endl;
         throw 404;
     }
     
     std::ofstream outputfile(this->fileToUpload.c_str(), std::ios::out | std::ios::app);
     if (!outputfile.is_open())
     {
-        std::cout << this->fileToUpload<< std::endl;
         inputfile.close();
-        unlink(request.getFilename().c_str());
         throw 404;
     }
 
@@ -92,7 +89,6 @@ bool    Response::normalUpload(Request &request)
         this->fileOffset = 0;
         inputfile.close();
         outputfile.close();
-        unlink(request.getFilename().c_str());
 
         this->status = 201;
         this->headers["Location: "] = this->fileToUpload;
@@ -108,7 +104,6 @@ bool    Response::normalUpload(Request &request)
 bool    Response::uploadWithBoundary(Request &request)
 {
     std::string boundary = "--" + request.getBoundary();
-    //std::string endBoundary = boundary + "--\r\n";
     if (this->index == 0) {
         char        buffer[10000];
         std::fstream inputfile(request.getFilename().c_str(), std::ios::in);
@@ -119,6 +114,7 @@ bool    Response::uploadWithBoundary(Request &request)
         this->fileOffset += inputfile.gcount();
         this->bodyReaded += std::string(buffer, inputfile.gcount());
         this->index++;
+        inputfile.close();
     }
 
     if (this->boundaryState == START_BOUNDARY) {

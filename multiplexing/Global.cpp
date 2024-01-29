@@ -103,6 +103,7 @@ void Global::create_servers()
         sockfd = socket(res->ai_family, res->ai_socktype, res->ai_protocol);
         if (sockfd == -1) {
             perror("sockfd");
+			freeaddrinfo(res);
             it = servers.erase(it);
             if (it == servers.end())
 				break;
@@ -112,6 +113,7 @@ void Global::create_servers()
         if (fcntl(sockfd, F_SETFL, O_NONBLOCK, FD_CLOEXEC) == -1) {
 			perror("fcntl");
 			close(sockfd);
+			freeaddrinfo(res);
             it = servers.erase(it);
             if (it == servers.end())
 				break;
@@ -124,6 +126,7 @@ void Global::create_servers()
         if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)) == -1) {
             perror("setsockopt");
             close(sockfd);
+			freeaddrinfo(res);
             it = servers.erase(it);
             if (it == servers.end())
 				break;
@@ -133,6 +136,7 @@ void Global::create_servers()
         if (bind(sockfd, res->ai_addr, res->ai_addrlen) == -1) {
             perror("bind");
             close(sockfd);
+			freeaddrinfo(res);
             it = servers.erase(it);
             if (it == servers.end())
 				break;
