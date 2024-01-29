@@ -45,7 +45,7 @@ std::string    Response::getExtension(std::string filename)
 
 bool    Response::normalUpload(Request &request)
 {
-    char    buffer[10000];
+    char    buffer[10000] = {0};
 
     if (this->index == 0)
     {    
@@ -105,7 +105,7 @@ bool    Response::uploadWithBoundary(Request &request)
 {
     std::string boundary = "--" + request.getBoundary();
     if (this->index == 0) {
-        char        buffer[10000];
+        char        buffer[10000] = {0};
         std::fstream inputfile(request.getFilename().c_str(), std::ios::in);
         if (!inputfile.is_open())
             throw 404;
