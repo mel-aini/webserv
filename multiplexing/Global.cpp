@@ -1,6 +1,6 @@
 #include "Global.hpp"
 
-Global::Global() : nfds(0) {}
+Global::Global() {}
 
 Global::~Global() {}
 
@@ -23,7 +23,6 @@ void	Global::setServers(std::vector<Server> servers) {
 
 void	Global::monitorFd(struct pollfd fd) {
 	this->pollfds.push_back(fd);
-	this->nfds++;
 }
 
 int	Global::isAlreadyUsed(std::string host, std::string port, int index)

@@ -17,7 +17,6 @@ class Global
 	private:
 		std::vector<Server>			servers;
 		std::vector<struct pollfd>	pollfds;
-		nfds_t						nfds;
 
 	public:
 		Global();
