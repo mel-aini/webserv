@@ -7,7 +7,7 @@ SRC = $(wildcard */*.cpp) $(wildcard *.cpp)
 OBJ_DIR = obj
 OBJ = $(addprefix $(OBJ_DIR)/, $(SRC:.cpp=.o))
 
-FLAGS = -Wall -Wextra -Werror -std=c++98
+FLAGS = -Wall -Wextra -Werror -std=c++98 -fsanitize=address
 
 all: $(NAME)
 
