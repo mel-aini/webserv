@@ -568,7 +568,7 @@ bool	Response::delete_method(std::string uri) {
 
 	if (!isFileExist(target))
 		throw 404;
-	
+
 	struct stat fileInfo;
 
 	if (stat(target.c_str(), &fileInfo) != 0)

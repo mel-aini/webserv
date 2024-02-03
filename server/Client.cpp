@@ -100,10 +100,6 @@ void	Client::setFirstCgiEnv(void)
 	}
 }
 
-void	Client::setCookies(void)
-{
-}
-
 void	Client::setPollfd(struct pollfd	*pollfd) {
 	this->pollfd = pollfd;
 }
@@ -246,7 +242,6 @@ bool	Client::createResponse() {
 				this->response.setResponseType(ERROR);
 			}
 			this->setFirstCgiEnv();
-			this->setCookies();
 		}
 		processing_level = SENDING;
 	}
